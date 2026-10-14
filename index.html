@@ -150,6 +150,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .vital i { display: block; height: 100%; border-radius: 99px; transition: width .6s ease; }
 .vital em { font-style: normal; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
 #v-hp i { background: var(--hp); } #v-mp i { background: var(--mp); } #v-sta i { background: var(--sta); }
+#v-emp i { background: linear-gradient(90deg, #ffb3c8, #ff6fa0); }
 .chips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 50%; }
 .chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px 5px 7px; border-radius: 99px; background: color-mix(in srgb, var(--surface) 82%, transparent); border: 1px solid var(--line); font: 700 13px/1 var(--f-body); font-variant-numeric: tabular-nums; backdrop-filter: blur(6px); }
 button.chip { cursor: pointer; }
@@ -179,6 +180,7 @@ button.chip { cursor: pointer; }
 .replies button { border: 0; border-radius: 99px; padding: 6px 12px; font: 600 13px/1 var(--f-body); background: #f1e6ee; color: #5a2a43; }
 .replies button:first-child { background: var(--ember); color: var(--ember-ink); }
 .replies button:hover { filter: brightness(1.05); }
+.replies button.cold { background: #e9e9ef; color: #6b6878; }
 
 /* El cielo de la ventana sigue la hora real; de noche la pieza se oscurece y la lámpara manda. */
 .room[data-sky="day"] { --sky-top: #8fc6f2; --sky-bot: #d8ecfa; --orb: #ffd76a; --star-op: 0; --hill: #9cc79a; }
@@ -266,6 +268,21 @@ button.chip { cursor: pointer; }
 #e-facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
 #e-facts b { display: block; font: 700 18px/1.1 var(--f-display); font-variant-numeric: tabular-nums; }
 #e-facts span { font-size: 11.5px; color: var(--muted); }
+
+.bond-top { display: flex; justify-content: space-between; align-items: baseline; }
+.bond-top b { font: 800 20px/1.1 var(--f-display); }
+.bond-top span { font: 700 13px/1 var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.bond-bar { position: relative; height: 10px; margin-top: 8px; border-radius: 99px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
+.bond-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: linear-gradient(90deg, #ffb3c8, #ff6fa0); }
+.bond-bar s { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--surface); opacity: .8; }
+.bond-desc { font-size: 13.5px; color: var(--muted); margin: 8px 0 0; }
+.bond-ratio { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.bond-ratio b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bond-h { margin: 12px 0 6px; font: 700 11.5px/1.2 var(--f-body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.panel.bond { grid-column: 1 / -1; }
+.lessons { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.lessons li { display: grid; gap: 2px; font-size: 13px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); }
+.lessons span { color: var(--muted); }
 
 /* ---------- Menú ---------- */
 .menu-list { display: grid; gap: 10px; max-width: 640px; }
@@ -484,6 +501,7 @@ body.can-ask .ask { display: grid; gap: 6px; }
           <div class="vital" id="v-hp" role="img"><span>HP</span><span class="vt"><i></i></span><em>100</em></div>
           <div class="vital" id="v-mp" role="img"><span>MP</span><span class="vt"><i></i></span><em>0</em></div>
           <div class="vital" id="v-sta" role="img"><span>STA</span><span class="vt"><i></i></span><em>0</em></div>
+          <div class="vital" id="v-emp" role="img"><span>EMP</span><span class="vt"><i></i></span><em>35</em></div>
           <div class="status" id="h-status" aria-label="Efectos de hoy"></div>
         </div>
       </div>
@@ -532,6 +550,7 @@ body.can-ask .ask { display: grid; gap: 6px; }
   <h2 class="sec-t"><span>Atributos</span></h2>
   <div class="sheet">
     <div class="panel"><h3>Tu estilo de trabajo</h3><div id="e-stats"></div><div id="e-facts"></div></div>
+    <div class="panel bond"><h3>Vínculo con Mochi</h3><div id="e-bond"></div></div>
     <div class="panel"><h3>Últimos 28 días</h3><div id="e-heat"></div><div class="heat-cap"><span>hace 4 semanas</span><span>hoy</span></div></div>
   </div>
 </section>
@@ -574,6 +593,10 @@ body.can-ask .ask { display: grid; gap: 6px; }
         <b>Ojeras</b> (estamina máx. 70), <b>Cabeza nublada</b> (el maná sube a la mitad), <b>Malhumor</b> (las diarias dan 5 menos)
         o <b>Lento</b> (2 de energía menos por tarea). Si duerme de corrido amanece <b>Descansado</b>: +1 de energía por tarea.
         Los efectos aparecen como iconos bajo HP, MP y STA.</p>
+      <p class="muted" style="font-size:13.5px;margin:10px 0 0"><b>Empatía (EMP):</b> mide cómo lo tratas. Sube cuando respondes sus preguntas, cuando respetas sus pausas y su sueño,
+        y cuando reparas después de un roce; baja un poquito si lo ignoras, le respondes frío o lo molestas mucho. Le cuesta enojarse: primero es tierno,
+        luego bromea, después pone un límite con cariño y, si sigues, se toma una pausa. Con más empatía tiene más paciencia, pregunta más y se abre más contigo.
+        En Equipo puedes ver su vínculo contigo y lo que han aprendido juntos.</p>
     </div>
     <div class="panel"><div class="row"><span>Guardado</span><span class="muted" data-sync>Guardado en este navegador</span></div></div>
     <div class="panel">

@@ -606,34 +606,100 @@
     calm: ['Ya va bajando el sol.', 'Buen momento para repasar lo de hoy.', 'Hoy aprendimos algo, ¿cierto?'],
     winddown: ['*bostezo* ya casi es hora de dormir.', 'Las pantallas de noche espantan el sueño.', 'Dormir bien también es estudiar.', 'Mañana sigo pensando en eso.']
   };
-  // Preguntas para ti, según la hora. Cada respuesta tiene una reacción.
+  // ---------- vínculo y empatía ----------
+  // Basado en ideas de psicología de las relaciones:
+  //  - Gottman: las "invitaciones a conectar" (responder o ignorar), la proporción sana 5:1 y la reparación tras un roce.
+  //  - Rosenberg (Comunicación No Violenta): límites con observación, sentimiento, necesidad y petición.
+  //  - Ponerle nombre a las emociones (affect labeling) y validar lo que siente el otro.
+  const TIERS = [
+    { min: 0, name: 'Reservado', text: 'Todavía no confía mucho: habla poco y pregunta poco.' },
+    { min: 20, name: 'Tímido', text: 'Se está soltando: a veces se anima a preguntar.' },
+    { min: 40, name: 'Amigable', text: 'Conversa tranquilo y te pregunta cómo estás.' },
+    { min: 60, name: 'Cercano', text: 'Te cuenta cómo se siente, tiene más paciencia y más cariño.' },
+    { min: 80, name: 'Confidente', text: 'Se siente seguro contigo: mucha paciencia, mucha ternura y conversaciones más hondas.' }
+  ];
+  const LESSONS = {
+    bid: { t: 'Responder es conectar', d: 'Cuando alguien te habla, es una pequeña invitación. Responder, aunque sea corto, construye la relación. (Gottman: "bids for connection")' },
+    ratio: { t: 'Cinco a uno', d: 'En las relaciones que funcionan hay unas cinco interacciones buenas por cada mala. No hace falta ser perfecto: hace falta que pesen más las buenas. (Gottman)' },
+    boundary: { t: 'Un límite con cariño', d: 'Un buen límite dice lo que pasa, lo que siento, lo que necesito y pide algo concreto. Así se cuida la relación sin atacar. (Rosenberg, Comunicación No Violenta)' },
+    respect: { t: 'Respetar una pausa', d: 'Dar espacio cuando el otro lo pide también es cariño. La confianza crece cuando el otro se siente seguro contigo.' },
+    repair: { t: 'Reparar después de un roce', d: 'Un "¿estamos bien?" o un "perdón" después de un roce fortalece más la relación que nunca haber tenido roces. (Gottman: intentos de reparación)' },
+    feelings: { t: 'Ponerle nombre a lo que sientes', d: 'Decir "estoy cansado" o "estoy mal" ayuda a calmar la emoción. Nombrarla es el primer paso para cuidarla.' },
+    validate: { t: 'Validar no es estar de acuerdo', d: 'Validar es decir "tiene sentido que te sientas así". Hace que el otro se sienta escuchado.' },
+    cold: { t: 'Decir cómo te hizo sentir', d: 'Si alguien te responde frío, puedes decir cómo te hizo sentir sin atacar: "eso me dolió un poquito". Así el otro entiende sin sentirse culpado.' },
+    sleep: { t: 'Cuidar el descanso del otro', d: 'Respetar el sueño y los tiempos del otro es una forma silenciosa de respeto.' },
+    space: { t: 'Aceptar un "no quiero hablar"', d: 'Cuando alguien no quiere hablar, aceptarlo sin insistir le deja la puerta abierta para volver.' }
+  };
+  function bond() {
+    const pr = state.profile;
+    return pr.bond || (pr.bond = { emp: 35, pos: {}, neg: {}, ignored: {}, lessons: {}, nightBonus: '' });
+  }
+  const tierOf = e => { let t = 0; TIERS.forEach((x, i) => { if (e >= x.min) t = i; }); return t; };
+  // Cambia la empatía. Sube más lento cuando ya es alta y baja más suave si el vínculo es fuerte (como en la vida).
+  function bondChange(delta, lesson) {
+    const bd = bond(), k = dayKey(Date.now());
+    if (delta > 0) { bd.pos[k] = (bd.pos[k] || 0) + 1; delta *= bd.emp > 70 ? 0.6 : 1; }
+    if (delta < 0) { bd.neg[k] = (bd.neg[k] || 0) + 1; delta *= bd.emp > 70 ? 0.7 : 1; }
+    const before = tierOf(bd.emp);
+    bd.emp = Math.max(0, Math.min(100, Math.round((bd.emp + delta) * 10) / 10));
+    [bd.pos, bd.neg, bd.ignored].forEach(m => { const ks = Object.keys(m); if (ks.length > 14) ks.slice(0, ks.length - 14).forEach(x => delete m[x]); });
+    if (lesson && !bd.lessons[lesson]) bd.lessons[lesson] = Date.now();
+    if (!bd.lessons.ratio && (bd.pos[k] || 0) >= 5 && (bd.pos[k] || 0) >= 5 * (bd.neg[k] || 0)) bd.lessons.ratio = Date.now();
+    touchProfile();
+    const after = tierOf(bd.emp);
+    if (state.screen === 'home') renderHome(totals());
+    // Avisa al subir de etapa; al bajar, solo si de verdad se alejó (evita avisos por un punto en el borde).
+    if (after > before || (after < before && bd.emp <= TIERS[before].min - 3)) setTimeout(() => think(after > before
+      ? pick([`Siento que te conozco más. Me siento ${TIERS[after].name.toLowerCase()} contigo.`, 'Gracias por cómo me tratas. Me haces sentir seguro.'])
+      : 'Hoy me siento un poquito más lejos de ti… pero las cosas se pueden arreglar.', after > before ? 'love' : 'sad'), 2600);
+  }
+
+  // Preguntas para ti, según la hora. Cada respuesta: [texto, reacción, tono (warm|ok|cold), destino, lección].
   const ASK = {
     waking: [
-      { id: 'dormiste', q: '¿Dormiste bien?', r: [['Sí', '¡Bien! Un cerebro descansado aprende mejor.'], ['Más o menos', 'Hoy vamos suave entonces. Un paso chico basta.']] },
-      { id: 'agua', q: '¿Ya tomaste agua?', r: [['Sí', '¡Bien! Yo también… creo.'], ['Todavía no', 'Un vasito y despertamos juntos.']] },
-      { id: 'meta', q: '¿Qué quieres aprender hoy?', r: [['Algo nuevo', '¡Me encanta! Vamos a las misiones.', 'misiones'], ['Repasar', 'Repasar es aprender dos veces.']] }
+      { id: 'dormiste', q: '¿Dormiste bien?', r: [['Sí', '¡Bien! Un cerebro descansado aprende mejor.', 'warm'], ['Más o menos', 'Hoy vamos suave entonces. Un paso chico basta.', 'ok'], ['Qué te importa', 'Uy, eso me dolió un poquito. Igual me importa cómo estás.', 'cold']] },
+      { id: 'agua', q: '¿Ya tomaste agua?', r: [['Sí', '¡Bien! Yo también… creo.', 'warm'], ['Todavía no', 'Un vasito y despertamos juntos.', 'ok'], ['No molestes', 'Ok. Te lo decía porque te cuido, no para molestar.', 'cold']] },
+      { id: 'meta', q: '¿Qué quieres aprender hoy?', r: [['Algo nuevo', '¡Me encanta! Vamos a las misiones.', 'warm', 'misiones'], ['Repasar', 'Repasar es aprender dos veces.', 'ok']] }
     ],
     peak: [
-      { id: 'tarea', q: '¿Hacemos una tarea chiquita?', r: [['Vamos', '¡Sí! Te espero en Misiones.', 'misiones'], ['Después', 'Ok, aquí me quedo pensando.']] },
-      { id: 'curioso', q: '¿Qué es lo más raro que sabes?', r: [['Algo genial', '¡Cuéntaselo a alguien! Así no se olvida.'], ['No sé', 'Entonces hoy buscamos uno.']] },
-      { id: 'pregunta', q: '¿Tienes alguna duda que nunca preguntaste?', r: [['Sí', 'Pregúntala hoy. Nadie nace sabiendo.'], ['No', 'Seguro aparece una. Siempre aparece.']] }
+      { id: 'tarea', q: '¿Hacemos una tarea chiquita?', r: [['Vamos', '¡Sí! Te espero en Misiones.', 'warm', 'misiones'], ['Después', 'Ok, aquí me quedo pensando.', 'ok'], ['Déjame', 'Está bien. Me gusta cuando me lo dices claro.', 'cold']] },
+      { id: 'curioso', q: '¿Qué es lo más raro que sabes?', r: [['Algo genial', '¡Cuéntaselo a alguien! Así no se olvida.', 'warm'], ['No sé', 'Entonces hoy buscamos uno.', 'ok']] },
+      { id: 'pregunta', q: '¿Tienes alguna duda que nunca preguntaste?', r: [['Sí', 'Pregúntala hoy. Nadie nace sabiendo.', 'warm'], ['No', 'Seguro aparece una. Siempre aparece.', 'ok']] }
     ],
     dip: [
-      { id: 'almuerzo', q: '¿Almorzaste?', r: [['Sí', 'Por eso el sueñito. Es normal.'], ['No', 'Comer algo ayuda a pensar.']] },
-      { id: 'pausa', q: '¿Te tomaste un descanso?', r: [['Sí', 'Descansar también es avanzar.'], ['No', 'Cinco minutos y volvemos mejor.']] }
+      { id: 'almuerzo', q: '¿Almorzaste?', r: [['Sí', 'Por eso el sueñito. Es normal.', 'warm'], ['No', 'Comer algo ayuda a pensar.', 'ok']] },
+      { id: 'pausa', q: '¿Te tomaste un descanso?', r: [['Sí', 'Descansar también es avanzar.', 'warm'], ['No', 'Cinco minutos y volvemos mejor.', 'ok'], ['No es tu problema', 'Tienes razón, es tu decisión. Solo quería que estuvieras bien.', 'cold']] }
     ],
     peak2: [
-      { id: 'aprendiste', q: '¿Qué aprendiste hoy?', r: [['Algo bueno', '¡Eso! Se me erizan las orejitas.'], ['Nada aún', 'Todavía queda tarde. Una tarea chica.', 'misiones']] },
-      { id: 'tarde', q: '¿Una más antes de que oscurezca?', r: [['Dale', '¡Vamos!', 'misiones'], ['Ya hice harto', 'Te creo. Lo hiciste bien.']] }
+      { id: 'aprendiste', q: '¿Qué aprendiste hoy?', r: [['Algo bueno', '¡Eso! Se me erizan las orejitas.', 'warm'], ['Nada aún', 'Todavía queda tarde. Una tarea chica.', 'ok', 'misiones']] },
+      { id: 'tarde', q: '¿Una más antes de que oscurezca?', r: [['Dale', '¡Vamos!', 'warm', 'misiones'], ['Ya hice harto', 'Te creo. Lo hiciste bien.', 'ok']] }
     ],
     calm: [
-      { id: 'mejor', q: '¿Qué fue lo mejor de tu día?', r: [['Algo lindo', 'Guárdalo en la memoria.'], ['Nada especial', 'Los días tranquilos también cuentan.']] },
-      { id: 'manana', q: '¿Qué quieres mejorar mañana?', r: [['Tengo idea', 'Pensarlo ya es la mitad.'], ['No sé', 'Lo soñamos y mañana vemos.']] }
+      { id: 'mejor', q: '¿Qué fue lo mejor de tu día?', r: [['Algo lindo', 'Guárdalo en la memoria.', 'warm'], ['Nada especial', 'Los días tranquilos también cuentan.', 'ok']] },
+      { id: 'manana', q: '¿Qué quieres mejorar mañana?', r: [['Tengo idea', 'Pensarlo ya es la mitad.', 'warm'], ['No sé', 'Lo soñamos y mañana vemos.', 'ok']] }
     ],
     winddown: [
-      { id: 'dormir', q: 'Ya es tarde. ¿Dejamos lo de hoy hasta aquí?', r: [['Sí, a descansar', 'Dormir también es aprender. Buenas noches.'], ['Un poquito más', 'Ok, pero no te desveles mucho.']] }
+      { id: 'dormir', q: 'Ya es tarde. ¿Dejamos lo de hoy hasta aquí?', r: [['Sí, a descansar', 'Dormir también es aprender. Buenas noches.', 'warm'], ['Un poquito más', 'Ok, pero no te desveles mucho.', 'ok']] }
     ]
   };
+  // Preguntas del corazón: aparecen cuando ya hay confianza.
+  const HEART_ASK = [
+    { min: 40, id: 'sientes', q: '¿Cómo te sientes hoy?', r: [['Bien', '¡Qué bueno! Me contagias.', 'warm', null, 'feelings'], ['Cansado', 'Tiene sentido estar cansado. Hoy podemos ir más suave.', 'warm', null, 'validate'], ['Mal', 'Gracias por contarme. No tienes que estar bien siempre. Aquí estoy.', 'warm', null, 'validate']] },
+    { min: 40, id: 'animo', q: '¿Te puedo preguntar algo? ¿Hoy necesitas ánimo o calma?', r: [['Ánimo', '¡Tú puedes! Un paso chiquito y ya vamos ganando.', 'warm', null, 'feelings'], ['Calma', 'Respira conmigo: inhala… exhala… Así, despacito.', 'warm', null, 'feelings']] },
+    { min: 60, id: 'preocupa', q: '¿Hay algo que te preocupe?', r: [['Sí', 'A veces decirlo en voz alta lo hace más chiquito. Puedes escribirlo en un papel.', 'warm', null, 'feelings'], ['No', 'Me alegro. Si aparece algo, aquí estoy.', 'warm'], ['No quiero hablar', 'Está bien. Respeto tu espacio. La puerta queda abierta.', 'ok', null, 'space']] },
+    { min: 60, id: 'orgullo', q: '¿De qué te sientes orgulloso esta semana?', r: [['De algo', 'Me encanta. Date crédito, te lo ganaste.', 'warm'], ['De nada', 'A veces no lo vemos, pero seguir intentando ya es algo.', 'warm', null, 'validate']] },
+    { min: 80, id: 'gracias', q: '¿Sabes? Me gusta aprender contigo. ¿A ti también?', r: [['Sí', 'Jiji. Entonces somos un buen equipo.', 'warm'], ['A veces', 'Está bien. Lo importante es que sea de verdad.', 'ok']] }
+  ];
+  // Su manera de ser según la confianza.
+  const TIER_LINES = [
+    ['Hola.', 'Estoy bien, gracias.', 'Todavía te estoy conociendo.', 'Me cuesta un poco abrirme.', 'Prefiero ir de a poquito.'],
+    ['Me gusta cuando vienes.', '¿Puedo preguntarte algo? …mejor después.', 'Creo que nos estamos conociendo.', 'Jiji, ¿hola?'],
+    ['Qué bueno verte.', 'Hoy me siento con ganas de conversar.', '¿Sabías que me gusta cuando respondes mis preguntas?'],
+    ['Me alegra que estés aquí.', 'Contigo aprendo más.', 'Si un día estás mal, también puedes contarme.', 'Hoy te extrañé un poquito.'],
+    ['Gracias por tratarme bonito.', 'Eres mi persona favorita para aprender.', 'Me siento seguro contigo.', 'Cuando algo sale mal, igual estamos juntos.', 'Te quiero, ¿sabías?']
+  ];
+  const ASK_MULT = [0.4, 0.7, 1, 1.2, 1.3];
+
   // Habla dormido: incoherencias de sueño.
   const SLEEPTALK = [
     '…no, mamá, las nubes no se doblan…', '…pásame el queso de la luna…', '…¿quién dejó el martes encendido?…',
@@ -654,9 +720,16 @@
     '¡Oye! Estaba soñando con un teorema de pan.', '¿Ah? Sí, sí… el gato es el presidente… zzz', '…¿mañana es hoy o ayer?…',
     '*bosteza* …¿ya ganamos?', 'Estaba en la mejor parte del sueño…', 'Shh… dormir también es aprender.'
   ];
+  // Segunda o tercera vez: todavía tierno, pero ya pide dormir.
   const WOKEN_AGAIN = [
-    'Otra vez… mañana voy a andar hecho pomada.', '¡Déjame dormir! (con cariño)', 'Si sigues, mañana amanezco con ojeras…',
-    'Mi cuerpito necesita sus horas…', 'Grrr… zzz… grrr…', 'Me despertaste de nuevo. Lo voy a recordar.'
+    '…¿otra vez tú? jiji… zzz… tengo sueñito…', 'Mmm… te quiero, pero quiero mi almohada…', '…¿es una emergencia de abrazos?… zzz',
+    'Mi cuerpito necesita sus horas… zzz', '…shhh… estoy soñando contigo y con un queque…'
+  ];
+  // Mucho despertar: pone un límite claro y cariñoso (observación, sentimiento, necesidad y petición).
+  const WOKEN_LIMIT = [
+    'Me gusta estar contigo, pero cuando me despiertas tantas veces me siento muy cansado, porque mi cuerpo necesita dormir. ¿Hablamos mañana en la mañana?',
+    'Te quiero harto. Ahora necesito dormir para estar bien mañana. Te pido que me dejes descansar hasta que salga el sol, ¿sí?',
+    'Oye, me despertaste varias veces y me cuesta volver a dormirme. No estoy enojado contigo; solo necesito descansar. Nos vemos mañana.'
   ];
   // Cómo amanece según la noche.
   const MORNING_FX = {
@@ -667,57 +740,71 @@
     lento: ['Hoy voy en cámara lenta…', 'Mis orejitas no despiertan todavía.']
   };
   const asked = {};
-  let thinkTimer = 0, holdUntil = 0;
+  let thinkTimer = 0, holdUntil = 0, pending = null;
   function showThought(text, replies) {
     const b = $('#h-bubble');
     if (!b) return;
     b.classList.add('fade');
     setTimeout(() => {
-      b.innerHTML = `<span class="tq">${esc(text)}</span>` + (replies ? `<span class="replies">${replies.map((r, i) => `<button data-reply="${i}">${esc(r[0])}</button>`).join('')}</span>` : '');
+      b.innerHTML = `<span class="tq">${esc(text)}</span>` + (replies ? `<span class="replies">${replies.map((r, i) => `<button data-reply="${i}" class="${r[2] || ''}">${esc(r[0])}</button>`).join('')}</span>` : '');
       b.classList.toggle('asking', !!replies);
       b.classList.remove('fade');
       b._replies = replies || null;
     }, 260);
   }
+  // Una pregunta que se queda sin respuesta es una invitación ignorada (resta poquito, máx. 3 al día).
+  function expirePending() {
+    if (!pending) return;
+    pending = null;
+    const bd = bond(), k = dayKey(Date.now());
+    if ((bd.ignored[k] || 0) < 3) { bd.ignored[k] = (bd.ignored[k] || 0) + 1; bondChange(-1); }
+  }
+
   // Pensamientos con expresión. "expr" acompaña la frase (pensativo, guiño, enojón…).
   function think(text, expr) {
     clearTimeout(thinkTimer);
     const c = circadian();
     const next = () => { thinkTimer = setTimeout(() => think(), c.sleeping ? 16000 : Math.round(20000 - 11000 * c.alert)); };
     const face = (n, ms) => { if (pets.home && n) pets.home.express(n, ms || 3200); };
-    if (text) { showThought(text); face(expr); holdUntil = Date.now() + 7000; next(); return; }
+    if (text) { pending = null; showThought(text); face(expr); holdUntil = Date.now() + Math.max(7000, text.length * 90); next(); return; }
     if (Date.now() < holdUntil) { next(); return; }
+    expirePending();
+    if (Date.now() < pause.until) { showThought(pick(['Estoy en mi pausa. Vuelvo prontito.', '*respira hondo*', 'Un ratito y ya estoy.'])); next(); return; }
     if (c.sleeping) {
       // a veces habla dormido
       if (Math.random() < 0.4) showThought(pick(SLEEPTALK)); else showThought(pick(BY_PHASE.sleep));
       next(); return;
     }
+    const bd = bond(), tier = tierOf(bd.emp);
     // Primer pensamiento del día: cómo durmió.
     const sd = sleepData(), fx = todayEffects();
     if (sd.roll && !sd.roll.told && fx.length) {
       sd.roll.told = true; touchProfile();
       const main = fx[0];
+      if (main === 'descansado' && bd.nightBonus !== sd.roll.day) { bd.nightBonus = sd.roll.day; bondChange(2, 'sleep'); }
       showThought(pick(MORNING_FX[main]));
       face(main === 'descansado' ? 'happy' : main === 'malhumor' ? 'grumpy' : main === 'nublado' ? 'dizzy' : 'drowsy', 4000);
       holdUntil = Date.now() + 9000; next(); return;
     }
-    // Preguntar: más probable cuando está despierto o con el maná alto.
-    const askP = 0.15 + 0.35 * c.alert + (c.curious ? 0.15 : 0);
+    // Preguntar: más probable cuando está despierto, con el maná alto y con más confianza.
+    const askP = (0.15 + 0.35 * c.alert + (c.curious ? 0.15 : 0)) * ASK_MULT[tier];
     const today = dayKey(Date.now());
-    const mine = (ASK[c.phase] || []).filter(x => !asked[today + x.id]);
+    const mine = (ASK[c.phase] || []).concat(HEART_ASK.filter(x => bd.emp >= x.min)).filter(x => !asked[today + x.id]);
     const r = Math.random();
-    if (mine.length && r < askP * 0.45) {
+    if (mine.length && r < askP * 0.5) {
       const x = pick(mine); asked[today + x.id] = 1;
       pets.home.pop('?'); face('thinking', 2500);
-      showThought(x.q, x.r); holdUntil = Date.now() + 25000; next(); return;
+      showThought(x.q, x.r); pending = x.id; holdUntil = Date.now() + 25000; next(); return;
     }
     if (r < askP) { pets.home.pop('?'); face(Math.random() < 0.7 ? 'thinking' : 'sparkle', 3500); showThought(pick(WONDER)); next(); return; }
-    if (hasFx('malhumor') && Math.random() < 0.35) { face('grumpy', 3500); showThought(pick(['Hmph.', 'Hoy no estoy para chistes.', 'Mejor no me hables… bueno, sí, háblame.', 'Dormí mal y se nota.'])); next(); return; }
+    if (hasFx('malhumor') && Math.random() < 0.3) { face('grumpy', 3000); showThought(pick(['Hoy ando sensible por el sueño. Ten paciencia conmigo, ¿sí?', 'Dormí poquito y se me nota. No es contigo.', 'Hmph… bueno, igual te quiero.'])); next(); return; }
     if (c.worn && Math.random() < 0.5) { face('drowsy', 3000); showThought(pick(['Hoy trabajaste harto. Descansar también suma.', 'Uf, qué día. Me sudan las orejitas.'])); next(); return; }
     if (c.v.hp <= 25) { face('sad', 3500); showThought(pick(['Tengo sueño… pero quiero aprender.', 'Un ratito nomás y despierto.', 'Te extrañé. ¿Seguimos?'])); next(); return; }
-    const phaseLine = Math.random() < 0.4;
+    const roll = Math.random();
+    if (roll < 0.3) { showThought(pick(TIER_LINES[tier])); face(tier >= 3 ? pick(['love', 'shy', 'happy']) : tier === 0 ? null : 'shy', 2400); next(); return; }
+    const phaseLine = roll < 0.6;
     showThought(phaseLine ? pick(BY_PHASE[c.phase]) : pick(MUSE));
-    if (!phaseLine) face(pick(['wink', 'happy', 'shy', null, null]), 2200);
+    if (!phaseLine) face(pick(tier >= 2 ? ['wink', 'happy', 'shy', null] : [null, null, 'shy']), 2200);
     else if (c.phase === 'waking' || c.phase === 'winddown') face('yawn', 1600);
     next();
   }
@@ -725,28 +812,94 @@
     const b = $('#h-bubble');
     const rep = b && b._replies && b._replies[i];
     if (!rep) return;
-    pets.home.feed(0.5);
-    if (rep[2]) { showThought(rep[1]); pets.home.express('surprised', 1200); holdUntil = Date.now() + 2000; setTimeout(() => go(rep[2]), 1100); return; }
-    pets.home.pop('!');
-    holdUntil = 0; think(rep[1], i === 0 ? 'love' : 'shy');
+    const [, reaction, tone, dest, lesson] = rep;
+    const isRepair = pending === 'repair', isLimit = pending === 'limit';
+    pending = null;
+    if (tone === 'warm') { pets.home.feed(0.5); bondChange(isRepair ? 4 : isLimit ? 1.5 : 3, isRepair ? 'repair' : lesson || 'bid'); }
+    else if (tone === 'ok') bondChange(1, lesson || 'bid');
+    else bondChange(-2, 'cold');
+    if (dest) { showThought(reaction); pets.home.express('surprised', 1200); holdUntil = Date.now() + 2000; setTimeout(() => go(dest), 1100); return; }
+    if (tone !== 'cold') pets.home.pop('!');
+    holdUntil = 0; think(reaction, tone === 'warm' ? 'love' : tone === 'ok' ? 'shy' : 'sad');
   }
+
+  // ---------- paciencia ----------
+  // Cuesta que se moleste. Con toques muy seguidos pasa por cuatro etapas: ternura, broma, límite con cariño y pausa.
+  // La paciencia crece con la confianza (vínculo seguro = más tolerancia).
+  const pokes = [];
+  const pause = { until: 0, broken: 0 };
+  function annoyance() {
+    const now = Date.now();
+    while (pokes.length && now - pokes[0] > 45000) pokes.shift();
+    const patience = 10 + bond().emp / 8;         // de 10 a 22 toques seguidos
+    return pokes.length / patience;
+  }
+  const CUTE = ['¡Jiji, cosquillas!', '¡Blub!', '¿Me llamaste?', '¡Boing!', '*rueda feliz*', '¡Hola, hola!', 'Jeje, ¿qué pasó?', '¡Soy una bolita!', '*hace burbujitas*', '¿Jugamos?'];
+  const PLAYFUL = ['Jeje, ya, ya… me estoy mareando un poquito.', 'Uy, tantas cosquillas me dan vueltas las orejas.', '¡Me vas a hacer rodar del escritorio! Jiji.'];
+  const LIMIT = [
+    'Oye, cuando me tocas tantas veces seguidas me mareo y me cuesta pensar. Necesito un poquito de calma. ¿Me das un momento?',
+    'Me gusta jugar contigo. Ahora me siento abrumado con tantos toques. ¿Podemos bajar el ritmo un ratito?'
+  ];
+  const PAUSE_LINE = 'Te quiero, y por eso te lo digo claro: necesito una pausa. Voy a descansar un minuto y después seguimos.';
+
   // Toques: despierto responde; dormido se despierta medio borracho de sueño, y eso pasa la cuenta mañana.
   function poke() {
-    const c = circadian();
-    if (c.sleeping && circadian().phase === 'sleep') {
+    const c = circadian(), now = Date.now();
+    if (c.sleeping && c.phase === 'sleep') {
       const n = registerWake();
       pets.home.set({ sleepy: false, drowsy: true });
-      const line = n >= 2 && Math.random() < 0.6 ? pick(WOKEN_AGAIN) : pick(WOKEN);
-      pets.home.express(n >= 3 ? 'grumpy' : pick(['dizzy', 'squint', 'surprised', 'grumpy']), 4500, true);
-      think(line);
+      if (n >= 2) bondChange(n >= 4 ? -2 : -1);
+      if (n >= 4) { pets.home.express('sad', 5000, true); think(pick(WOKEN_LIMIT)); pending = null; }
+      else if (n >= 2) { pets.home.express(pick(['dizzy', 'squint', 'drowsy']), 4500, true); think(pick(WOKEN_AGAIN)); }
+      else { pets.home.express(pick(['dizzy', 'squint', 'surprised']), 4500, true); think(pick(WOKEN)); }
       renderHome(totals());
       setTimeout(() => renderPets(totals()), 5000);
       return;
     }
     if (c.sleeping) { think('Zzz… estoy muy cansadito.', 'sad'); return; }
-    pets.home.feed(0.4);
-    pets.home.express(pick(['happy', 'wink', 'surprised', 'shy', 'love']), 1600);
-    holdUntil = 0; think();
+    // En su pausa: tocarlo igual resta confianza; respetarla se agradece después.
+    if (now < pause.until) {
+      pause.broken++;
+      if (pause.broken <= 3) bondChange(-1.5);
+      pets.home.express('sad', 1500);
+      showThought(pause.broken > 2 ? 'Te pedí un momento. Cuando lo respetas, me siento seguro contigo.' : 'Estoy en mi pausa. Vuelvo prontito.');
+      return;
+    }
+    pokes.push(now);
+    const a = annoyance();
+    // Si hay una pregunta abierta, el toque no la borra.
+    if (pending) { pets.home.feed(0.3); pets.home.express(pick(['happy', 'shy']), 1200); return; }
+    if (a < 0.4) {
+      pets.home.feed(0.4);
+      pets.home.express(pick(['happy', 'wink', 'surprised', 'shy', 'love']), 1600);
+      holdUntil = 0;
+      if (Math.random() < 0.55) think(pick(CUTE)); else think();
+    } else if (a < 0.65) {
+      pets.home.express('dizzy', 2200); think(pick(PLAYFUL));
+    } else if (a < 0.9) {
+      pets.home.express('shy', 3500);
+      pending = 'limit';
+      showThought(pick(LIMIT), [['Perdón, te doy espacio', 'Gracias por escucharme. Eso me hace sentir querido.', 'warm', null, 'boundary'], ['Una más', 'Ok… pero de verdad necesito calma, ¿sí?', 'ok', null, 'boundary']]);
+      bond().lessons.boundary || (bond().lessons.boundary = Date.now(), touchProfile());
+      holdUntil = Date.now() + 15000;
+    } else {
+      pending = null;
+      pokes.length = 0;
+      pause.until = now + 60000; pause.broken = 0;
+      bondChange(-1, 'boundary');
+      pets.home.express('sad', 4000);
+      showThought(PAUSE_LINE); holdUntil = Date.now() + 9000;
+      // Al terminar la pausa intenta reparar: "¿estamos bien?"
+      setTimeout(() => {
+        if (pause.broken === 0) bondChange(3, 'respect');
+        pending = 'repair'; holdUntil = Date.now() + 25000;
+        if (state.screen === 'home') {
+          pets.home.express('shy', 3000);
+          showThought(pause.broken === 0 ? 'Gracias por respetar mi pausa. Eso me hace sentir seguro contigo. ¿Estamos bien?' : 'Ya estoy mejor. ¿Estamos bien?',
+            [['Sí, perdón', 'Claro que sí. Te quiero, bolita grande.', 'warm', null, 'repair'], ['Sí', 'Qué bueno. Seguimos entonces.', 'ok', null, 'repair']]);
+        }
+      }, 60000);
+    }
   }
 
   let sayTimer = 0;
@@ -842,6 +995,8 @@
     bar('#v-hp', v.hp, `Vida ${v.hp}/100: baja si pasas días sin avanzar`);
     bar('#v-mp', v.mp, `Maná ${v.mp}/100: sube al aprender con Claude hoy (tareas de Claude y prompts)`);
     bar('#v-sta', v.sta, `Estamina ${v.sta}/100: sube con cada tarea de hoy`);
+    const bd = bond(), tr = TIERS[tierOf(bd.emp)];
+    bar('#v-emp', Math.round(bd.emp), `Empatía ${Math.round(bd.emp)}/100 · ${tr.name}: ${tr.text}`);
     const chip = (id, n, label) => { const el = $(id); el.querySelector('b').textContent = n; el.title = label; el.setAttribute('aria-label', label); };
     chip('#h-streak', streak, `Racha: ${streak} ${streak === 1 ? 'día' : 'días'}`);
     chip('#h-xp', tot.xp >= 10000 ? Math.round(tot.xp / 1000) + 'k' : tot.xp, `Energía total: ${tot.xp}`);
@@ -1128,6 +1283,18 @@
       cells += `<i class="h${lvl}" title="${fmtDate(t)}: ${c} tarea${c === 1 ? '' : 's'}"></i>`;
     }
     $('#e-heat').innerHTML = cells;
+    const bd = bond(), ti = tierOf(bd.emp);
+    let p7 = 0, n7 = 0;
+    for (let i = 0; i < 7; i++) { const k = dayKey(Date.now() - i * DAY); p7 += bd.pos[k] || 0; n7 += bd.neg[k] || 0; }
+    const ratio = n7 ? (p7 / n7).toFixed(1).replace('.', ',') + ' a 1' : p7 ? `${p7} a 0` : '—';
+    const learned = Object.entries(bd.lessons).sort((a, b) => a[1] - b[1]);
+    $('#e-bond').innerHTML = `
+      <div class="bond-top"><b>${TIERS[ti].name}</b><span>${Math.round(bd.emp)}/100</span></div>
+      <div class="bond-bar"><i style="width:${bd.emp}%"></i>${TIERS.slice(1).map(t => `<s style="left:${t.min}%"></s>`).join('')}</div>
+      <p class="bond-desc">${esc(TIERS[ti].text)}${ti < TIERS.length - 1 ? ` Con ${TIERS[ti + 1].min} pasa a ${TIERS[ti + 1].name.toLowerCase()}.` : ''}</p>
+      <div class="bond-ratio"><span>Buenas y malas interacciones (7 días)</span><b>${ratio}</b></div>
+      <h4 class="bond-h">Lo que aprendimos juntos · ${learned.length} de ${Object.keys(LESSONS).length}</h4>
+      ${learned.length ? `<ul class="lessons">${learned.map(([id]) => `<li><b>${esc(LESSONS[id].t)}</b><span>${esc(LESSONS[id].d)}</span></li>`).join('')}</ul>` : '<p class="bond-desc">Todavía nada. Conversa con Mochi y responde sus preguntas.</p>'}`;
     $('#e-facts').innerHTML = `
       <div><b>${tot.tasks}</b><span>tareas</span></div><div><b>${tot.phases}</b><span>fases</span></div>
       <div><b>${tot.missions}</b><span>misiones</span></div><div><b>${fmtH(tot.hours)}</b><span>horas</span></div>`;
