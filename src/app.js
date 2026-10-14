@@ -14,8 +14,8 @@
     test: { label: 'Probar', color: '#ff5d6c' }
   };
   const STAGES = [
-    { min: 1, name: 'Semilla' }, { min: 3, name: 'Bolita' }, { min: 6, name: 'Pompón' },
-    { min: 10, name: 'Nube' }, { min: 15, name: 'Luna' }, { min: 21, name: 'Estrella' }
+    { min: 1, name: 'Semilla' }, { min: 2, name: 'Bolita' }, { min: 4, name: 'Pompón' },
+    { min: 6, name: 'Nube' }, { min: 9, name: 'Luna' }, { min: 12, name: 'Estrella' }
   ];
   const familyOf = tag => FAMILY[tag] || 'create';
 
@@ -41,13 +41,13 @@
       svg: '<path d="M20 20L6 11v18zM20 20l14-9v18z" fill="#3b6fd8"/><circle cx="20" cy="20" r="4" fill="#2a54b0"/>' },
     { id: 'piedras', slot: 'base', name: 'Cojín mullido', perk: { all: 1 }, req: { type: 'tasks', n: 25 },
       svg: '<ellipse cx="20" cy="26" rx="17" ry="7" fill="#9b7fd1"/><ellipse cx="20" cy="22" rx="14" ry="4.5" fill="#b39ce0"/><circle cx="20" cy="23" r="1.6" fill="#7a5fb3"/>' },
-    { id: 'brasero', slot: 'base', name: 'Pila de libros', perk: { all: 1 }, req: { type: 'level', n: 8 },
+    { id: 'brasero', slot: 'base', name: 'Pila de libros', perk: { all: 1 }, req: { type: 'level', n: 5 },
       svg: '<rect x="6" y="27" width="28" height="6" rx="1.5" fill="#81b29a"/><rect x="8" y="21" width="26" height="6" rx="1.5" fill="#e07a5f"/><rect x="5" y="15" width="27" height="6" rx="1.5" fill="#5b7bd6"/>' },
     { id: 'luciernagas', slot: 'aura', name: 'Luciérnagas', perk: { quest: 5 }, req: { type: 'days', n: 7 },
       svg: '<g fill="#e6ff8c"><circle cx="10" cy="12" r="3"/><circle cx="29" cy="9" r="2.4"/><circle cx="21" cy="24" r="3.2"/><circle cx="8" cy="30" r="2"/><circle cx="32" cy="28" r="2.6"/></g>' },
     { id: 'chispas', slot: 'aura', name: 'Chispas azules', perk: { fam: 'build', xp: 1 }, req: { type: 'hours', n: 10 },
       svg: '<g fill="#7fc4ff"><path d="M12 6l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/><path d="M28 18l1.5 4.5 4.5 1.5-4.5 1.5-1.5 4.5-1.5-4.5-4.5-1.5 4.5-1.5z"/></g>' },
-    { id: 'estrellas', slot: 'aura', name: 'Polvo de estrellas', perk: { all: 2 }, req: { type: 'level', n: 15 },
+    { id: 'estrellas', slot: 'aura', name: 'Polvo de estrellas', perk: { all: 2 }, req: { type: 'level', n: 9 },
       svg: '<g fill="#ffe9a8"><path d="M20 4l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/><path d="M32 26l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z"/><path d="M8 26l1.2 3 3 1.2-3 1.2L8 34.6l-1.2-3-3-1.2 3-1.2z"/></g>' }
   ];
   const ITEM = Object.fromEntries(ITEMS.map(i => [i.id, i]));
@@ -207,8 +207,10 @@
     return { xp, fam, days, last, phases, prompts, hours, missions, tasks: events.length, events };
   }
   function levelOf(xp) {
-    let L = 1, need = 40, rest = xp;
-    while (rest >= need) { rest -= need; L++; need = 40 + 20 * (L - 1); }
+    // Curva empinada: cada nivel pide bastante más que el anterior (60, 170, 312, 480, 671…).
+    const needFor = L => Math.round(60 * Math.pow(L, 1.5));
+    let L = 1, need = needFor(1), rest = xp;
+    while (rest >= need) { rest -= need; L++; need = needFor(L); }
     return { L, into: rest, need };
   }
   function stageOf(L) { let s = 0; STAGES.forEach((x, i) => { if (L >= x.min) s = i; }); return s; }
@@ -218,6 +220,18 @@
     while (days.has(dayKey(t))) { n++; t -= DAY; }
     return n;
   }
+  // Vida, maná y estamina del día.
+  // HP: constancia; baja 25 por cada día sin avanzar. MP: aprendizaje del día (tareas de Claude y prompts copiados).
+  // Estamina: trabajo del día; cada tarea suma 20.
+  function vitals(tot) {
+    const idle = tot.last ? Math.floor((startOfDay(Date.now()) - startOfDay(tot.last)) / DAY) : 0;
+    const hp = Math.max(5, 100 - Math.max(0, idle - 1) * 25);
+    const d = todayStats();
+    const mp = Math.min(100, (d.fam.claude + d.prompts) * 25);
+    const sta = Math.min(100, d.tasks * 20);
+    return { hp, mp, sta, idle };
+  }
+  function startOfDay(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
   function comboNow() {
     const now = Date.now();
     return allTaskEvents().filter(e => now - e.at < 20 * 60000).length;
@@ -492,20 +506,45 @@
     document.body.appendChild(f);
     setTimeout(() => f.remove(), 1100);
   }
+  // Lo que piensa: cosas simples sobre aprender, la vida y las ganas de mejorar.
+  const THOUGHTS = [
+    'Hoy quiero entender algo nuevo.', '¿Por qué el cielo es azul?', 'Un poquito cada día también es mucho.',
+    '¿Las estrellas sabrán que las miramos?', 'Equivocarse es otra forma de aprender.', '¿De dónde vienen los sueños?',
+    '¿Cuántas cosas no sé que no sé?', 'Quiero ser un poquito mejor que ayer.', '¿El universo termina en alguna parte?',
+    'Leer es viajar sin moverse.', '¿Por qué existe algo en vez de nada?', 'Si practico, mañana será más fácil.',
+    '¿Los peces sabrán que están mojados?', 'Aprender cansa, pero me gusta.', '¿Qué es pensar, en realidad?',
+    'Las preguntas son más divertidas que las respuestas.', '¿De qué color ve el mundo un gato?', 'Un error menos es un paso más.',
+    '¿Cuántos granos de arena habrá?', 'Hoy no lo sé. Quizás mañana sí.', '¿Por qué la música da escalofríos?',
+    'Todo experto fue principiante.', '¿Tendrá fin la curiosidad?', '¿Qué se sentirá ser una nube?',
+    'Despacio también se llega.', '¿Por qué bostezar se contagia?', 'Quiero aprender a aprender.',
+    '¿El tiempo existe o solo lo contamos?', 'Cada día sé una cosita más.', '¿Qué pensaba la gente hace mil años mirando la luna?',
+    'Lo difícil de hoy es lo fácil de mañana.', '¿Por qué olvidamos algunas cosas?', 'Me gusta cuando algo por fin tiene sentido.',
+    '¿Habrá alguien más allá afuera?', 'Mejorar es lento. Y está bien.', '¿Por qué el café huele tan rico?',
+    '¿Qué había antes del primer recuerdo?', 'Si no entiendo, pregunto.', '¿Por qué nos da risa lo inesperado?', ':3'
+  ];
+  let thoughtIdx = Math.floor(Math.random() * THOUGHTS.length), thinkTimer = 0;
+  function think(text) {
+    const b = $('#h-bubble');
+    if (!b) return;
+    if (!text) {
+      const tot = totals(), v = vitals(tot);
+      if (v.hp <= 25) text = pick(['Zzz… ¿seguimos mañana?', 'Tengo sueño… pero quiero aprender.', 'Un ratito nomás y despierto.']);
+      else { thoughtIdx = (thoughtIdx + 1 + Math.floor(Math.random() * 3)) % THOUGHTS.length; text = THOUGHTS[thoughtIdx]; }
+    }
+    b.classList.add('fade');
+    setTimeout(() => { b.textContent = text; b.classList.remove('fade'); }, 260);
+    clearTimeout(thinkTimer);
+    thinkTimer = setTimeout(() => think(), 14000);
+  }
+
   let sayTimer = 0;
   function say(text, big) {
-    $$('[data-bubble]').forEach(b => {
-      b.textContent = text;
-      b.classList.toggle('big', !!big);
-      b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
-    });
+    // En el inicio solo piensa; los avisos de tareas van como aviso en las otras pantallas.
+    if (state.screen === 'home') { if (big) think(text.length > 60 ? text.split('. ')[0] + '.' : text); return; }
     const toast = $('#toast');
-    if (state.screen !== 'home') {
-      toast.textContent = text; toast.hidden = false;
-      clearTimeout(toast._t); toast._t = setTimeout(() => (toast.hidden = true), 3800);
-    }
+    toast.textContent = text; toast.hidden = false;
+    clearTimeout(toast._t); toast._t = setTimeout(() => (toast.hidden = true), 3800);
     clearTimeout(sayTimer);
-    sayTimer = setTimeout(() => { $$('[data-bubble]').forEach(b => { b.textContent = idleLine(); b.classList.remove('big'); }); }, 9000);
   }
 
   // ---------- siguiente tarea ----------
@@ -518,29 +557,6 @@
     }
     return null;
   }
-  function nextStep() {
-    const a = nextIn(active());
-    if (a) return a;
-    for (const p of Object.values(state.projects).sort((x, y) => y.updatedAt - x.updatedAt)) { const n = nextIn(p); if (n) return n; }
-    return null;
-  }
-  function idleLine() {
-    const name = state.profile.name || 'Mochi';
-    const count = Object.keys(state.projects).length;
-    if (!count) return `Soy ${name}. Dame una misión: carga tu guía en PDF en Misiones.`;
-    const tot = totals();
-    const ns = nextStep();
-    if (!ns) return 'Todas tus misiones están cumplidas. Carga la próxima guía y seguimos.';
-    const cold = tot.last && Date.now() - tot.last > 2 * DAY;
-    if (cold) return `Me estoy quedando dormido… una tarea chica y despierto: «${ns.t ? ns.t.text : ns.ph.title}».`;
-    const ready = questState().filter(x => x.ready).length;
-    if (ready) return `Tienes ${ready === 1 ? 'una misión diaria lista' : ready + ' misiones diarias listas'} para reclamar.`;
-    if (!ns.t) return `Fase ${ns.ph.n} lista para confirmar. ¿Se cumple «${(ns.ph.fields.find(f => /^Listo/i.test(f.k)) || {}).v || 'el criterio'}»?`;
-    if (ns.t.tag === 'CLAUDE') return `Esta se delega: «${ns.t.text}». Copia el prompt de la fase ${ns.ph.n}.`;
-    if (ns.t.tag === 'PRUEBA') return `Toca probar: «${ns.t.text}». Las pruebas dan más energía.`;
-    return pick([`Tengo hambre de tareas. ¿Me das «${ns.t.text}»?`, `Siguiente: «${ns.t.text}».`]);
-  }
-
   // ---------- navegación ----------
   const SCREENS = ['home', 'misiones', 'mision', 'equipo', 'menu'];
   function go(screen, opts) {
@@ -577,7 +593,7 @@
     const lv = levelOf(tot.xp), stg = stageOf(lv.L);
     const heat = tot.last ? Math.max(0.15, 1 - (Date.now() - tot.last) / (3 * DAY)) : 0.45;
     const famTop = Object.entries(tot.fam).sort((a, b) => b[1] - a[1])[0];
-    const opts = { stage: stg, heat, sleepy: heat < 0.3, tint: famTop[1] ? FAMILY_INFO[famTop[0]].color : '#ffd166', ground: 0.8, equip: Object.assign({}, state.profile.equipped) };
+    const opts = { stage: stg, heat, sleepy: vitals(tot).hp <= 25, tint: famTop[1] ? FAMILY_INFO[famTop[0]].color : '#ffd166', ground: 0.85, equip: Object.assign({}, state.profile.equipped) };
     Object.values(pets).forEach(f => f.set(opts));
   }
 
@@ -599,12 +615,17 @@
   function renderHome(tot) {
     const lv = levelOf(tot.xp), stg = stageOf(lv.L), streak = streakOf(tot.days), c = comboNow();
     const qs = questState(), qDone = qs.filter(x => x.claimed).length, qReady = qs.filter(x => x.ready).length;
-    $('#h-name').textContent = state.profile.name || 'Mochi';
-    $('#h-stage').textContent = STAGES[stg].name;
-    const k = lv.into / lv.need;
-    $('#h-level').innerHTML = `<svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15.5" class="ring-bg"/><circle cx="18" cy="18" r="15.5" class="ring-fg" stroke-dasharray="${(k * 97.4).toFixed(1)} 97.4"/></svg><b>${lv.L}</b>`;
-    $('#h-level').title = `Nivel ${lv.L} · ${lv.into} de ${lv.need} de energía para el siguiente`;
-    $('#h-level').setAttribute('aria-label', $('#h-level').title);
+    const v = vitals(tot);
+    const lvl = $('#h-level');
+    lvl.querySelector('b').textContent = lv.L;
+    lvl.title = `Nivel ${lv.L} · ${STAGES[stg].name}`; lvl.setAttribute('aria-label', lvl.title);
+    const bar = (id, val, label) => {
+      const el = $(id); el.querySelector('i').style.width = val + '%'; el.querySelector('em').textContent = val;
+      el.title = label; el.setAttribute('aria-label', label);
+    };
+    bar('#v-hp', v.hp, `Vida ${v.hp}/100: baja si pasas días sin avanzar`);
+    bar('#v-mp', v.mp, `Maná ${v.mp}/100: sube al aprender con Claude hoy (tareas de Claude y prompts)`);
+    bar('#v-sta', v.sta, `Estamina ${v.sta}/100: sube con cada tarea de hoy`);
     const chip = (id, n, label) => { const el = $(id); el.querySelector('b').textContent = n; el.title = label; el.setAttribute('aria-label', label); };
     chip('#h-streak', streak, `Racha: ${streak} ${streak === 1 ? 'día' : 'días'}`);
     chip('#h-xp', tot.xp >= 10000 ? Math.round(tot.xp / 1000) + 'k' : tot.xp, `Energía total: ${tot.xp}`);
@@ -613,25 +634,13 @@
     const combo = $('#h-combo');
     combo.hidden = c < 2;
     if (c >= 2) chip('#h-combo', '×' + (c >= 4 ? 2 : 1.5), 'Combo activo');
-    const bubble = $('#h-bubble');
-    if (!bubble.textContent) bubble.textContent = idleLine();
-
-    const ns = nextStep();
-    const nx = $('#h-next');
-    if (!Object.keys(state.projects).length) {
-      nx.innerHTML = `<button class="next-pill" data-go="misiones"><span class="np-ico" aria-hidden="true">+</span><span class="np-t">Carga tu primera guía en PDF</span></button>`;
-    } else if (!ns) {
-      nx.innerHTML = '';
-    } else if (ns.t) {
-      nx.innerHTML = `<div class="next-pill"><button class="check" id="h-check" aria-label="Marcar como hecha: ${esc(ns.t.text)}"></button>
-        <span class="np-t" title="${esc(ns.t.text)}">${esc(ns.t.text)}</span>
-        <button class="np-go" data-open-mission="${ns.p.id}" aria-label="Ver la misión ${esc(missionTitle(ns.p))}">›</button></div>`;
-      $('#h-check').onclick = e => toggleTask(ns.p, ns.ph, ns.t, e.currentTarget);
-    } else {
-      nx.innerHTML = `<div class="next-pill"><span class="np-t">Fase ${ns.ph.n} lista</span><button class="btn primary small" id="h-done">Fase superada</button>
-        <button class="np-go" data-open-mission="${ns.p.id}" aria-label="Ver la misión">›</button></div>`;
-      $('#h-done').onclick = e => completePhase(ns.p, ns.ph, e.currentTarget);
-    }
+    const pct = Math.floor(lv.into / lv.need * 100);
+    $('#xp-fill').style.width = (lv.into / lv.need * 100).toFixed(1) + '%';
+    $('#xp-pct').textContent = pct + '%';
+    const xb = $('#xpbar');
+    xb.setAttribute('aria-valuenow', pct);
+    xb.title = `Nivel ${lv.L}: ${lv.into} de ${lv.need} de energía para el nivel ${lv.L + 1}`;
+    if (!$('#h-bubble').textContent) think();
   }
 
   function renderMissions(tot) {
@@ -1002,7 +1011,7 @@
     document.body.addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('dragging'); });
     document.body.addEventListener('dragleave', e => { if (!e.relatedTarget) document.body.classList.remove('dragging'); });
     document.body.addEventListener('drop', e => { e.preventDefault(); document.body.classList.remove('dragging'); handleFiles(e.dataTransfer.files); });
-    $('#pet').onclick = () => { pets.home.feed(0.4); say(idleLine()); };
+    $('#pet').onclick = () => { pets.home.feed(0.4); think(); };
 
     // Menú
     const nm = $('#menu-name');
@@ -1021,7 +1030,6 @@
 
     const fromHash = (location.hash || '').replace('#', '');
     go(fromHash === 'inicio' || fromHash === 'brasa' ? 'home' : fromHash || 'home');
-    $('#h-bubble').textContent = idleLine();
 
     // Refresca los cronómetros.
     setInterval(() => {

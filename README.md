@@ -1,10 +1,10 @@
 # Mochi Roadmap
 
-Carga tus guías de desarrollo en PDF (formato "Hoja de ruta paso a paso & integración con Claude") y cada una se convierte en una **misión principal** con sus fases y tareas para tachar. Cada tarea alimenta a **Mochi**, una bolita blanca con orejitas, panza rosada y carita :3 que flota sobre un escritorio y crece de nivel: Semilla → Bolita → Pompón → Nube → Luna → Estrella.
+Carga tus guías de desarrollo en PDF (formato "Hoja de ruta paso a paso & integración con Claude") y cada una se convierte en una **misión principal** con sus fases y tareas para tachar. Cada tarea alimenta a **Mochi**, una bolita blanca con orejitas, panza rosada y carita :3 que flota sobre un escritorio y crece de nivel: Semilla → Bolita → Pompón → Nube → Luna → Estrella. La curva es empinada: cada nivel pide más que el anterior (60, 170, 312, 480…).
 
 ## Pantallas
 
-- **Inicio**: el personaje en su escritorio. Nivel, racha, energía, misiones diarias y combo aparecen solo como símbolos; abajo, la siguiente tarea para tacharla.
+- **Inicio**: el personaje en su escritorio (ventana con día o noche según el tema, repisa, lámpara, cuaderno, taza y planta). Piensa en voz alta cosas simples sobre aprender, curiosidades de la vida y ganas de mejorar. Arriba, el nivel con **HP** (baja si pasas días sin avanzar), **MP** (sube al aprender con Claude hoy) y **STA** (sube con cada tarea de hoy), más racha, energía, diarias y combo como símbolos. Abajo, la barra de experiencia con su porcentaje.
 - **Misiones**: tres misiones diarias que cambian cada día y se reclaman por energía, y la lista de misiones principales (una por PDF). Al abrir una ves todo lo de la guía: fases, campos, tareas, prompts, cronómetro y registro.
 - **Equipo**: 14 piezas en 5 ranuras (cabeza, cara, cuello, base, aura) que se desbloquean avanzando. Cada una se ve sobre el personaje y da un bono de energía mientras la llevas puesta. También muestra los atributos y los últimos 28 días.
 - **Menú**: nombre del compañero, tema, sonido, reglas de la energía y reinicio.

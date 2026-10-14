@@ -225,8 +225,8 @@
       const my = cy + R * 0.05 + ly, mw = R * 0.12;
       ctx.lineWidth = Math.max(1.1, R * 0.028);
       ctx.beginPath();
-      ctx.arc(cx - mw / 2 + lx, my, mw / 2, 0, Math.PI, false);
-      ctx.arc(cx + mw / 2 + lx, my, mw / 2, 0, Math.PI, false);
+      ctx.arc(cx - mw / 2 + lx, my, mw / 2, Math.PI, 0, true);
+      ctx.arc(cx + mw / 2 + lx, my, mw / 2, Math.PI, 0, true);
       ctx.stroke();
     }
 
