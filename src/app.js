@@ -50,18 +50,18 @@
     { id: 'estrellas', slot: 'aura', name: 'Polvo de estrellas', perk: { all: 2 }, req: { type: 'level', n: 9 },
       svg: '<g fill="#ffe9a8"><path d="M20 4l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/><path d="M32 26l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z"/><path d="M8 26l1.2 3 3 1.2-3 1.2L8 34.6l-1.2-3-3-1.2 3-1.2z"/></g>' },
     // Joyas: se forjan en el Taller
-    { id: 'anillo', slot: 'joya', name: 'Arete de hierro', perk: { fam: 'build', xp: 2 }, req: { type: 'craft', n: 1 }, color: '#9aa3b8',
-      svg: '<circle cx="20" cy="16" r="7" fill="none" stroke="#9aa3b8" stroke-width="3"/><path d="M20 23l-4 9h8z" fill="#7d8597"/>' },
-    { id: 'amuleto', slot: 'joya', name: 'Amuleto de cristal', perk: { fam: 'claude', xp: 2 }, req: { type: 'craft', n: 1 }, color: '#6ec5ff',
+    { id: 'anillo', slot: 'joya', name: 'Anillo de plata de ley', perk: { fam: 'build', xp: 2 }, req: { type: 'craft', n: 1 }, color: '#e3e6ea',
+      svg: '<circle cx="20" cy="22" r="10" fill="none" stroke="#d9dde4" stroke-width="4"/><circle cx="20" cy="11" r="3.5" fill="#bfe6f5"/>' },
+    { id: 'amuleto', slot: 'joya', name: 'Cuentas de vidrio', perk: { fam: 'claude', xp: 2 }, req: { type: 'craft', n: 1 }, color: '#6ec5ff',
       svg: '<path d="M14 6h12" stroke="#c9a23a" stroke-width="2"/><path d="M20 10l8 10-8 12-8-12z" fill="#6ec5ff"/><path d="M20 10l3 10-3 12" fill="#a8defd"/>' },
-    { id: 'broche', slot: 'joya', name: 'Broche de arcilla', perk: { fam: 'create', xp: 2 }, req: { type: 'craft', n: 1 }, color: '#d8806a',
-      svg: '<circle cx="20" cy="20" r="11" fill="#d8806a"/><circle cx="20" cy="20" r="6" fill="#f2b6a0"/><circle cx="20" cy="20" r="2" fill="#c9a23a"/>' },
-    { id: 'dije', slot: 'joya', name: 'Dije de chispa', perk: { fam: 'test', xp: 3 }, req: { type: 'craft', n: 1 }, color: '#ffd166',
-      svg: '<path d="M20 6l3.5 9.5L33 19l-9.5 3.5L20 32l-3.5-9.5L7 19l9.5-3.5z" fill="#ffd166"/>' },
-    { id: 'perlas', slot: 'joya', name: 'Collar de perlas', perk: { quest: 5 }, req: { type: 'craft', n: 1 }, color: '#f4f1ea',
-      svg: '<path d="M8 12q12 22 24 0" fill="none" stroke="#c9a23a" stroke-width="1.5"/><g fill="#f4f1ea" stroke="#c9c2b4"><circle cx="10" cy="16" r="3"/><circle cx="14" cy="22" r="3"/><circle cx="20" cy="25" r="3.4"/><circle cx="26" cy="22" r="3"/><circle cx="30" cy="16" r="3"/></g>' },
-    { id: 'pulsera', slot: 'joya', name: 'Pulsera de la amistad', perk: { bond: 20 }, req: { type: 'craft', n: 1 }, color: '#ff8fb1',
-      svg: '<circle cx="20" cy="20" r="11" fill="none" stroke="#ff8fb1" stroke-width="4" stroke-dasharray="5 3"/><circle cx="20" cy="9" r="3" fill="#6fbf8e"/>' }
+    { id: 'broche', slot: 'joya', name: 'Broche de bronce', perk: { fam: 'create', xp: 2 }, req: { type: 'craft', n: 1 }, color: '#b0793c',
+      svg: '<circle cx="20" cy="20" r="11" fill="#b0793c"/><circle cx="20" cy="20" r="6" fill="#d39a5c"/><path d="M9 20h22" stroke="#7a4f24" stroke-width="2"/>' },
+    { id: 'dije', slot: 'joya', name: 'Colgante de oro rosa', perk: { fam: 'test', xp: 3 }, req: { type: 'craft', n: 1 }, color: '#e6a58f',
+      svg: '<path d="M14 5q6 6 12 0" stroke="#e6a58f" stroke-width="2" fill="none"/><path d="M20 10c5 6 8 10 8 14a8 8 0 0 1-16 0c0-4 3-8 8-14z" fill="#e6a58f"/>' },
+    { id: 'perlas', slot: 'joya', name: 'Moneda de electro', perk: { quest: 5 }, req: { type: 'craft', n: 1 }, color: '#e8d27a',
+      svg: '<circle cx="20" cy="22" r="11" fill="#e8d27a" stroke="#c9a23a" stroke-width="2"/><path d="M15 22q5-6 10 0q-5 6-10 0z" fill="#c9a23a"/><path d="M20 4v7" stroke="#c9a23a" stroke-width="1.5"/>' },
+    { id: 'pulsera', slot: 'joya', name: 'Pulsera de latón', perk: { bond: 20 }, req: { type: 'craft', n: 1 }, color: '#d4b04a',
+      svg: '<circle cx="20" cy="20" r="11" fill="none" stroke="#d4b04a" stroke-width="4"/><circle cx="20" cy="9" r="3" fill="#ff8fb1"/>' }
   ];
   const ITEM = Object.fromEntries(ITEMS.map(i => [i.id, i]));
 
@@ -185,6 +185,7 @@
       Object.values(state.projects).forEach(p => { if (!p.untouched && (remoteAt[p.id] || 0) < p.updatedAt) saveRemote(p.id); });
       if (state.profile.updatedAt && (remoteAt.profile || 0) < state.profile.updatedAt) saveRemote('profile');
       setSync('Guardado en tu cuenta');
+      startPlaza(db, user);
       if (changed) { persistLocal(); if (!active()) state.activeId = Object.keys(state.projects)[0] || null; applyTheme(); renderAll(); }
     } catch (e) { setSync('Guardado en este navegador'); }
     try { state.sample = await window.claude.use('sample'); } catch (e) { state.sample = null; }
@@ -203,7 +204,7 @@
   }
   function missionDone(p) { return p.roadmap.phases.length > 0 && p.roadmap.phases.every(ph => (p.progress.phases[ph.n] || {}).doneAt); }
   function totals() {
-    let xp = state.profile.claimedXp || 0, phases = 0, prompts = 0, hours = 0, missions = 0, last = 0;
+    let xp = (state.profile.claimedXp || 0) + (state.profile.teachXp || 0), phases = 0, prompts = 0, hours = 0, missions = 0, last = 0;
     Object.values(state.profile.claims).forEach(day => Object.values(day).forEach(v => (xp += v)));
     const fam = { build: 0, claude: 0, create: 0, test: 0 };
     const days = new Set();
@@ -361,105 +362,184 @@
     if (!silent) say(`¡Encontré ${fresh.length > 1 ? fresh.length + ' cosas' : '«' + fresh[0].name + '»'}! Míralo en Equipo.`, true);
   }
 
-  // ---------- taller: materiales, mezclas y orfebrería ----------
-  // Los materiales salen de lo que haces: cada tipo de tarea da el suyo, las fases dan oro, las diarias perlas
-  // y tratar bien a Mochi da hierbas. En el caldero se mezclan 2 o 3 para hacer pociones o forjar joyas.
+  // ---------- taller: química, cocina y orfebrería de verdad ----------
+  // Todas las mezclas son reales: aleaciones, vidrio, cerámica, jabón, cocina y experimentos caseros seguros.
+  // La app NO enseña las recetas: no hay pistas. Se descubren probando, aplicando lo que sabes
+  // o aprendiendo de otras personas en la Plaza.
+  const svgJar = (fill, extra) => `<path d="M12 10h16v4l3 4v14a3 3 0 0 1-3 3H12a3 3 0 0 1-3-3V18l3-4z" fill="${fill}" stroke="#aab2c0" stroke-width="1.2"/><rect x="11" y="6" width="18" height="5" rx="2" fill="#8a6247"/>${extra || ''}`;
+  const svgOre = fill => `<path d="M7 27l5-11h16l5 11z" fill="${fill}"/><path d="M12 16h16l2 4H10z" fill="#ffffff" opacity=".35"/>`;
+  const svgBag = fill => `<path d="M10 14q10-6 20 0l2 18H8z" fill="${fill}" stroke="#aab2c0" stroke-width="1.2"/><path d="M14 13q6-6 12 0" stroke="#8a6247" stroke-width="2" fill="none"/>`;
+  const svgLeaf = fill => `<path d="M20 34c0-12 2-20 10-26-1 10-4 18-10 26z" fill="${fill}"/><path d="M20 34C18 24 14 18 8 14c2 10 6 16 12 20z" fill="${fill}" opacity=".75"/>`;
+  // Materiales base. "src" dice de dónde salen al avanzar.
   const MATS = {
-    hierro: { name: 'Hierro', from: 'tareas de construir', color: '#9aa3b8',
-      svg: '<path d="M6 26l6-10h16l6 10z" fill="#9aa3b8"/><path d="M12 16h16l2 3H10z" fill="#c3c9d6"/>' },
-    cristal: { name: 'Cristal', from: 'tareas de Claude y prompts', color: '#6ec5ff',
-      svg: '<path d="M20 5l10 10-10 20-10-20z" fill="#6ec5ff"/><path d="M20 5l4 10-4 20" fill="#a8defd"/>' },
-    arcilla: { name: 'Arcilla', from: 'tareas de crear', color: '#d8806a',
-      svg: '<path d="M8 26c0-8 6-14 12-14s12 6 12 14c0 4-6 6-12 6s-12-2-12-6z" fill="#d8806a"/><ellipse cx="17" cy="19" rx="3" ry="2" fill="#eaa48f"/>' },
-    chispa: { name: 'Chispa', from: 'tareas de probar', color: '#ffd166',
-      svg: '<path d="M20 4l4 11 11 4-11 4-4 11-4-11-11-4 11-4z" fill="#ffd166"/>' },
-    oro: { name: 'Oro', from: 'fases superadas', color: '#f5c542',
-      svg: '<path d="M7 28l5-12h16l5 12z" fill="#f5c542"/><path d="M12 16h16l2 4H10z" fill="#ffe08a"/><circle cx="26" cy="12" r="2" fill="#fff6c0"/>' },
-    perla: { name: 'Perla', from: 'misiones diarias', color: '#f4f1ea',
-      svg: '<circle cx="20" cy="20" r="10" fill="#f4f1ea" stroke="#d6cfc2"/><circle cx="16" cy="16" r="3" fill="#fff"/>' },
-    hierba: { name: 'Hierba', from: 'tratar bien a Mochi', color: '#6fbf8e',
-      svg: '<path d="M20 34c0-12 2-20 10-26-1 10-4 18-10 26z" fill="#6fbf8e"/><path d="M20 34C18 24 14 18 8 14c2 10 6 16 12 20z" fill="#4fa874"/>' }
+    agua: { name: 'Agua', src: 'siempre hay', color: '#7fc4ff', svg: '<path d="M20 6c6 9 10 14 10 19a10 10 0 0 1-20 0c0-5 4-10 10-19z" fill="#7fc4ff"/>' },
+    cobre: { name: 'Cobre', src: 'build', color: '#c8743f', svg: svgOre('#c8743f') },
+    estano: { name: 'Estaño', src: 'build', color: '#b9c0c9', svg: svgOre('#b9c0c9') },
+    zinc: { name: 'Zinc', src: 'build', color: '#9fb0b8', svg: svgOre('#9fb0b8') },
+    hierro: { name: 'Hierro', src: 'build', color: '#7d8597', svg: svgOre('#7d8597') },
+    carbon: { name: 'Carbón', src: 'build', color: '#3a3a40', svg: '<path d="M8 26l6-12 8 2 8-4 4 14z" fill="#3a3a40"/>' },
+    arena: { name: 'Arena', src: 'claude', color: '#e2c48f', svg: svgBag('#e2c48f') },
+    sosa: { name: 'Carbonato de sodio', src: 'claude', color: '#eceff4', svg: svgJar('#eceff4') },
+    cal: { name: 'Cal', src: 'claude', color: '#f2f2ec', svg: svgBag('#f2f2ec') },
+    vinagre: { name: 'Vinagre', src: 'claude', color: '#e9d9a6', svg: svgJar('#e9d9a6') },
+    bicarbonato: { name: 'Bicarbonato', src: 'claude', color: '#ffffff', svg: svgJar('#ffffff') },
+    maicena: { name: 'Maicena', src: 'claude', color: '#f6edd4', svg: svgBag('#f6edd4') },
+    harina: { name: 'Harina', src: 'create', color: '#f3ead6', svg: svgBag('#f3ead6') },
+    levadura: { name: 'Levadura', src: 'create', color: '#d9b77a', svg: svgJar('#d9b77a') },
+    azucar: { name: 'Azúcar', src: 'create', color: '#fbfbfb', svg: svgJar('#fbfbfb') },
+    cacao: { name: 'Cacao', src: 'create', color: '#6b4127', svg: svgBag('#6b4127') },
+    cera: { name: 'Cera de abeja', src: 'create', color: '#f2c14e', svg: '<path d="M20 6l12 7v14l-12 7-12-7V13z" fill="#f2c14e"/>' },
+    aceite: { name: 'Aceite', src: 'create', color: '#d9c45a', svg: svgJar('#d9c45a') },
+    arcilla: { name: 'Arcilla', src: 'create', color: '#c97a5c', svg: '<path d="M8 26c0-8 6-14 12-14s12 6 12 14c0 4-6 6-12 6s-12-2-12-6z" fill="#c97a5c"/>' },
+    leche: { name: 'Leche', src: 'test', color: '#fafafa', svg: svgJar('#fafafa') },
+    limon: { name: 'Limón', src: 'test', color: '#f5d33d', svg: '<ellipse cx="20" cy="21" rx="11" ry="8" fill="#f5d33d"/><path d="M31 21l3-2M9 21l-3 2" stroke="#e0b820" stroke-width="2"/>' },
+    sal: { name: 'Sal', src: 'test', color: '#f4f6f8', svg: svgJar('#f4f6f8') },
+    hielo: { name: 'Hielo', src: 'test', color: '#cfeaff', svg: '<rect x="9" y="11" width="22" height="20" rx="4" fill="#cfeaff"/><path d="M13 15h6" stroke="#fff" stroke-width="2"/>' },
+    ceniza: { name: 'Ceniza de leña', src: 'test', color: '#9b9b9b', svg: svgBag('#9b9b9b') },
+    miel: { name: 'Miel', src: 'test', color: '#e9a527', svg: svgJar('#e9a527') },
+    oro: { name: 'Oro', src: 'fase', color: '#f5c542', svg: svgOre('#f5c542') },
+    plata: { name: 'Plata', src: 'raro', color: '#d9dde4', svg: svgOre('#d9dde4') },
+    manzanilla: { name: 'Manzanilla', src: 'cariño', color: '#e8e27a', svg: svgLeaf('#9cc76a') + '<circle cx="27" cy="11" r="3" fill="#fff6b0"/>' },
+    menta: { name: 'Menta', src: 'cariño', color: '#4fbf8a', svg: svgLeaf('#4fbf8a') }
   };
-  // Recetas: ingredientes ordenados alfabéticamente unidos por "+".
+  // Productos que también sirven como material para otras mezclas.
+  const PRODUCTS = {
+    bronce: { name: 'Bronce', color: '#b0793c' }, laton: { name: 'Latón', color: '#d4b04a' }, acero: { name: 'Acero', color: '#8e98a8' },
+    ororosa: { name: 'Oro rosa', color: '#e6a58f' }, electro: { name: 'Electro', color: '#e8d27a' }, platadeley: { name: 'Plata de ley', color: '#e3e6ea' },
+    vidrio: { name: 'Vidrio', color: '#bfe6f5' }, ceramica: { name: 'Cerámica', color: '#c4683f' }, mortero: { name: 'Mortero', color: '#c9c3b6' },
+    jabon: { name: 'Jabón', color: '#f3e9c6' }, caseina: { name: 'Plástico de leche', color: '#f1ead8' }, salmuera: { name: 'Salmuera', color: '#d9eef7' }
+  };
+  Object.entries(PRODUCTS).forEach(([id, p]) => (MATS[id] = { name: p.name, src: 'hecho', color: p.color, svg: id === 'vidrio' ? '<path d="M14 8h12l-2 24h-8z" fill="#bfe6f5" stroke="#8fc9e0"/>' : svgOre(p.color), made: true }));
+  const PROC = { frio: 'En frío', calentar: 'Calentar', hornear: 'Hornear', fundir: 'Fundir', forjar: 'Forjar' };
+  // kind: mat (queda como material), food (se le da a Mochi), exp (experimento que se ve y ya), jewel (joya equipable).
   const RECIPES = {
-    'hierba+hierba': { id: 'te', kind: 'potion', name: 'Té de manzanilla', hint: 'Dos de lo mismo, verde y calmante.', text: 'Quita las ojeras y la lentitud de hoy.', cure: ['ojeras', 'lento'], color: '#cfe8a0' },
-    'chispa+hierba': { id: 'cafe', kind: 'potion', name: 'Café de grano', hint: 'Algo verde con algo que chispea.', text: '+40 de estamina hoy.', boost: { sta: 40 }, color: '#8a5a3a' },
-    'cristal+hierba': { id: 'claridad', kind: 'potion', name: 'Poción de claridad', hint: 'Lo que se ve a través, con algo verde.', text: 'Despeja la cabeza nublada y da +25 de maná hoy.', cure: ['nublado'], boost: { mp: 25 }, color: '#8fd3ff' },
-    'hierba+perla': { id: 'calma', kind: 'potion', name: 'Elixir de calma', hint: 'Algo del mar con algo del campo.', text: 'Quita el malhumor de hoy.', cure: ['malhumor'], color: '#f3d6e4' },
-    'cristal+hierba+perla': { id: 'siesta', kind: 'potion', name: 'Siesta embotellada', hint: 'Mar, campo y algo transparente.', text: 'Cura el agotamiento y el malhumor de hoy.', cure: ['agotado', 'malhumor'], color: '#b9a8ff' },
-    'arcilla+hierba+hierro': { id: 'caldo', kind: 'potion', name: 'Caldo reconfortante', hint: 'Tierra, metal y algo verde.', text: '+40 de vida hoy.', boost: { hp: 40 }, color: '#e8b27a' },
-    'hierro+hierro+oro': { id: 'anillo', kind: 'jewel', name: 'Arete de hierro', hint: 'Dos metales grises y algo dorado.' },
-    'cristal+cristal+oro': { id: 'amuleto', kind: 'jewel', name: 'Amuleto de cristal', hint: 'Dos transparentes y algo dorado.' },
-    'arcilla+arcilla+oro': { id: 'broche', kind: 'jewel', name: 'Broche de arcilla', hint: 'Dos de tierra y algo dorado.' },
-    'chispa+chispa+oro': { id: 'dije', kind: 'jewel', name: 'Dije de chispa', hint: 'Dos que brillan y algo dorado.' },
-    'oro+perla+perla': { id: 'perlas', kind: 'jewel', name: 'Collar de perlas', hint: 'Dos del mar y algo dorado.' },
-    'arcilla+hierba+perla': { id: 'pulsera', kind: 'jewel', name: 'Pulsera de la amistad', hint: 'Tierra, mar y campo: lo que une.' }
+    'cobre+estano|fundir': { kind: 'mat', out: 'bronce', fact: 'Unos 9 de cobre por 1 de estaño. Con esta aleación empezó una edad entera de la historia humana.' },
+    'cobre+zinc|fundir': { kind: 'mat', out: 'laton', fact: 'El latón es cobre con zinc: más dorado y fácil de trabajar. Lo tienen muchas llaves y trompetas.' },
+    'carbon+hierro|fundir': { kind: 'mat', out: 'acero', fact: 'Un poquito de carbono en el hierro lo vuelve acero: más duro y resistente.' },
+    'cobre+oro|fundir': { kind: 'mat', out: 'ororosa', fact: 'El oro rosa es oro con cobre; mientras más cobre, más rosado.' },
+    'oro+plata|fundir': { kind: 'mat', out: 'electro', fact: 'El electro existe en la naturaleza. Con él se acuñaron algunas de las primeras monedas, en Lidia.' },
+    'cobre+plata|fundir': { kind: 'mat', out: 'platadeley', fact: 'La plata de ley tiene 92,5 % de plata y el resto cobre, porque la plata pura es muy blanda.' },
+    'arena+cal+sosa|fundir': { kind: 'mat', out: 'vidrio', fact: 'Arena (sílice), carbonato de sodio y cal: la receta del vidrio común de ventanas y botellas.' },
+    'agua+arcilla|hornear': { kind: 'mat', out: 'ceramica', fact: 'El barro cocido a alta temperatura se vuelve cerámica: ya no se deshace con agua.' },
+    'agua+arena+cal|frio': { kind: 'mat', out: 'mortero', fact: 'Cal, arena y agua: el mortero con que se pegaron ladrillos por miles de años.' },
+    'aceite+agua+ceniza|calentar': { kind: 'mat', out: 'jabon', fact: 'La ceniza de leña tiene potasa; con grasa y calor se hace jabón. Así se hacía antiguamente.' },
+    'leche+vinagre|calentar': { kind: 'mat', out: 'caseina', fact: 'El ácido separa la caseína de la leche caliente: un "plástico" que se puede moldear.' },
+    'agua+sal|frio': { kind: 'mat', out: 'salmuera', fact: 'Agua con mucha sal: sirve para conservar alimentos.' },
+    'agua+harina+levadura|hornear': { kind: 'food', id: 'pan', name: 'Pan', color: '#d9a55a', text: '+15 de vida hoy.', boost: { hp: 15 }, fact: 'La levadura come azúcares de la harina y suelta gas: por eso el pan se infla.' },
+    'agua+harina|hornear': { kind: 'food', id: 'acimo', name: 'Pan ácimo', color: '#e8c98f', text: '+8 de vida hoy.', boost: { hp: 8 }, fact: 'Sin levadura el pan queda plano. Es uno de los panes más antiguos.' },
+    'azucar|calentar': { kind: 'food', id: 'caramelo', name: 'Caramelo', color: '#c8862f', text: '+15 de estamina hoy.', boost: { sta: 15 }, fact: 'Calentado, el azúcar se derrite y cambia: eso es la caramelización.' },
+    'leche+limon|calentar': { kind: 'food', id: 'requeson', name: 'Requesón', color: '#f6f1e2', text: '+20 de estamina hoy.', boost: { sta: 20 }, fact: 'El ácido del limón corta la leche caliente y separa la cuajada.' },
+    'azucar+cacao+leche|calentar': { kind: 'food', id: 'chocolate', name: 'Chocolate caliente', color: '#6b4127', text: 'Le quita el malhumor de hoy.', cure: ['malhumor'], fact: 'El cacao se disuelve mejor en leche caliente.' },
+    'agua+azucar+limon|frio': { kind: 'food', id: 'limonada', name: 'Limonada', color: '#f5e27a', text: '+25 de estamina hoy.', boost: { sta: 25 }, fact: 'El azúcar equilibra la acidez del limón.' },
+    'agua+limon+miel|calentar': { kind: 'food', id: 'miellimon', name: 'Agua de miel y limón', color: '#f0c25a', text: '+25 de vida hoy.', boost: { hp: 25 }, fact: 'Un remedio casero de toda la vida para la garganta.' },
+    'agua+manzanilla|calentar': { kind: 'food', id: 'te', name: 'Té de manzanilla', color: '#e3e08a', text: 'Quita las ojeras y la lentitud de hoy.', cure: ['ojeras', 'lento'], fact: 'Infusión suave que mucha gente toma para relajarse.' },
+    'agua+manzanilla+miel|calentar': { kind: 'food', id: 'temiel', name: 'Manzanilla con miel', color: '#ecc76a', text: 'Cura el agotamiento y el malhumor de hoy.', cure: ['agotado', 'malhumor'], fact: 'Una taza tibia y dulce para bajar las revoluciones.' },
+    'agua+menta|calentar': { kind: 'food', id: 'temen', name: 'Té de menta', color: '#7fd1a3', text: 'Despeja la cabeza nublada y da +15 de maná hoy.', cure: ['nublado'], boost: { mp: 15 }, fact: 'El mentol da sensación de frescor.' },
+    'bicarbonato+vinagre|frio': { kind: 'exp', name: 'Erupción de espuma', color: '#f2f2f2', fact: 'Ácido + base: el bicarbonato y el vinagre reaccionan y sueltan dióxido de carbono.' },
+    'hielo+sal|frio': { kind: 'exp', name: 'Mezcla frigorífica', color: '#cfeaff', fact: 'La sal hace que el hielo se derrita absorbiendo calor: la mezcla baja de 0 °C.' },
+    'agua+maicena|frio': { kind: 'exp', name: 'Fluido no newtoniano', color: '#f6edd4', fact: 'Si lo golpeas está duro; si lo tocas suave, se escurre.' },
+    'agua+jabon|frio': { kind: 'exp', name: 'Burbujas de jabón', color: '#d9f2ff', fact: 'El jabón baja la tensión del agua y deja formar películas finitas.' },
+    'agua+sal|calentar': { kind: 'exp', name: 'Cristales de sal', color: '#f4f6f8', fact: 'Al evaporarse el agua, la sal vuelve a cristalizar.' },
+    'platadeley|forjar': { kind: 'jewel', id: 'anillo', fact: 'La plata de ley se martilla y se pule para hacer anillos.' },
+    'vidrio|forjar': { kind: 'jewel', id: 'amuleto', fact: 'Las cuentas de vidrio se hacen enrollando vidrio caliente en una varilla.' },
+    'bronce|forjar': { kind: 'jewel', id: 'broche', fact: 'Los broches de bronce se usaban para cerrar capas hace miles de años.' },
+    'ororosa|forjar': { kind: 'jewel', id: 'dije', fact: 'El oro rosa es popular en joyería por su tono cálido.' },
+    'electro|forjar': { kind: 'jewel', id: 'perlas', fact: 'Una moneda de electro, como las primeras de la historia.' },
+    'laton|forjar': { kind: 'jewel', id: 'pulsera', fact: 'El latón se dobla bien en frío y en caliente: ideal para pulseras.' }
   };
-  const POTION = Object.fromEntries(Object.values(RECIPES).filter(r => r.kind === 'potion').map(r => [r.id, r]));
-  const ODD = { id: 'engrudo', kind: 'potion', name: 'Engrudo raro', text: 'No hace nada… pero Mochi lo prueba igual.', color: '#a3a07a' };
-  POTION.engrudo = ODD;
+  const FOOD = Object.fromEntries(Object.values(RECIPES).filter(r => r.kind === 'food').map(r => [r.id, r]));
+  FOOD.engrudo = { id: 'engrudo', name: 'Engrudo raro', color: '#a3a07a', text: 'No hace nada… pero Mochi lo prueba igual.' };
+  const FAIL = {
+    frio: 'No pasó nada interesante: quedó todo revuelto.', calentar: 'Se entibió, burbujeó un poco… y nada más.',
+    hornear: 'Salió algo duro y raro del horno.', fundir: 'Lo que no se fundió se quemó. Huele a carbón.', forjar: 'Lo martillaste, pero no tomó forma.'
+  };
+  const recipeOutName = r => r.kind === 'mat' ? MATS[r.out].name : r.kind === 'jewel' ? ITEM[r.id].name : r.name;
   function workshop() {
     const pr = state.profile;
     if (!pr.mats) pr.mats = {};
     if (!pr.bag) pr.bag = {};
     if (!pr.recipes) pr.recipes = {};
-    if (!pr.gift) { pr.gift = 1; pr.mats.hierba = (pr.mats.hierba || 0) + 3; pr.mats.chispa = (pr.mats.chispa || 0) + 1; pr.mats.cristal = (pr.mats.cristal || 0) + 1; }
+    if (pr.ws !== 2) {
+      // migración: materiales viejos a reales, recetario nuevo y un kit de inicio de cocina básica
+      const old = pr.mats, map = { hierro: 'hierro', cristal: 'arena', arcilla: 'arcilla', chispa: 'limon', oro: 'oro', perla: 'plata', hierba: 'manzanilla' };
+      const mats = {};
+      Object.entries(old).forEach(([k, n]) => { const to = map[k] || (MATS[k] ? k : null); if (to) mats[to] = (mats[to] || 0) + n; });
+      [['limon', 1], ['azucar', 2], ['harina', 2], ['levadura', 1], ['manzanilla', 1], ['leche', 1]].forEach(([k, n]) => (mats[k] = (mats[k] || 0) + n));
+      pr.mats = mats;
+      pr.bag = Object.fromEntries(Object.entries(pr.bag).filter(([k]) => FOOD[k]));
+      pr.recipes = {};
+      pr.ws = 2;
+    }
     return pr;
   }
+  const POOLS = { build: [], claude: [], create: [], test: [] };
+  Object.entries(MATS).forEach(([id, m]) => { if (POOLS[m.src]) POOLS[m.src].push(id); });
   function giveMat(id, n, silent) {
     const pr = workshop();
     pr.mats[id] = (pr.mats[id] || 0) + (n || 1);
     touchProfile();
-    if (!silent && state.screen !== 'home') floatMat(id, n || 1);
+    if (!silent) floatMat(id, n || 1);
+  }
+  // Recompensa según de dónde viene: tipo de tarea, fase, diaria, cariño.
+  function giveFrom(src, n) {
+    const pool = src === 'fase' ? ['oro', 'plata'] : src === 'raro' ? ['plata', 'oro', 'cacao', 'cera'] : src === 'cariño' ? ['manzanilla', 'menta', 'miel'] : POOLS[src];
+    if (!pool || !pool.length) return;
+    for (let i = 0; i < (n || 1); i++) giveMat(pick(pool), 1, src === 'cariño');
   }
   function floatMat(id, n) {
     const tab = document.querySelector('.tab[data-go="taller"]');
-    if (!tab) return;
+    if (!tab || !tab.getBoundingClientRect().width) return;
     const r = tab.getBoundingClientRect();
     const f = document.createElement('span');
     f.className = 'floatxp mat'; f.innerHTML = `<svg viewBox="0 0 40 40" aria-hidden="true">${MATS[id].svg}</svg>+${n}`;
     f.style.left = r.left + r.width / 2 - 14 + 'px'; f.style.top = r.top - 26 + 'px';
     document.body.appendChild(f); setTimeout(() => f.remove(), 1100);
   }
-  const FAM_MAT = { build: 'hierro', claude: 'cristal', create: 'arcilla', test: 'chispa' };
   const cauldron = [];
-  function mixKey(list) { return list.slice().sort().join('+'); }
-  function doMix(btn) {
+  let process = 'frio', trySource = null;
+  const mixKey = (list, proc) => list.slice().sort().join('+') + '|' + proc;
+  function doMix() {
     const pr = workshop();
-    if (cauldron.length < 2) return;
-    const key = mixKey(cauldron);
+    if (!cauldron.length) return;
+    const key = mixKey(cauldron, process);
     const rec = RECIPES[key];
-    const out = $('#t-result');
     if (rec && rec.kind === 'jewel' && pr.unlocked[rec.id]) {
-      out.innerHTML = `<p class="muted">Ya tienes ${esc(rec.name.toLowerCase())}. No gastes materiales en otra.</p>`; return;
+      $('#t-result').innerHTML = `<p class="muted">Ya tienes ${esc(ITEM[rec.id].name.toLowerCase())}. Guarda el material para otra cosa.</p>`; return;
     }
-    cauldron.forEach(m => (pr.mats[m] = Math.max(0, (pr.mats[m] || 0) - 1)));
-    const cur = cauldron.splice(0);
-    let made;
-    if (!rec) { made = ODD; pr.bag.engrudo = (pr.bag.engrudo || 0) + 1; }
-    else {
-      pr.recipes[key] = 1;
-      made = rec;
-      if (rec.kind === 'jewel') { pr.unlocked[rec.id] = Date.now(); pr.newItems = (pr.newItems || []).concat(rec.id); }
-      else pr.bag[rec.id] = (pr.bag[rec.id] || 0) + 1;
+    cauldron.forEach(m => { if (m !== 'agua') pr.mats[m] = Math.max(0, (pr.mats[m] || 0) - 1); });
+    cauldron.length = 0;
+    const isNew = rec && !pr.recipes[key];
+    let title, icon, sub, fact;
+    if (!rec) {
+      title = 'Mezcla fallida'; sub = FAIL[process]; icon = foodSvg(FOOD.engrudo);
+      if (Math.random() < 0.35) { pr.bag.engrudo = (pr.bag.engrudo || 0) + 1; sub += ' Quedó un engrudo raro.'; }
+    } else {
+      pr.recipes[key] = pr.recipes[key] || Date.now();
+      fact = rec.fact;
+      if (rec.kind === 'mat') { pr.mats[rec.out] = (pr.mats[rec.out] || 0) + 1; title = MATS[rec.out].name; sub = 'Nuevo material: sirve para otras mezclas.'; icon = `<svg viewBox="0 0 40 40" aria-hidden="true">${MATS[rec.out].svg}</svg>`; }
+      else if (rec.kind === 'food') { pr.bag[rec.id] = (pr.bag[rec.id] || 0) + 1; title = rec.name; sub = rec.text + ' Está en tu mochila.'; icon = foodSvg(rec); }
+      else if (rec.kind === 'exp') { title = rec.name; sub = 'Experimento: se ve, se aprende y se acaba.'; icon = foodSvg(rec); if (pets.home) pets.home.express('surprised', 2000); }
+      else { pr.unlocked[rec.id] = Date.now(); pr.newItems = (pr.newItems || []).concat(rec.id); title = ITEM[rec.id].name; sub = perkText(ITEM[rec.id].perk) + '. Póntela en Equipo.'; icon = `<svg viewBox="0 0 40 40" aria-hidden="true">${ITEM[rec.id].svg}</svg>`; }
+      // si venía de un aporte de la Plaza, se lo agradece a quien enseñó
+      if (trySource && trySource.key === key && plazaReady) { plazaMine().learned[trySource.post] = Date.now(); savePlaza(); bondChange(1, 'learn'); }
     }
+    trySource = null;
     touchProfile();
-    crackle(rec ? 1.5 : 0.6); feedAll(0.3);
+    crackle(rec ? 1.5 : 0.6); feedAll(rec ? 0.4 : 0.1);
     const pot = $('#t-pot'); pot.classList.remove('boil'); void pot.offsetWidth; pot.classList.add('boil');
     renderWorkshop();
-    const item = made.kind === 'jewel' ? ITEM[made.id] : null;
     $('#t-result').innerHTML = `<div class="made ${rec ? '' : 'odd'}">
-      <span class="made-ico" style="--c:${made.color || (item && item.color) || '#ccc'}">${item ? `<svg viewBox="0 0 40 40" aria-hidden="true">${item.svg}</svg>` : potionSvg(made)}</span>
-      <span><small>${rec ? (made.kind === 'jewel' ? 'Joya forjada' : 'Poción lista') : 'Mezcla fallida'}</small><b>${esc(made.name)}</b>
-      <span>${esc(made.kind === 'jewel' ? perkText(item.perk) + '. Póntela en Equipo.' : made.text)}</span></span></div>`;
-    say(rec ? `¡Hiciste ${made.name.toLowerCase()}!` : 'Eso no salió… pero huele chistoso.', !!rec);
+      <span class="made-ico">${icon}</span>
+      <span><small>${rec ? (isNew ? '¡Descubrimiento!' : 'Lo hiciste otra vez') : esc(PROC[process])}</small><b>${esc(title)}</b>
+      <span>${esc(sub)}</span>${fact ? `<em>${esc(fact)}</em>` : ''}</span></div>`;
+    say(rec ? (isNew ? `¡Descubriste ${title.toLowerCase()}! Cuéntalo en la Plaza.` : `Hiciste ${title.toLowerCase()}.`) : 'Eso no salió… pero así se aprende.', !!(rec && isNew));
   }
-  function potionSvg(r) {
-    return `<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M16 4h8v8l8 14a6 6 0 0 1-5 9H13a6 6 0 0 1-5-9l8-14z" fill="${r.color || '#ccc'}" opacity=".9"/><path d="M15 4h10" stroke="#9aa3b8" stroke-width="3" stroke-linecap="round"/><circle cx="17" cy="24" r="2" fill="#fff" opacity=".7"/></svg>`;
+  function foodSvg(r) {
+    return `<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M10 14h20v6a10 10 0 0 1-20 0z" fill="${r.color || '#ccc'}"/><path d="M30 16h3a3 3 0 0 1 0 6h-3" stroke="#9aa3b8" stroke-width="2" fill="none"/><path d="M8 32h24" stroke="#9aa3b8" stroke-width="3" stroke-linecap="round"/></svg>`;
   }
-  // Darle una poción: cura efectos o sube vitales hoy. Cuidar también es un idioma.
+  // Darle algo hecho a Mochi: cura efectos o sube vitales hoy. Cuidar también es un idioma.
   function usePotion(id, el) {
-    const pr = workshop(), r = POTION[id];
+    const pr = workshop(), r = FOOD[id];
     if (!r || !(pr.bag[id] > 0)) return;
     pr.bag[id]--;
     const today = dayKey(Date.now());
@@ -473,6 +553,199 @@
     renderAll();
     say(id === 'engrudo' ? pick(['*lo prueba* …sabe a lunes. Gracias igual.', 'Mmm… crujiente. ¿Era comida?']) : pick([`¡Gracias por ${r.name.toLowerCase()}! Me siento mejor.`, 'Qué rico… me cuidaste. Gracias.']), true);
     if (pets.home) pets.home.express(id === 'engrudo' ? 'dizzy' : 'love', 2500);
+  }
+
+  // ---------- plaza: comunidad ----------
+  // Un lugar compartido entre quienes usan esta página. Cada persona escribe solo su propio documento
+  // (plaza/<su id>) y todos leen los de todos. Aquí se aprende de otras personas, no de la app:
+  // se comparten descubrimientos, se pregunta, se debate y se regalan materiales.
+  let myPlazaDoc = null, plazaDocs = {}, plazaReady = false, plazaNames = {}, plazaDraft = null, plazaSaveT = 0, plazaUser = null;
+  const KINDS = { descubrimiento: 'Descubrimiento', pregunta: 'Pregunta', debate: 'Debate', pedido: 'Pedido' };
+  function plazaMine() {
+    if (!state.uid || !plazaReady) return { posts: [], replies: [], likes: {}, votes: {}, learned: {}, gifts: [] };
+    // Mi documento vive aquí y manda sobre lo que llegue del servidor (evita perder cambios aún no guardados).
+    if (!myPlazaDoc) myPlazaDoc = JSON.parse(JSON.stringify(plazaDocs[state.uid] || {}));
+    const d = plazaDocs[state.uid] = myPlazaDoc;
+    d.posts = Array.isArray(d.posts) ? d.posts : []; d.replies = Array.isArray(d.replies) ? d.replies : [];
+    d.likes = d.likes || {}; d.votes = d.votes || {}; d.learned = d.learned || {}; d.gifts = Array.isArray(d.gifts) ? d.gifts : [];
+    return d;
+  }
+  function savePlaza() {
+    if (!state.db || !state.uid) return;
+    clearTimeout(plazaSaveT);
+    plazaSaveT = setTimeout(async () => {
+      const d = plazaMine();
+      // límites para que el documento no crezca sin fin
+      d.posts = d.posts.slice(-80); d.replies = d.replies.slice(-300); d.gifts = d.gifts.slice(-100);
+      d.updatedAt = Date.now();
+      try { await state.db.collection('plaza').doc(state.uid).set(JSON.parse(JSON.stringify(d))); }
+      catch (e) { const st = $('#p-state'); if (st) st.textContent = 'No se pudo publicar. Necesitas permiso de Colaborador en esta página para escribir en la Plaza.'; }
+    }, 300);
+  }
+  const clip = (v, n) => String(v == null ? '' : v).slice(0, n);
+  const okId = v => typeof v === 'string' && /^[a-z0-9]{4,24}$/i.test(v);
+  // Todo lo de otras personas se valida y recorta antes de usarlo.
+  function allPosts() {
+    const out = [];
+    Object.entries(plazaDocs).forEach(([uid, d]) => (Array.isArray(d.posts) ? d.posts : []).forEach(p => {
+      if (!p || !okId(p.id) || !KINDS[p.kind]) return;
+      out.push({ uid, id: p.id, at: Number(p.at) || 0, kind: p.kind, title: clip(p.title, 90), body: clip(p.body, 800), mix: RECIPES[p.mix] ? p.mix : null });
+    }));
+    return out.sort((a, b) => b.at - a.at);
+  }
+  function repliesTo(pid) {
+    const out = [];
+    Object.entries(plazaDocs).forEach(([uid, d]) => (Array.isArray(d.replies) ? d.replies : []).forEach(r => {
+      if (r && r.to === pid && okId(r.id)) out.push({ uid, id: r.id, at: Number(r.at) || 0, body: clip(r.body, 400), stance: r.stance === 'si' || r.stance === 'no' ? r.stance : '' });
+    }));
+    return out.sort((a, b) => a.at - b.at);
+  }
+  const countIn = (field, pid, val) => Object.values(plazaDocs).filter(d => d && d[field] && (val ? d[field][pid] === val : d[field][pid])).length;
+  function timeAgo(t) {
+    const m = Math.round((Date.now() - t) / 60000);
+    if (m < 1) return 'recién'; if (m < 60) return `hace ${m} min`;
+    const h = Math.round(m / 60); if (h < 24) return `hace ${h} h`;
+    return `hace ${Math.round(h / 24)} d`;
+  }
+  const newId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+  // Regalos y enseñanzas que otras personas dejaron para ti.
+  function collectFromOthers() {
+    if (!state.uid) return;
+    const pr = workshop();
+    pr.giftsIn = pr.giftsIn || {}; pr.taught = pr.taught || {};
+    const today = dayKey(Date.now());
+    let changed = false, msgs = [];
+    Object.entries(plazaDocs).forEach(([uid, d]) => {
+      if (uid === state.uid || !d) return;
+      (Array.isArray(d.gifts) ? d.gifts : []).forEach(g => {
+        if (!g || g.to !== state.uid || !okId(g.id) || !MATS[g.mat] || MATS[g.mat].made || g.mat === 'agua') return;
+        const k = uid + ':' + g.id, dayK = uid + ':' + today;
+        if (pr.giftsIn[k]) return;
+        // máximo 5 regalos al día por persona
+        pr.giftsIn[dayK] = (pr.giftsIn[dayK] || 0);
+        if (pr.giftsIn[dayK] >= 5) return;
+        pr.giftsIn[dayK]++; pr.giftsIn[k] = 1;
+        pr.mats[g.mat] = (pr.mats[g.mat] || 0) + 1; changed = true;
+        msgs.push(`${plazaName(uid)} te regaló ${MATS[g.mat].name.toLowerCase()}`);
+      });
+      const mine = new Set(plazaMine().posts.map(p => p.id));
+      Object.keys(d.learned || {}).forEach(pid => {
+        if (!mine.has(pid)) return;
+        const k = uid + ':' + pid;
+        if (pr.taught[k] || Object.keys(pr.taught).length >= 40) return;
+        pr.taught[k] = Date.now(); pr.teachXp = (pr.teachXp || 0) + 15; changed = true;
+        msgs.push(`${plazaName(uid)} aprendió con lo que compartiste: +15 de energía`);
+        bondChange(1, 'teach');
+      });
+    });
+    if (changed) { touchProfile(); renderAll(); if (msgs.length) say(msgs.slice(0, 2).join(' · ') + '.', true); }
+  }
+  function plazaName(uid) { return uid === state.uid ? 'Tú' : plazaNames[uid] || 'Alguien'; }
+  async function resolveNames() {
+    if (!plazaUser || typeof plazaUser.profiles !== 'function') return;
+    const ids = Object.keys(plazaDocs).filter(id => !(id in plazaNames));
+    if (!ids.length) return;
+    try { const ps = await plazaUser.profiles(ids); ids.forEach(id => (plazaNames[id] = (ps[id] && ps[id].name) || '')); if (state.screen === 'plaza') renderPlaza(); } catch (e) { /* sin nombres */ }
+  }
+  function startPlaza(db, user) {
+    plazaUser = user;
+    try {
+      db.collection('plaza').onSnapshot(snap => {
+        const next = {};
+        snap.docs.forEach(d => { if (d.exists) next[d.id] = d.data(); });
+        plazaDocs = JSON.parse(JSON.stringify(next));
+        if (myPlazaDoc) plazaDocs[state.uid] = myPlazaDoc;
+        plazaReady = true;
+        resolveNames().then(collectFromOthers, collectFromOthers);
+        if (state.screen === 'plaza') renderPlaza();
+      }, () => { plazaReady = false; if (state.screen === 'plaza') renderPlaza(); });
+    } catch (e) { plazaReady = false; }
+  }
+  function mixText(key) {
+    const [ing, proc] = key.split('|');
+    return ing.split('+').map(m => MATS[m].name).join(' + ') + ' · ' + PROC[proc].toLowerCase();
+  }
+  function renderPlaza() {
+    const st = $('#p-state'), box = $('#p-feed'), comp = $('#p-compose');
+    const pr = workshop();
+    if (!state.db || !state.uid || !plazaReady) {
+      comp.hidden = true;
+      st.textContent = 'La Plaza se activa cuando abres esta página en claude.ai con tu sesión iniciada. Para que otras personas participen, compártela desde el menú Compartir con permiso de Colaborador.';
+      box.innerHTML = ''; return;
+    }
+    comp.hidden = false;
+    const mine = plazaMine();
+    const taught = Object.keys(pr.taught || {}).length, learned = Object.keys(mine.learned).length;
+    st.textContent = `${Object.keys(plazaDocs).length} ${Object.keys(plazaDocs).length === 1 ? 'persona' : 'personas'} en la Plaza · enseñaste a ${taught} · aprendiste de ${learned}`;
+    // borrador que viene del recetario
+    if (plazaDraft) {
+      $('#p-kind').value = plazaDraft.kind; $('#p-mixrow').hidden = plazaDraft.kind !== 'descubrimiento';
+      fillMixSelect(plazaDraft.mix); if (!$('#p-title').value) $('#p-title').value = `Descubrí ${recipeOutName(RECIPES[plazaDraft.mix]).toLowerCase()}`;
+      plazaDraft = null;
+    } else fillMixSelect($('#p-mix').value);
+    const posts = allPosts();
+    box.innerHTML = posts.length ? posts.map(p => {
+      const reps = repliesTo(p.id), isMine = p.uid === state.uid;
+      const likes = countIn('likes', p.id), si = countIn('votes', p.id, 'si'), no = countIn('votes', p.id, 'no'), myVote = mine.votes[p.id];
+      const learnedN = countIn('learned', p.id);
+      return `<li class="post k-${p.kind}" id="post-${p.id}">
+        <div class="post-top"><span class="kchip">${KINDS[p.kind]}</span><span class="who-p">${esc(plazaName(p.uid))} · ${timeAgo(p.at)}</span></div>
+        ${p.title ? `<h3>${esc(p.title)}</h3>` : ''}
+        ${p.body ? `<p>${esc(p.body)}</p>` : ''}
+        ${p.mix ? `<div class="mixbox"><span>${esc(mixText(p.mix))}</span>${isMine ? '' : `<button class="btn small" data-try="${p.id}" data-key="${esc(p.mix)}">Probar en mi caldero</button>`}${learnedN ? `<em>${learnedN} ${learnedN === 1 ? 'persona aprendió' : 'personas aprendieron'} con esto</em>` : ''}</div>` : ''}
+        ${p.kind === 'debate' ? `<div class="vote"><button class="${myVote === 'si' ? 'on' : ''}" data-vote="${p.id}" data-v="si">De acuerdo · ${si}</button><button class="${myVote === 'no' ? 'on' : ''}" data-vote="${p.id}" data-v="no">En desacuerdo · ${no}</button></div>` : ''}
+        <div class="post-actions">
+          <button class="link ${mine.likes[p.id] ? 'liked' : ''}" data-like="${p.id}">Útil · ${likes}</button>
+          ${isMine ? `<button class="link danger" data-delpost="${p.id}">Borrar</button>` : `<span class="gift"><select id="g-${p.id}" aria-label="Material para regalar">${Object.entries(pr.mats).filter(([id, n]) => n > 0 && MATS[id] && !MATS[id].made).map(([id, n]) => `<option value="${id}">${esc(MATS[id].name)} (${n})</option>`).join('')}</select><button class="link" data-gift="${p.id}" data-to="${esc(p.uid)}">Regalar</button></span>`}
+        </div>
+        <ul class="replies-list">${reps.map(r => `<li><b>${esc(plazaName(r.uid))}</b>${r.stance ? `<span class="st st-${r.stance}">${r.stance === 'si' ? 'de acuerdo' : 'en desacuerdo'}</span>` : ''}<span>${esc(r.body)}</span></li>`).join('')}</ul>
+        <div class="reply-row"><input id="r-${p.id}" maxlength="400" placeholder="${p.kind === 'debate' ? 'Primero repite su idea con tus palabras, después da la tuya' : 'Responder…'}" autocomplete="off">
+          ${p.kind === 'debate' ? `<select id="rs-${p.id}" aria-label="Postura"><option value="">Postura</option><option value="si">De acuerdo</option><option value="no">En desacuerdo</option></select>` : ''}
+          <button class="btn small" data-reply-to="${p.id}">Enviar</button></div>
+      </li>`;
+    }).join('') : '<li class="muted">Todavía no hay nada. Sé la primera persona en compartir algo.</li>';
+  }
+  function fillMixSelect(sel) {
+    const pr = workshop();
+    const found = Object.keys(pr.recipes).filter(k => RECIPES[k]);
+    $('#p-mix').innerHTML = '<option value="">Sin receta adjunta</option>' + found.map(k => `<option value="${esc(k)}" ${k === sel ? 'selected' : ''}>${esc(recipeOutName(RECIPES[k]))}</option>`).join('');
+  }
+  function plazaClick(e) {
+    const b = e.target.closest('button');
+    if (!b || !state.uid) return;
+    const mine = plazaMine();
+    if (b.id === 'p-send') {
+      const kind = $('#p-kind').value, title = $('#p-title').value.trim().slice(0, 90), body = $('#p-body').value.trim().slice(0, 800);
+      const mix = kind === 'descubrimiento' ? $('#p-mix').value : '';
+      if (!title && !body) { $('#p-title').focus(); return; }
+      mine.posts.push({ id: newId(), at: Date.now(), kind, title, body, mix: RECIPES[mix] ? mix : null });
+      savePlaza(); $('#p-title').value = ''; $('#p-body').value = '';
+      bondChange(1, kind === 'debate' ? 'debate' : 'bid'); renderPlaza();
+      say(kind === 'pregunta' ? 'Preguntar es valiente. Ojalá alguien responda pronto.' : '¡Publicado! Compartir lo que sabes ayuda a otros.');
+    } else if (b.dataset.replyTo) {
+      const pid = b.dataset.replyTo, inp = $('#r-' + pid), body = inp.value.trim().slice(0, 400);
+      if (!body) { inp.focus(); return; }
+      const stance = ($('#rs-' + pid) || {}).value || '';
+      mine.replies.push({ id: newId(), at: Date.now(), to: pid, body, stance });
+      savePlaza(); bondChange(1, stance ? 'debate' : 'bid'); renderPlaza();
+    } else if (b.dataset.like) { mine.likes[b.dataset.like] ? delete mine.likes[b.dataset.like] : (mine.likes[b.dataset.like] = 1); savePlaza(); renderPlaza(); }
+    else if (b.dataset.vote) { const v = b.dataset.v; mine.votes[b.dataset.vote] === v ? delete mine.votes[b.dataset.vote] : (mine.votes[b.dataset.vote] = v); savePlaza(); renderPlaza(); }
+    else if (b.dataset.delpost) { mine.posts = mine.posts.filter(p => p.id !== b.dataset.delpost); savePlaza(); renderPlaza(); }
+    else if (b.dataset.gift) {
+      const sel = $('#g-' + b.dataset.gift), mat = sel && sel.value, pr = workshop();
+      if (!mat || !(pr.mats[mat] > 0)) return;
+      pr.mats[mat]--; touchProfile();
+      mine.gifts.push({ id: newId(), at: Date.now(), to: b.dataset.to, mat });
+      savePlaza(); bondChange(1, 'care'); renderPlaza();
+      say(`Regalaste ${MATS[mat].name.toLowerCase()}. Dar también se siente bien.`);
+    } else if (b.dataset.try) {
+      const key = b.dataset.key, [ing, proc] = key.split('|'), pr = workshop();
+      const need = ing.split('+'), missing = need.filter(m => m !== 'agua' && (pr.mats[m] || 0) < need.filter(x => x === m).length);
+      cauldron.length = 0; need.forEach(m => { if (m === 'agua' || (pr.mats[m] || 0) > 0) cauldron.push(m); });
+      process = proc; trySource = { post: b.dataset.try, key };
+      go('taller');
+      if (missing.length) $('#t-result').innerHTML = `<p class="muted">Te falta: ${missing.map(m => esc(MATS[m].name)).join(', ')}. Pídelo en la Plaza o sigue avanzando en tus misiones.</p>`;
+    }
   }
 
   // ---------- misiones diarias ----------
@@ -517,7 +790,7 @@
       }
     });
     (claims[k] || (claims[k] = {}))[id] = xp;
-    giveMat('perla');
+    giveFrom('raro');
     touchProfile();
     sparkFrom(el, 'create', () => { feedAll(0.8); crackle(1.5); });
     floatXP(el, '+' + xp);
@@ -550,7 +823,7 @@
     prog.tasks[t.id] = { at: Date.now(), xp };
     // material por tipo de tarea, una sola vez por tarea
     prog.mats = prog.mats || {};
-    if (!prog.mats[t.id]) { prog.mats[t.id] = 1; giveMat(FAM_MAT[familyOf(t.tag)]); }
+    if (!prog.mats[t.id]) { prog.mats[t.id] = 1; giveFrom(familyOf(t.tag)); }
     if (!pp.startAt) pp.startAt = Date.now();
     touch(p);
     sparkFrom(fromEl, familyOf(t.tag), () => { feedAll(mult > 1 ? 1 : 0.6); crackle(mult); });
@@ -586,7 +859,7 @@
     if (pp.hours > 0 && ph.hours > 0 && pp.hours <= ph.hours) xp = Math.round(xp * 1.2);
     if (pp.timerStart) stopTimer(p, ph, true);
     pp.doneAt = Date.now(); pp.xp = xp;
-    if (!pp.oro) { pp.oro = 1; giveMat('oro', 2); }
+    if (!pp.oro) { pp.oro = 1; giveFrom('fase', 2); }
     touch(p);
     sparkFrom(fromEl, 'create', () => { feedAll(1.4); crackle(2); });
     floatXP(fromEl, '+' + xp);
@@ -773,6 +1046,9 @@
     cold: { t: 'Decir cómo te hizo sentir', d: 'Si alguien te responde frío, puedes decir cómo te hizo sentir sin atacar: "eso me dolió un poquito". Así el otro entiende sin sentirse culpado.' },
     sleep: { t: 'Cuidar el descanso del otro', d: 'Respetar el sueño y los tiempos del otro es una forma silenciosa de respeto.' },
     care: { t: 'Cuidar también es un idioma', d: 'Hacer algo concreto por el otro, como un tecito cuando está cansado, también dice "me importas". (Chapman: actos de servicio)' },
+    learn: { t: 'Aprender de otros', d: 'Lo que otra persona ya sabe te ahorra muchos intentos. Preguntar no es debilidad: es la forma más rápida de aprender.' },
+    teach: { t: 'Enseñar es aprender dos veces', d: 'Cuando explicas algo a otra persona lo entiendes mejor tú. (Efecto protegido o "learning by teaching")' },
+    debate: { t: 'Debatir sin pelear', d: 'En un desacuerdo, primero repite con tus palabras lo que dijo el otro; después da tu idea. Se discuten ideas, no personas.' },
     space: { t: 'Aceptar un "no quiero hablar"', d: 'Cuando alguien no quiere hablar, aceptarlo sin insistir le deja la puerta abierta para volver.' }
   };
   function bond() {
@@ -983,7 +1259,7 @@
     if (tone === 'warm') {
       const bdh = bond(), kh = dayKey(Date.now());
       bdh.herbs = bdh.herbs || {};
-      if ((bdh.herbs[kh] || 0) < 5) { bdh.herbs = { [kh]: (bdh.herbs[kh] || 0) + 1 }; giveMat('hierba', 1, true); }
+      if ((bdh.herbs[kh] || 0) < 5) { bdh.herbs = { [kh]: (bdh.herbs[kh] || 0) + 1 }; giveFrom('cariño'); }
     }
     if (tone === 'warm') { pets.home.feed(0.5); bondChange(isRepair ? 4 : isLimit ? 1.5 : 3, isRepair ? 'repair' : lesson || 'bid'); }
     else if (tone === 'ok') bondChange(1, lesson || 'bid');
@@ -1101,7 +1377,7 @@
     return null;
   }
   // ---------- navegación ----------
-  const SCREENS = ['home', 'misiones', 'mision', 'equipo', 'taller', 'menu'];
+  const SCREENS = ['home', 'misiones', 'mision', 'equipo', 'taller', 'plaza', 'menu'];
   function go(screen, opts) {
     if (!SCREENS.includes(screen)) screen = 'home';
     if (screen === 'mision' && !(opts && opts.id ? state.projects[opts.id] : active())) screen = 'misiones';
@@ -1130,6 +1406,7 @@
     if (state.screen === 'mision') renderMission();
     if (state.screen === 'equipo') renderEquip(tot);
     if (state.screen === 'taller') renderWorkshop();
+    if (state.screen === 'plaza') renderPlaza();
     if (state.screen === 'menu') renderMenu();
   }
 
@@ -1365,7 +1642,7 @@
         const text = b.dataset.copy != null ? fillVars(p, ph.prompt) : contextPrompt(p, ph);
         copyText(text, b).then(ok => {
           if (ok && !p.progress.prompts[ph.n]) {
-            p.progress.prompts[ph.n] = Date.now(); touch(p); giveMat('cristal');
+            p.progress.prompts[ph.n] = Date.now(); touch(p); giveFrom('claude');
             feedAll(0.3); checkUnlocks(true); renderTabs();
             say('Prompt copiado: +3. Pégalo en Claude y vuelve con el resultado.');
             const hint = b.closest('.prompt').querySelector('.prompt-hint'); if (hint) hint.remove();
@@ -1483,35 +1760,42 @@
   function renderWorkshop() {
     const pr = workshop();
     const inPot = id => cauldron.filter(x => x === id).length;
-    $('#t-mats').innerHTML = Object.entries(MATS).map(([id, m]) => {
-      const left = (pr.mats[id] || 0) - inPot(id);
-      return `<li><button class="jar" data-mat="${id}" ${left > 0 && cauldron.length < 3 ? '' : 'disabled'} title="${esc(m.name)}: sale de ${esc(m.from)}">
-        <svg viewBox="0 0 40 40" aria-hidden="true">${m.svg}</svg><b>${left}</b><span>${esc(m.name)}</span></button></li>`;
+    const have = Object.keys(MATS).filter(id => id === 'agua' || (pr.mats[id] || 0) > 0);
+    $('#t-mats').innerHTML = have.map(id => {
+      const m = MATS[id], left = id === 'agua' ? Infinity : (pr.mats[id] || 0) - inPot(id);
+      return `<li><button class="jar ${m.made ? 'made-mat' : ''}" data-mat="${id}" ${left > 0 && cauldron.length < 3 ? '' : 'disabled'} title="${esc(m.name)}">
+        <svg viewBox="0 0 40 40" aria-hidden="true">${m.svg}</svg><b>${id === 'agua' ? '∞' : left}</b><span>${esc(m.name)}</span></button></li>`;
     }).join('');
     $('#t-slots').innerHTML = [0, 1, 2].map(i => {
       const id = cauldron[i];
       return `<button class="slot-in ${id ? 'full' : ''}" data-unslot="${i}" ${id ? '' : 'disabled'} aria-label="${id ? 'Sacar ' + MATS[id].name : 'Espacio vacío'}">${id ? `<svg viewBox="0 0 40 40" aria-hidden="true">${MATS[id].svg}</svg>` : '+'}</button>`;
     }).join('');
+    $('#t-proc').innerHTML = Object.entries(PROC).map(([k, v]) => `<button class="${k === process ? 'on' : ''}" data-proc="${k}" aria-pressed="${k === process}">${v}</button>`).join('');
     const col = cauldron.length ? cauldron.map(id => MATS[id].color) : ['#7a6a9a'];
-    $('#t-pot').style.setProperty('--brew', col[0]); $('#t-pot').style.setProperty('--brew2', col[col.length - 1]);
-    $('#t-mix').disabled = cauldron.length < 2;
-    const known = mixKey(cauldron);
-    $('#t-hint').textContent = cauldron.length < 2 ? 'Elige 2 o 3 materiales.' : pr.recipes[known] ? `Ya conoces esta mezcla: ${RECIPES[known].name}.` : 'Mezcla desconocida… ¿qué saldrá?';
-    $('#t-book').innerHTML = Object.entries(RECIPES).map(([key, r]) => {
-      const knownR = pr.recipes[key];
-      const item = r.kind === 'jewel' ? ITEM[r.id] : null;
-      return `<li class="rec ${knownR ? 'known' : ''}">
-        <span class="rec-ico">${knownR ? (item ? `<svg viewBox="0 0 40 40" aria-hidden="true">${item.svg}</svg>` : potionSvg(r)) : '?'}</span>
-        <span class="rec-txt"><small>${r.kind === 'jewel' ? 'Joya' : 'Poción'}</small><b>${knownR ? esc(r.name) : '???'}</b>
-          <span>${knownR ? key.split('+').map(m => MATS[m].name).join(' + ') + ' · ' + esc(r.kind === 'jewel' ? perkText(item.perk) : r.text) : 'Pista: ' + esc(r.hint)}</span></span></li>`;
-    }).join('');
-    const bag = Object.entries(pr.bag).filter(([, n]) => n > 0);
+    const pot = $('#t-pot');
+    pot.style.setProperty('--brew', col[0]); pot.style.setProperty('--brew2', col[col.length - 1]);
+    pot.dataset.proc = process;
+    $('#t-mix').disabled = !cauldron.length;
+    $('#t-mix').textContent = PROC[process];
+    const k = mixKey(cauldron, process);
+    $('#t-hint').textContent = !cauldron.length ? 'Elige de 1 a 3 materiales y cómo trabajarlos.' : pr.recipes[k] ? `Ya sabes qué sale: ${recipeOutName(RECIPES[k])}.` : '¿Qué saldrá? Prueba lo que sabes.';
+    // Recetario: solo lo que TÚ descubriste. Lo demás no se muestra: se aprende probando o preguntando.
+    const found = Object.keys(pr.recipes).filter(x => RECIPES[x]).sort((a, b) => pr.recipes[a] - pr.recipes[b]);
+    $('#t-known').textContent = `${found.length} de ${Object.keys(RECIPES).length} descubiertas`;
+    $('#t-book').innerHTML = found.length ? found.map(key => {
+      const r = RECIPES[key], [ing, proc] = key.split('|');
+      const ico = r.kind === 'jewel' ? `<svg viewBox="0 0 40 40" aria-hidden="true">${ITEM[r.id].svg}</svg>` : r.kind === 'mat' ? `<svg viewBox="0 0 40 40" aria-hidden="true">${MATS[r.out].svg}</svg>` : foodSvg(r);
+      return `<li class="rec known"><span class="rec-ico">${ico}</span>
+        <span class="rec-txt"><small>${{ mat: 'Material', food: 'Comida', exp: 'Experimento', jewel: 'Joya' }[r.kind]}</small><b>${esc(recipeOutName(r))}</b>
+        <span>${ing.split('+').map(m => esc(MATS[m].name)).join(' + ')} · ${esc(PROC[proc].toLowerCase())}</span><em>${esc(r.fact)}</em></span>
+        <button class="btn small ghost" data-share="${esc(key)}">Compartir</button></li>`;
+    }).join('') : '<li class="muted">Todavía no descubres nada. Piensa en cosas que sepas hacer en la vida real.</li>';
+    const bag = Object.entries(pr.bag).filter(([id, n]) => n > 0 && FOOD[id]);
     $('#t-bag').innerHTML = bag.length ? bag.map(([id, n]) => `<li class="potion">
-        <span class="rec-ico">${potionSvg(POTION[id])}</span>
-        <span class="rec-txt"><b>${esc(POTION[id].name)} ×${n}</b><span>${esc(POTION[id].text)}</span></span>
+        <span class="rec-ico">${foodSvg(FOOD[id])}</span>
+        <span class="rec-txt"><b>${esc(FOOD[id].name)} ×${n}</b><span>${esc(FOOD[id].text)}</span></span>
         <button class="btn small primary" data-use="${id}">Dársela a Mochi</button></li>`).join('')
-      : '<li class="muted">Vacía. Mezcla algo en el caldero.</li>';
-    $('#t-known').textContent = `${Object.keys(pr.recipes).length} de ${Object.keys(RECIPES).length}`;
+      : '<li class="muted">Vacía. Lo que cocines aparece aquí.</li>';
   }
 
   function renderMenu() {
@@ -1605,7 +1889,11 @@
       if (mt) { if (cauldron.length < 3) cauldron.push(mt.dataset.mat); $('#t-result').innerHTML = ''; renderWorkshop(); return; }
       const us = e.target.closest('[data-unslot]');
       if (us) { cauldron.splice(Number(us.dataset.unslot), 1); renderWorkshop(); return; }
-      if (e.target.closest('#t-mix')) { doMix(e.target.closest('#t-mix')); return; }
+      if (e.target.closest('#t-mix')) { doMix(); return; }
+      const pc = e.target.closest('[data-proc]');
+      if (pc) { process = pc.dataset.proc; renderWorkshop(); return; }
+      const sh = e.target.closest('[data-share]');
+      if (sh) { plazaDraft = { kind: 'descubrimiento', mix: sh.dataset.share }; go('plaza'); return; }
       if (e.target.closest('#t-clear')) { cauldron.length = 0; $('#t-result').innerHTML = ''; renderWorkshop(); return; }
       const up = e.target.closest('[data-use]');
       if (up) { usePotion(up.dataset.use, up); return; }
@@ -1621,6 +1909,8 @@
       }
     });
     $('#file').onchange = e => { handleFiles(e.target.files); e.target.value = ''; };
+    $('#scr-plaza').addEventListener('click', plazaClick);
+    $('#p-kind').onchange = e => { $('#p-mixrow').hidden = e.target.value !== 'descubrimiento'; };
     document.body.addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('dragging'); });
     document.body.addEventListener('dragleave', e => { if (!e.relatedTarget) document.body.classList.remove('dragging'); });
     document.body.addEventListener('drop', e => { e.preventDefault(); document.body.classList.remove('dragging'); handleFiles(e.dataTransfer.files); });

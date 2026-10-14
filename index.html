@@ -330,6 +330,46 @@ button.chip { cursor: pointer; }
 .floatxp.mat { display: inline-flex; align-items: center; gap: 2px; color: var(--ink); }
 .floatxp.mat svg { width: 22px; height: 22px; }
 
+/* procesos y descubrimientos */
+.procs { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.procs button { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 5px 10px; font: 600 12.5px/1 var(--f-body); color: var(--muted); }
+.procs button.on { background: var(--ember); border-color: transparent; color: var(--ember-ink); }
+.pot[data-proc="frio"] .flames { opacity: 0; } .pot[data-proc="calentar"] .flames { opacity: .6; }
+.pot[data-proc="fundir"] .flames path { fill: #ff6a2a; } .pot[data-proc="fundir"] .flames { transform: scale(1.25); }
+.pot[data-proc="hornear"] .pot-body { fill: #5a4038; } .pot[data-proc="forjar"] .pot-body { fill: #2f3238; }
+.made em, .rec-txt em { display: block; font-style: normal; font-size: 12.5px; color: var(--ink); opacity: .8; margin-top: 4px; }
+.jar.made-mat { border-style: dashed; border-color: color-mix(in srgb, var(--ember) 45%, var(--line)); }
+/* ---------- Plaza ---------- */
+.compose { display: grid; gap: 8px; max-width: 760px; }
+.compose input, .compose textarea, .compose select, .reply-row input, .reply-row select, .gift select {
+  font: 14px var(--f-body); background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+.compose textarea { resize: vertical; }
+.feed { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; max-width: 760px; }
+.post { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 8px; }
+.post h3 { margin: 0; font: 700 16px/1.25 var(--f-display); }
+.post p { margin: 0; font-size: 14px; white-space: pre-wrap; word-break: break-word; }
+.post-top { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+.kchip { font: 700 10.5px/1 var(--f-body); text-transform: uppercase; letter-spacing: .08em; padding: 4px 7px; border-radius: 6px; background: var(--surface-2); color: var(--ink); }
+.k-descubrimiento .kchip { background: color-mix(in srgb, #6fbf8e 25%, var(--surface-2)); }
+.k-pregunta .kchip { background: color-mix(in srgb, #6aa8ff 25%, var(--surface-2)); }
+.k-debate .kchip { background: color-mix(in srgb, #ff8fb1 25%, var(--surface-2)); }
+.k-pedido .kchip { background: color-mix(in srgb, #ffc94d 30%, var(--surface-2)); }
+.mixbox { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); font-size: 13.5px; font-weight: 600; }
+.mixbox em { font-style: normal; font-weight: 400; color: var(--muted); font-size: 12.5px; width: 100%; }
+.vote { display: flex; gap: 6px; flex-wrap: wrap; }
+.vote button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 99px; padding: 5px 10px; font: 600 12.5px/1 var(--f-body); }
+.vote button.on { border-color: var(--ember); color: var(--ember); }
+.post-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.link.liked { color: var(--ember); }
+.gift { display: inline-flex; gap: 6px; align-items: center; }
+.gift select { padding: 4px 6px; font-size: 12.5px; max-width: 160px; }
+.replies-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.replies-list:empty { display: none; }
+.replies-list li { font-size: 13.5px; padding: 6px 10px; border-radius: 8px; background: var(--surface-2); display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.replies-list li span:last-child { flex-basis: 100%; }
+.st { font-size: 11px; padding: 2px 6px; border-radius: 99px; } .st-si { background: color-mix(in srgb, #6fbf8e 30%, transparent); } .st-no { background: color-mix(in srgb, #ff6b81 25%, transparent); }
+.reply-row { display: flex; gap: 6px; flex-wrap: wrap; } .reply-row input { flex: 1; min-width: 160px; }
+
 /* ---------- Menú ---------- */
 .menu-list { display: grid; gap: 10px; max-width: 640px; }
 .menu-list .panel label.row, .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -357,8 +397,8 @@ button.chip { cursor: pointer; }
   background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(10px);
   border-top: 1px solid var(--line);
 }
-.tabbar-in { max-width: 600px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
-.tab { position: relative; display: grid; justify-items: center; gap: 2px; background: none; border: 0; border-radius: 12px; padding: 4px 2px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.tabbar-in { max-width: 600px; margin: 0 auto; display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; }
+.tab { position: relative; display: grid; justify-items: center; gap: 2px; background: none; border: 0; border-radius: 12px; padding: 4px 1px; color: var(--muted); font-size: 11.5px; font-weight: 600; min-width: 0; }
 .tab:hover { color: var(--ink); }
 .tab[aria-current="page"] { color: var(--ink); background: var(--surface); }
 .tab svg { width: 26px; height: 26px; }
@@ -602,7 +642,7 @@ body.can-ask .ask { display: grid; gap: 6px; }
 </section>
 
 <section class="screen" id="scr-taller" hidden aria-label="Taller">
-  <div class="screen-head"><div><h1>Taller</h1><p>Mezcla materiales en el caldero para hacer pociones que cuidan a Mochi o forjar joyas que se pone.</p></div></div>
+  <div class="screen-head"><div><h1>Taller</h1><p>Química, cocina y orfebrería de verdad. Nadie te dice qué mezclar: usa lo que sabes de la vida real, prueba, o aprende de otras personas en la Plaza.</p></div></div>
   <div class="forge">
     <div class="pot-box">
       <svg class="pot" id="t-pot" viewBox="0 0 220 170" aria-hidden="true">
@@ -616,20 +656,37 @@ body.can-ask .ask { display: grid; gap: 6px; }
         <path d="M60 96q50 18 100 0" class="pot-shine"/>
       </svg>
       <div class="slots-in" id="t-slots"></div>
-      <p class="muted" id="t-hint">Elige 2 o 3 materiales.</p>
-      <div class="pot-actions"><button class="btn primary" id="t-mix" disabled>Mezclar</button><button class="btn ghost" id="t-clear">Vaciar</button></div>
+      <div class="procs" id="t-proc" role="group" aria-label="Cómo trabajarlo"></div>
+      <p class="muted" id="t-hint">Elige de 1 a 3 materiales y cómo trabajarlos.</p>
+      <div class="pot-actions"><button class="btn primary" id="t-mix" disabled>En frío</button><button class="btn ghost" id="t-clear">Vaciar</button></div>
       <div id="t-result" aria-live="polite"></div>
     </div>
     <div>
       <h2 class="sec-t" style="margin-top:0"><span>Materiales</span><span>toca para echar al caldero</span></h2>
       <ul class="jars" id="t-mats"></ul>
-      <p class="muted mat-help">Hierro: tareas de construir · Cristal: tareas de Claude y prompts · Arcilla: tareas de crear · Chispa: tareas de probar · Oro: fases superadas · Perla: misiones diarias · Hierba: responderle con cariño a Mochi.</p>
+      <p class="muted mat-help">Los materiales salen de lo que haces: las tareas de construir dan metales y carbón; las de Claude, cosas de química; las de crear, cosas de cocina y artesanía; las de probar, cosas de la despensa. Las fases dan oro o plata, las diarias algo raro y tratar bien a Mochi da hierbas o miel. El agua nunca se acaba. Lo que fabricas (aleaciones, vidrio, jabón…) también sirve para otras mezclas.</p>
     </div>
   </div>
   <h2 class="sec-t"><span>Mochila</span></h2>
   <ul class="book" id="t-bag"></ul>
-  <h2 class="sec-t"><span>Recetario</span><span id="t-known"></span></h2>
+  <h2 class="sec-t"><span>Tus descubrimientos</span><span id="t-known"></span></h2>
   <ul class="book" id="t-book"></ul>
+</section>
+
+<section class="screen" id="scr-plaza" hidden aria-label="Plaza">
+  <div class="screen-head"><div><h1>Plaza</h1><p>Aquí se aprende de otras personas, no de la app. Comparte lo que descubriste, pregunta lo que no sabes, debate y regala materiales.</p></div></div>
+  <p class="muted" id="p-state"></p>
+  <div class="panel compose" id="p-compose" hidden>
+    <div class="row">
+      <label for="p-kind" class="muted">Tipo</label>
+      <select id="p-kind"><option value="descubrimiento">Descubrimiento</option><option value="pregunta">Pregunta</option><option value="debate">Debate</option><option value="pedido">Pedido de material</option></select>
+    </div>
+    <input id="p-title" maxlength="90" placeholder="Título" autocomplete="off">
+    <textarea id="p-body" rows="3" maxlength="800" placeholder="Cuenta lo que sabes, lo que te preguntas o lo que piensas."></textarea>
+    <div class="row" id="p-mixrow"><label for="p-mix" class="muted">Adjuntar una receta que descubriste</label><select id="p-mix"></select></div>
+    <div class="row"><span class="muted" style="font-size:12.5px">Se discuten ideas, no personas.</span><button class="btn primary" id="p-send">Publicar</button></div>
+  </div>
+  <ul class="feed" id="p-feed"></ul>
 </section>
 
 <section class="screen" id="scr-menu" hidden aria-label="Menú">
@@ -692,6 +749,7 @@ body.can-ask .ask { display: grid; gap: 6px; }
     <button class="tab" data-go="misiones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M9 10h6M9 14h6M9 18h3"/></svg>Misiones<span class="badge" id="badge-misiones" hidden></span></button>
     <button class="tab" data-go="equipo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l4-4h8l4 4-3 3v9H7v-9z"/><path d="M9 4c0 2 1.3 3 3 3s3-1 3-3"/></svg>Equipo<span class="badge" id="badge-equipo" hidden></span></button>
     <button class="tab" data-go="taller"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/><path d="M7.5 15h9"/></svg>Taller</button>
+    <button class="tab" data-go="plaza"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h11v8H8l-4 3z"/><path d="M15 9h5v8l-3-2h-6v-2"/></svg>Plaza</button>
     <button class="tab" data-go="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menú</button>
   </div>
 </nav>
