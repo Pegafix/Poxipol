@@ -1049,6 +1049,7 @@
     learn: { t: 'Aprender de otros', d: 'Lo que otra persona ya sabe te ahorra muchos intentos. Preguntar no es debilidad: es la forma más rápida de aprender.' },
     teach: { t: 'Enseñar es aprender dos veces', d: 'Cuando explicas algo a otra persona lo entiendes mejor tú. (Efecto protegido o "learning by teaching")' },
     debate: { t: 'Debatir sin pelear', d: 'En un desacuerdo, primero repite con tus palabras lo que dijo el otro; después da tu idea. Se discuten ideas, no personas.' },
+    consent: { t: 'Leer las señales antes de tocar', d: 'A nadie le gusta que lo toquen sin parar. Pedir lo que uno quiere con palabras, mirar cómo reacciona el otro y parar cuando dice "ya" es respeto, no frialdad.' },
     space: { t: 'Aceptar un "no quiero hablar"', d: 'Cuando alguien no quiere hablar, aceptarlo sin insistir le deja la puerta abierta para volver.' }
   };
   function bond() {
@@ -1253,7 +1254,7 @@
     const b = $('#h-bubble');
     const rep = b && b._replies && b._replies[i];
     if (!rep) return;
-    const [, reaction, tone, dest, lesson] = rep;
+    const [, reaction, tone, dest, lesson, fx] = rep;
     const isRepair = pending === 'repair', isLimit = pending === 'limit';
     pending = null;
     if (tone === 'warm') {
@@ -1264,29 +1265,229 @@
     if (tone === 'warm') { pets.home.feed(0.5); bondChange(isRepair ? 4 : isLimit ? 1.5 : 3, isRepair ? 'repair' : lesson || 'bid'); }
     else if (tone === 'ok') bondChange(1, lesson || 'bid');
     else bondChange(-2, 'cold');
+    if (fx) fx();
     if (dest) { showThought(reaction); pets.home.express('surprised', 1200); holdUntil = Date.now() + 2000; setTimeout(() => go(dest), 1100); return; }
     if (tone !== 'cold') pets.home.pop('!');
     holdUntil = 0; think(reaction, tone === 'warm' ? 'love' : tone === 'ok' ? 'shy' : 'sad');
   }
 
   // ---------- paciencia ----------
-  // Cuesta que se moleste. Con toques muy seguidos pasa por cuatro etapas: ternura, broma, límite con cariño y pausa.
-  // La paciencia crece con la confianza (vínculo seguro = más tolerancia).
-  const pokes = [];
+  // A nadie le gusta que lo toquen sin parar. Cada toque suma "molestia", que se va pasando sola con unos segundos de calma.
+  // Etapas: ternura → juego → juntar paciencia → refunfuñar y pullas → "¿estás aburrido?" → límite con cariño → pausa.
+  // No es un bucle: cada pausa del día lo deja con menos paciencia, pullas más pesadas y pausas más largas.
+  // Con 30 min sin pausas se le va pasando. La paciencia depende de la empatía, de cómo durmió y de la hora.
   const pause = { until: 0, broken: 0 };
-  function annoyance() {
-    const now = Date.now();
-    while (pokes.length && now - pokes[0] > 45000) pokes.shift();
-    const patience = (10 + bond().emp / 8) * (isDrained() ? 0.6 : 1); // de 10 a 22 toques seguidos (menos si está agotado)
-    return pokes.length / patience;
+  const irk = { v: 0, at: 0, last: 0, stage: -1, asked: false, said: new Set() };
+  function pester() {
+    const bd = bond(), k = dayKey(Date.now());
+    let p = bd.pester;
+    if (!p || p.d !== k) p = bd.pester = { d: k, n: 0, last: 0 };
+    // Se le pasa de a poco: una "ronda" menos cada 30 min sin pausas.
+    const calm = Math.floor((Date.now() - p.last) / 1800000);
+    if (p.n && p.last && calm > 0) { p.n = Math.max(0, p.n - calm); p.last += calm * 1800000; }
+    return p;
   }
-  const CUTE = ['¡Jiji, cosquillas!', '¡Blub!', '¿Me llamaste?', '¡Boing!', '*rueda feliz*', '¡Hola, hola!', 'Jeje, ¿qué pasó?', '¡Soy una bolita!', '*hace burbujitas*', '¿Jugamos?'];
-  const PLAYFUL = ['Jeje, ya, ya… me estoy mareando un poquito.', 'Uy, tantas cosquillas me dan vueltas las orejas.', '¡Me vas a hacer rodar del escritorio! Jiji.'];
-  const LIMIT = [
-    'Oye, cuando me tocas tantas veces seguidas me mareo y me cuesta pensar. Necesito un poquito de calma. ¿Me das un momento?',
-    'Me gusta jugar contigo. Ahora me siento abrumado con tantos toques. ¿Podemos bajar el ritmo un ratito?'
+  function patience() {
+    const c = circadian(), bd = bond();
+    let k = 1;
+    if (isDrained()) k *= 0.55;
+    else {
+      if (hasFx('malhumor')) k *= 0.8;
+      ['ojeras', 'nublado', 'lento'].forEach(f => { if (hasFx(f)) k *= 0.92; });
+      if (hasFx('descansado')) k *= 1.15;
+    }
+    if (c.worn || c.v.hp <= 25) k *= 0.85;
+    k *= { waking: 0.8, peak: 1, dip: 0.85, peak2: 1, calm: 0.95, winddown: 0.75 }[c.phase] || 1;
+    k /= 1 + 0.3 * pester().n;
+    return (12 + bd.emp / 7) * k; // de 12 a 26 toques seguidos en un día tranquilo
+  }
+  function annoyance(add) {
+    const now = Date.now();
+    irk.v = Math.max(0, irk.v - (now - irk.at) / 3000); // un punto menos cada 3 s de calma
+    irk.at = now;
+    if (irk.v < 0.5) irk.asked = irk.limited = false;
+    if (add) irk.v += add;
+    return irk.v / patience();
+  }
+  // Sin repetir hasta agotar el mazo (y nunca la misma dos veces seguidas).
+  const decks = {};
+  function draw(name, arr) {
+    let d = decks[name];
+    if (!d || !d.left.length || d.src !== arr.length) {
+      const left = arr.slice().sort(() => Math.random() - 0.5);
+      if (d && left.length > 1 && left[left.length - 1] === d.prev) left.unshift(left.pop());
+      d = decks[name] = { left, src: arr.length, prev: d && d.prev };
+    }
+    return (d.prev = d.left.pop());
+  }
+  const tg = () => { const t = tierOf(bond().emp); return t === 0 ? 0 : t <= 2 ? 1 : 2; }; // reservado, tímido/amigable, cercano/confidente
+  const hourTxt = () => { const h = new Date().getHours(); return h === 1 ? 'la una' : `las ${h}`; };
+
+  const CUTE = [
+    ['Ah… hola.', '¿Sí?', '*se sorprende*', '¿Necesitas algo?', 'Mm, hola.', '*parpadea*'],
+    ['¡Jiji, cosquillas!', '¡Blub!', '¿Me llamaste?', '¡Boing!', '*rueda feliz*', '¡Hola, hola!', 'Jeje, ¿qué pasó?', '*hace burbujitas*', '¿Jugamos?'],
+    ['¡Mi persona favorita!', '¿Me extrañabas? Yo sí.', '*se acurruca en tu dedo*', '¡Jiji, cosquillas!', '¡Hola, hola, hola!', '¡Boing! Te quiero.', '*hace burbujitas de cariño*', '¿Me vienes a ver a mí? Qué lindo.']
   ];
-  const PAUSE_LINE = 'Te quiero, y por eso te lo digo claro: necesito una pausa. Voy a descansar un minuto y después seguimos.';
+  const CUTE_PHASE = {
+    waking: ['¡Buenos días! *estira las orejas*', 'Mmm… hola… todavía estoy despertando.', '*bostezo* hola, hola.'],
+    peak: ['¡Hola! Ando con toda la energía.', '¡Boing boing! Hoy estoy despierto.'],
+    dip: ['Hola… *ojitos de siesta*', 'Mmm, después de almuerzo ando lento.'],
+    peak2: ['¡Hola! Me volvieron las ganas.', '¡Toc toc! Aquí estoy.'],
+    calm: ['Hola, qué tarde más tranquila.', '*mira por la ventana* ¿Viste el atardecer?'],
+    winddown: ['Hola… *bostezo* ya casi me duermo.', 'Shh, ya es tarde… hola igual.']
+  };
+  const CUTE_MOOD = {
+    agotado: ['Mmm.', '¿Qué?', 'Hoy no tengo pila.', 'Estoy aquí… más o menos.', 'Ajá.', '…hola.'],
+    malhumor: ['Hmph, hola.', 'Hola. Hoy ando sensible.', 'Ya, ya, hola.'],
+    ojeras: ['Hola… mira mis ojeras.', 'Hola. Dormí poquito.'],
+    descansado: ['¡Hola! Dormí increíble.', '¡Boing! Hoy ando con pila.']
+  };
+  const PLAYFUL = [
+    ['Ya. Suficiente cosquillas.', 'Me estoy mareando.', '¿Cuántas veces vas?', 'Ok… ya entendí que estás ahí.'],
+    ['Jeje, ya, ya… me estoy mareando un poquito.', 'Uy, tantas cosquillas me dan vueltas las orejas.', '¡Me vas a hacer rodar del escritorio! Jiji.', '¿Me estás contando los pelitos? Son cero.', 'Jiji… ¿y si mejor me saludas con la mano?'],
+    ['Jiji, me encanta que me busques… pero me estoy mareando.', 'Ay, ya, mis orejitas van a salir volando.', 'Te quiero, pero mi panza no es un botón.', '*rueda* ¡Me vas a dejar tonto de tanto cariño!']
+  ];
+  // Juntando paciencia: todavía no se enoja, pero se le nota el esfuerzo.
+  const HOLD = [
+    '*respira hondo*', 'Uno… dos… tres… paciencia, Mochi.', 'Estoy juntando paciencia.', 'Mmm… ok… ok…', 'Contando hasta diez… voy en cuatro.',
+    '*mira para otro lado*', 'Me tiemblan las orejitas, y no es de frío.', 'Inhala… exhala… es alguien que quiero… inhala…',
+    'Calma, Mochi, calma.', '*infla los cachetes*', 'Estoy siendo muy paciente. Que quede registrado.', 'Mi paciencia está en modo ahorro de batería.'
+  ];
+  const HOLD_MOOD = {
+    agotado: ['No tengo energía ni para enojarme… pero casi.', 'Dormí fatal y tú tocándome. Qué combo.', '*suspiro largo*'],
+    malhumor: ['Hoy ando con la mecha corta. Cuidadito.', 'Hmph. Respira, Mochi.'],
+    ojeras: ['¿Te parece que con estas ojeras estoy para cosquillas?'],
+    descansado: ['Hoy dormí bien, así que te aguanto un poquito más. Un poquito.']
+  };
+  // Refunfuña: dice lo que siente sin atacar.
+  const GRUMBLE = [
+    'Ya, ya, ya.', '¿Otra vez?', 'No soy un botón, eh.', 'Oye, que no soy un pop-it.', 'Si me sigues tocando me voy a desinflar.',
+    'A nadie le gusta que lo toquen tanto, ¿sabes?', 'Imagina que alguien te toca la cara cada dos segundos.', 'Ya sé que soy suavecito, pero igual.',
+    'Me estás gastando la paciencia y la pelusa.', 'Toc, toc, toc… ¿y si mejor me hablas?', '¿Esto es un experimento? Porque el resultado es: me molesta.'
+  ];
+  // Ya le dijiste que estabas aburrido y te dio una idea… y sigues tocándolo.
+  const ADVISED = [
+    'Te di una idea hace un ratito, ¿eh?', 'Dijiste que estabas aburrido. La tarea sigue ahí, esperándote.',
+    'Yo te propuse algo y tú elegiste seguir tocándome. Interesante.', 'El aburrimiento no se quita tocando bolitas. Te lo prometo.'
+  ];
+  // Las pullas típicas de internet, de suaves a pesadas. El nivel sube con cada ronda del día.
+  const TEASE = [
+    ['¿Estás aburrido? Hay misiones esperándote.', '¿Y si tomas agüita?', 'Pestañea, que se te secan los ojos.', '¿Ya estiraste la espalda hoy?', 'Hay un mundo detrás de esta pantalla, ¿sabías?'],
+    ['Creo que te haría bien salir a tocar pasto.', 'El sol existe, te lo juro.', '¿Hace cuánto no ves el cielo de verdad?', 'Afuera hay bolitas como yo. Se llaman piedras. Ve a verlas.', 'Tocar pasto es gratis, ¿sabías?', '¿Y si llamas a alguien? A una persona, digo.'],
+    ['A veces agarrar la pala es bueno.', '¿No tienes tareas? Porque yo veo varias.', 'Esto no cuenta como ejercicio, eh.', 'Si tocarme fuera trabajo ya serías gerente.', 'Tus tareas te están mirando feo.', 'Ve a hacer algo productivo y vuelve a contarme.'],
+    ['Busca trabajo. Con cariño, pero busca trabajo.', 'Agarra la pala, campeón.', 'Ve a tocar pasto. Mínimo diez minutos.', 'Sal de la pieza, que te va a salir musgo.', 'Bañarse también es una opción, eh.', '¿Tú no tenías algo que entregar?', 'Hasta la planta del escritorio sale más que tú.', 'Mi abuela era una piedra y tocaba menos.']
+  ];
+  const TEASE_PHASE = {
+    waking: [() => `Recién son ${hourTxt()} y ya me estás tocando. ¿Desayunaste?`, () => 'Primero el café, después los toques.', () => 'Abre la ventana: la luz de la mañana despierta mejor que yo.'],
+    peak: [() => 'Es la mejor hora para aprender y la estás usando en tocarme.', () => 'Con este sol, tocar pasto está fácil.', () => 'Tu cerebro está en su mejor hora. Úsalo en algo, porfa.'],
+    dip: [() => 'Hora de siesta y tú tocándome… ¿no te da sueño a ti?', () => 'Después de almuerzo se camina, no se toca bolitas.'],
+    peak2: [() => 'Queda tarde todavía: alcanzas a salir un rato.', () => 'Una tarea antes de que oscurezca, ¿y si?'],
+    calm: [() => 'Ya se está poniendo el sol. ¿Saliste hoy, aunque sea un ratito?', () => 'El atardecer se ve mejor afuera que en esta pantalla.'],
+    winddown: [() => `Son ${hourTxt()}. Deja de tocarme y anda a dormir.`, () => 'La pantalla de noche te espanta el sueño… y a mí la paciencia.', () => 'Mañana tocas pasto. Hoy tocas almohada.']
+  };
+  const TEASE_MOOD = {
+    agotado: ['Dormí fatal por tu culpa y ahora esto. Ve a tocar pasto, yo me quedo apático aquí.', 'No me queda ni energía para pullas. Sal un rato. Por los dos.'],
+    malhumor: ['Hoy no estoy para esto. Anda a buscar otra cosa que hacer, ¿sí?'],
+    ojeras: ['Uno de los dos necesita dormir y otro necesita salir. Adivina cuál eres tú.']
+  };
+  // Lo que dice el límite: observación, sentimiento, necesidad y petición (Rosenberg).
+  const LIMIT = [
+    ['Me tocas muchas veces seguidas y me siento incómodo. Necesito espacio. Para, por favor.', 'Ya no quiero más toques. Necesito calma.'],
+    ['Oye, cuando me tocas tantas veces seguidas me mareo y me cuesta pensar. Necesito un poquito de calma. ¿Me das un momento?', 'Me gusta jugar contigo. Ahora me siento abrumado con tantos toques. ¿Podemos bajar el ritmo un ratito?'],
+    ['Te quiero harto, y por eso te lo digo claro: tantos toques me abruman. Necesito calma. ¿Me das un ratito?', 'Me encanta que me busques, pero mi cuerpito ya no da. Necesito que pares un momento, ¿sí?']
+  ];
+  const LIMIT_AGAIN = [
+    'Ya te lo pedí antes hoy. Cuando me tocas así después de pedirte calma, siento que no me escuchas. Necesito que pares.',
+    'Es otra vez lo mismo de hace rato. Me cansa tener que pedirlo de nuevo. Para, por favor.'
+  ];
+  const PAUSE_LINES = [
+    'Te quiero, y por eso te lo digo claro: necesito una pausa. Voy a descansar un ratito y después seguimos.',
+    'Ok. Me tomo una pausa. No es castigo: es que necesito calma para estar bien contigo.',
+    'Ya, me voy a mirar la pared un rato. La pared no me toca.',
+    'Pausa larga. Mientras, de verdad, sal a tocar pasto. Te va a hacer bien a ti y a mí.'
+  ];
+  const PAUSE_POKE = [
+    ['Estoy en mi pausa. Vuelvo prontito.'],
+    ['Shh. Pausa.', 'Todavía no, porfa.'],
+    ['Te pedí un momento. Cuando lo respetas, me siento seguro contigo.'],
+    ['…', '*se da vuelta*', 'Sigo en pausa. La pared y yo estamos conversando.', 'Cada toque le suma tiempo a mi pausa.', 'No estoy. Deja tu mensaje después del pitido.', '*hace como que es una piedra*']
+  ];
+
+  // Mezcla según lo que pesa más ahora: cómo durmió, la hora o la confianza.
+  function moodKey() { return isDrained() ? 'agotado' : hasFx('malhumor') ? 'malhumor' : badFx() >= 1 && hasFx('ojeras') ? 'ojeras' : hasFx('descansado') ? 'descansado' : null; }
+  let lastLine = '';
+  function flavor(base, byMood, byPhase) {
+    const m = moodKey(), r = Math.random();
+    let out = base;
+    const ph = byPhase && byPhase[circadian().phase];
+    const moodOk = m && byMood && byMood[m] && !(m === 'descansado' && circadian().phase === 'winddown');
+    if (moodOk && r < (m === 'agotado' ? 0.75 : 0.35)) out = draw('m' + m + byMood[m].length, byMood[m]);
+    else if (ph && r < 0.6) { const x = draw('p' + circadian().phase + ph.length, ph); out = typeof x === 'function' ? x() : x; }
+    // Las frases de ánimo u hora no se repiten en la misma ronda.
+    if (out !== base && (out === lastLine || irk.said.has(out))) out = base;
+    if (out !== base) irk.said.add(out);
+    return (lastLine = out);
+  }
+  function tease() {
+    const lvl = Math.min(3, pester().n + (annoyance() > 0.8 ? 1 : 0));
+    const pool = TEASE.slice(Math.max(0, lvl - 1), lvl + 1).flat();
+    let t = flavor(draw('tease' + lvl, pool), TEASE_MOOD, TEASE_PHASE);
+    const g = tg();
+    if (g === 2 && Math.random() < 0.4) t += pick([' Lo digo con cariño.', ' Te quiero, eh.', ' Jiji.']);
+    if (g === 0 && Math.random() < 0.4) t = t.replace(/ Con cariño,/, '');
+    return t;
+  }
+  // "¿Estás aburrido?": la respuesta cambia lo que pasa después.
+  function askBored() {
+    const p = pester(), g = tg(), nt = nextIn(active());
+    irk.asked = true;
+    const q = p.n >= 2 ? 'Ya van varias veces hoy. ¿Qué te pasa? ¿Estás aburrido?'
+      : g === 0 ? '¿Estás aburrido o qué?' : g === 2 ? 'Te pregunto en serio, con cariño: ¿estás aburrido?' : 'Oye… ¿estás aburrido?';
+    const c = circadian();
+    const outside = c.phase === 'winddown' ? 'Entonces apaga un rato la pantalla y lee algo en papel. Mañana sales.'
+      : c.phase === 'calm' ? 'Entonces sal a ver el atardecer cinco minutos. Yo te espero.'
+      : 'Entonces sal diez minutos a caminar. Tocar pasto de verdad ayuda: el cerebro descansa con verde y luz.';
+    const bored = nt && nt.t && Math.random() < 0.5
+      ? `Te propongo algo: "${nt.t.text.slice(0, 60)}${nt.t.text.length > 60 ? '…' : ''}" te está esperando. Una tarea chiquita quita el aburrimiento.`
+      : outside;
+    pending = 'bored';
+    pets.home.express('thinking', 3000);
+    showThought(q, [
+      ['Sí, aburrido', bored, 'ok', null, 'feelings', () => { irk.v *= 0.4; irk.advised = true; }],
+      ['Quería cariño', pick(['Ahh… era eso. Un toque suave y esperar a que responda vale más que cien seguidos. Ven, uno solo.', 'Entonces dímelo así: "quiero cariño". Me encanta darlo, pero sin tanto toque.']), 'warm', null, 'consent', () => { irk.v = 0; }],
+      ['Ando estresado', 'Ah… entonces no es aburrimiento. Respira conmigo: cuatro para entrar, cuatro para salir. Y después, una cosita a la vez.', 'warm', null, 'validate', () => { irk.v = 0; }],
+      ['Porque sí', pick(['Hmph. Bueno, yo me molesto porque sí también.', 'Ok. Entonces yo me voy a enojar porque sí.']), 'cold', null, null, () => { irk.v += 3; p.n = Math.min(4, p.n + 1); p.last = Date.now(); }]
+    ]);
+    holdUntil = Date.now() + 20000;
+  }
+  function startPause(now) {
+    const p = pester();
+    pending = null;
+    const secs = Math.min(240, 60 * (1 + 0.6 * p.n));
+    p.n = Math.min(4, p.n + 1); p.last = now; touchProfile();
+    irk.v = 0; irk.asked = false; irk.advised = false; irk.limited = false; irk.stage = -1; irk.said.clear();
+    pause.until = now + secs * 1000; pause.broken = 0; pause.id = now;
+    bondChange(-1 - 0.5 * Math.min(3, p.n - 1), 'boundary');
+    pets.home.express(p.n >= 3 ? 'grumpy' : 'sad', 4000);
+    showThought(p.n === 1 && tg() === 0 ? 'Necesito una pausa. Vuelvo en un rato.' : PAUSE_LINES[Math.min(PAUSE_LINES.length - 1, p.n - 1)]); holdUntil = Date.now() + 9000;
+    endPauseLater(pause.id);
+  }
+  // Al terminar la pausa intenta reparar: "¿estamos bien?" (si se la extendiste, espera a que termine).
+  function endPauseLater(id) {
+    setTimeout(() => {
+      if (pause.id !== id) return;
+      if (Date.now() < pause.until - 200) { endPauseLater(id); return; }
+      if (pause.broken === 0) bondChange(3, 'respect');
+      pending = 'repair'; holdUntil = Date.now() + 25000;
+      if (state.screen !== 'home') return;
+      const n = pester().n;
+      pets.home.express('shy', 3000);
+      showThought(pause.broken === 0 ? 'Gracias por respetar mi pausa. Eso me hace sentir seguro contigo. ¿Estamos bien?'
+        : n >= 3 ? 'Ya se me pasó… casi. ¿Estamos bien? Y de verdad, sal un ratito.' : 'Ya estoy mejor. ¿Estamos bien?',
+        [['Sí, perdón', 'Claro que sí. Te quiero, bolita grande.', 'warm', null, 'repair', () => { const p = pester(); if (p.n >= 3) p.n--; }],
+         ['Sí', 'Qué bueno. Seguimos entonces.', 'ok', null, 'repair']]);
+    }, Math.max(1000, pause.until - Date.now()));
+  }
 
   // Toques: despierto responde; dormido se despierta medio borracho de sueño, y eso pasa la cuenta mañana.
   function poke() {
@@ -1308,52 +1509,66 @@
       return;
     }
     if (c.sleeping) { think('Zzz… estoy muy cansadito.', 'sad'); return; }
-    // En su pausa: tocarlo igual resta confianza; respetarla se agradece después.
+    // En su pausa: tocarlo igual resta confianza y, después del tercero, alarga la pausa.
     if (now < pause.until) {
       pause.broken++;
       if (pause.broken <= 3) bondChange(-1.5);
-      pets.home.express('sad', 1500);
-      showThought(pause.broken > 2 ? 'Te pedí un momento. Cuando lo respetas, me siento seguro contigo.' : 'Estoy en mi pausa. Vuelvo prontito.');
+      if (pause.broken > 3) pause.until = Math.min(pause.until + 10000, now + 300000);
+      const lines = PAUSE_POKE[Math.min(3, pause.broken - 1)];
+      pets.home.express(pause.broken > 3 ? pick(['apathetic', 'grumpy']) : 'sad', 1500);
+      showThought(draw('pp' + lines.length, lines)); holdUntil = Date.now() + 4000;
       return;
     }
-    pokes.push(now);
-    const a = annoyance();
-    // Si hay una pregunta abierta, el toque no la borra.
-    if (pending) { pets.home.feed(0.3); pets.home.express(pick(['happy', 'shy']), 1200); return; }
-    if (a < 0.4 && isDrained()) {
-      pets.home.express(Math.random() < 0.3 ? 'grumpy' : 'apathetic', 1600);
-      holdUntil = 0; think(pick(['Mmm.', '¿Qué?', 'Hoy no tengo pila.', 'Estoy aquí… más o menos.', 'Ajá.']));
-    } else if (a < 0.4) {
-      pets.home.feed(0.4);
-      pets.home.express(pick(['happy', 'wink', 'surprised', 'shy', 'love']), 1600);
-      holdUntil = 0;
-      if (Math.random() < 0.55) think(pick(CUTE)); else think();
-    } else if (a < 0.65) {
-      pets.home.express('dizzy', 2200); think(pick(PLAYFUL));
-    } else if (a < 0.9) {
-      pets.home.express('shy', 3500);
+    // Una pregunta abierta: tocarlo sin responder también comunica algo.
+    if (pending === 'bored' || pending === 'limit') {
+      pending = null; annoyance(1.5); irk.last = now;
+      pets.home.express('grumpy', 2200);
+      think(pick(['Te hice una pregunta… y me respondes con más toques.', 'Eso no era una respuesta, eh.', '¿Eso es un "una más"? Porque se sintió como un "una más".']));
+      return;
+    }
+    // Otra pregunta suya: el primer toque es cariño; si sigues, la deja para después.
+    if (pending) {
+      if (!irk.qPoke) { irk.qPoke = 1; pets.home.feed(0.3); pets.home.express(pick(['happy', 'shy']), 1200); return; }
+      pending = null;
+    }
+    irk.qPoke = 0;
+    const fast = now - irk.last < 700; irk.last = now;
+    const a = annoyance(fast ? 1.25 : 1), g = tg();
+    holdUntil = 0;
+    let stage = a < 0.3 ? 0 : a < 0.5 ? 1 : a < 0.68 ? 2 : a < 0.85 ? 3 : a < 1 ? 4 : 5;
+    if (stage === 5 && !irk.limited) stage = 4; // siempre avisa antes de irse a su pausa
+    const drained = isDrained();
+    if (stage === 0) {
+      if (!drained) pets.home.feed(0.4);
+      pets.home.express(drained ? (Math.random() < 0.3 ? 'grumpy' : 'apathetic') : pick(g === 0 ? ['surprised', 'shy', 'happy'] : ['happy', 'wink', 'surprised', 'shy', 'love']), 1600);
+      if (drained || Math.random() < 0.65) think(flavor(draw('cute' + g, CUTE[g]), CUTE_MOOD, CUTE_PHASE)); else think();
+    } else if (stage === 1) {
+      pets.home.express(drained ? 'apathetic' : pick(['dizzy', 'dizzy', 'squint']), 2200);
+      think(flavor(draw('play' + g, PLAYFUL[g]), CUTE_MOOD));
+    } else if (stage === 2) {
+      pets.home.express(pick(['squint', 'thinking', drained ? 'apathetic' : 'shy']), 2600);
+      think(flavor(draw('hold', HOLD), HOLD_MOOD));
+    } else if (stage === 3) {
+      pets.home.express(pick(['grumpy', 'squint', 'apathetic']), 2800);
+      // Primero refunfuña; si sigue, pasa a las pullas (antes si ya hubo rondas hoy).
+      const teaseP = 0.35 + 0.2 * pester().n;
+      think(irk.advised && Math.random() < 0.5 ? draw('advised', ADVISED) : Math.random() < teaseP ? tease() : draw('grumble', GRUMBLE));
+    } else if (stage === 4 && !irk.asked && g > 0 && !drained) {
+      askBored();
+    } else if (stage === 4 && !irk.limited) {
+      irk.limited = true;
+      pets.home.express(pester().n >= 1 ? 'grumpy' : 'shy', 3500);
       pending = 'limit';
-      showThought(pick(LIMIT), [['Perdón, te doy espacio', 'Gracias por escucharme. Eso me hace sentir querido.', 'warm', null, 'boundary'], ['Una más', 'Ok… pero de verdad necesito calma, ¿sí?', 'ok', null, 'boundary']]);
       bond().lessons.boundary || (bond().lessons.boundary = Date.now(), touchProfile());
+      showThought(pester().n >= 1 ? pick(LIMIT_AGAIN) : pick(LIMIT[g]), [
+        ['Perdón, te doy espacio', 'Gracias por escucharme. Eso me hace sentir querido.', 'warm', null, 'boundary', () => { irk.v *= 0.3; irk.limited = false; }],
+        ['Una más', pester().n >= 1 ? 'No. Ya te dije que no.' : 'Ok… pero de verdad necesito calma, ¿sí?', pester().n >= 1 ? 'cold' : 'ok', null, 'boundary', () => { irk.v += 2; }]
+      ]);
       holdUntil = Date.now() + 15000;
     } else {
-      pending = null;
-      pokes.length = 0;
-      pause.until = now + 60000; pause.broken = 0;
-      bondChange(-1, 'boundary');
-      pets.home.express('sad', 4000);
-      showThought(PAUSE_LINE); holdUntil = Date.now() + 9000;
-      // Al terminar la pausa intenta reparar: "¿estamos bien?"
-      setTimeout(() => {
-        if (pause.broken === 0) bondChange(3, 'respect');
-        pending = 'repair'; holdUntil = Date.now() + 25000;
-        if (state.screen === 'home') {
-          pets.home.express('shy', 3000);
-          showThought(pause.broken === 0 ? 'Gracias por respetar mi pausa. Eso me hace sentir seguro contigo. ¿Estamos bien?' : 'Ya estoy mejor. ¿Estamos bien?',
-            [['Sí, perdón', 'Claro que sí. Te quiero, bolita grande.', 'warm', null, 'repair'], ['Sí', 'Qué bueno. Seguimos entonces.', 'ok', null, 'repair']]);
-        }
-      }, 60000);
+      startPause(now);
     }
+    irk.stage = stage;
   }
 
   let sayTimer = 0;
