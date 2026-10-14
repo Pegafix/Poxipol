@@ -50,6 +50,10 @@ El tipo de tarea que más haces da color a los destellos que salen al tachar (az
 - **Copiar con contexto**: agrega meta, campos y las tareas que te faltan antes del prompt.
 - **Preguntar a Claude** (solo dentro de claude.ai): una consulta rápida con el contexto de la fase.
 
+## Backend
+
+La carpeta `server/` tiene la API multiplataforma (escritorio, móvil y web): PostgreSQL con árbol de habilidades en `ltree`, estado del compañero calculado por marcas de tiempo, sincronización por revisiones, comandos idempotentes y errores con códigos estables. Ver `server/README.md`.
+
 ## Archivos
 
 - `index.html`: la interfaz y los estilos
