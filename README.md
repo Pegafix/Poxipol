@@ -1,13 +1,13 @@
-# Brasa Roadmap
+# Mochi Roadmap
 
-Carga tus guías de desarrollo en PDF (formato "Hoja de ruta paso a paso & integración con Claude") y cada una se convierte en una **misión principal** con sus fases y tareas para tachar. Cada tarea alimenta a **Brasa**, una llama con cara que sube de nivel y evoluciona: Chispa → Brasa → Llama → Fogata → Hoguera → Faro.
+Carga tus guías de desarrollo en PDF (formato "Hoja de ruta paso a paso & integración con Claude") y cada una se convierte en una **misión principal** con sus fases y tareas para tachar. Cada tarea alimenta a **Mochi**, una bolita blanca con orejitas, panza rosada y carita :3 que flota sobre un escritorio y crece de nivel: Semilla → Bolita → Pompón → Nube → Luna → Estrella.
 
 ## Pantallas
 
-- **Brasa** (inicio): solo el personaje, su nivel, su calor, la siguiente tarea y las misiones del día.
-- **Misiones**: tres misiones diarias que cambian cada día y se reclaman por calor, y la lista de misiones principales (una por PDF). Al abrir una ves todo lo de la guía: fases, campos, tareas, prompts, cronómetro y registro.
-- **Equipo**: 14 piezas en 5 ranuras (cabeza, cara, cuello, fogón, aura) que se desbloquean avanzando. Cada una se ve sobre el personaje y da un bono de calor mientras la llevas puesta. También muestra los atributos y los últimos 28 días.
-- **Menú**: nombre del compañero, tema, sonido, reglas del calor y reinicio.
+- **Inicio**: el personaje en su escritorio. Nivel, racha, energía, misiones diarias y combo aparecen solo como símbolos; abajo, la siguiente tarea para tacharla.
+- **Misiones**: tres misiones diarias que cambian cada día y se reclaman por energía, y la lista de misiones principales (una por PDF). Al abrir una ves todo lo de la guía: fases, campos, tareas, prompts, cronómetro y registro.
+- **Equipo**: 14 piezas en 5 ranuras (cabeza, cara, cuello, base, aura) que se desbloquean avanzando. Cada una se ve sobre el personaje y da un bono de energía mientras la llevas puesta. También muestra los atributos y los últimos 28 días.
+- **Menú**: nombre del compañero, tema, sonido, reglas de la energía y reinicio.
 
 ## Uso
 
@@ -24,9 +24,9 @@ Dentro de la sección "Hoja de ruta", por cada `Fase N: Título · X h estimadas
 
 Si vuelves a cargar una versión nueva de la misma guía, el progreso se conserva (cada tarea se identifica por su texto).
 
-## Cómo se gana calor (XP)
+## Cómo se gana energía (XP)
 
-| Acción | Calor |
+| Acción | Energía |
 | --- | --- |
 | Tarea | 10 (PRUEBA: 12) |
 | Combo: 2+ tareas en 20 min | ×1,5 (4+: ×2) |
@@ -36,7 +36,7 @@ Si vuelves a cargar una versión nueva de la misma guía, el progreso se conserv
 | Misión diaria | 10 a 25 |
 | Equipo puesto | bono según la pieza |
 
-El tipo de tarea que más haces tiñe el corazón de la llama (azul construir, verde delegar, ámbar crear, rojo probar). Si pasan días sin avanzar, Brasa se apaga y se duerme, pero nunca muere.
+El tipo de tarea que más haces da color a los destellos que salen al tachar (azul construir, verde delegar, ámbar crear, rojo probar). Si pasan días sin avanzar, Mochi se duerme, pero nunca se va.
 
 ## Integración con Claude
 
@@ -48,7 +48,7 @@ El tipo de tarea que más haces tiñe el corazón de la llama (azul construir, v
 
 - `index.html`: la interfaz y los estilos
 - `src/parser.js`: lee el PDF con pdf.js y arma las fases
-- `src/flame.js`: dibuja a Brasa y su equipo en un canvas
+- `src/pet.js`: dibuja a Mochi y su equipo en un canvas
 - `src/app.js`: pantallas, misiones, equipo, puntos y guardado
 - `src/sample.js`: la guía v2 ya leída
 

@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Brasa Roadmap</title>
+<title>Mochi Roadmap</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: una pantalla por sección, como un juego. Inicio = solo el personaje; abajo una barra fija con Brasa, Misiones, Equipo y Menú. */
+/* Layout: una pantalla por sección, como un juego. Inicio = el personaje flotando sobre un escritorio, con los datos como símbolos; abajo una barra fija con Brasa, Misiones, Equipo y Menú. */
 :root {
   --bg: #0e1311;
   --surface: #151c19;
@@ -16,8 +16,18 @@
   --line: #2a3530;
   --ink: #e9eee9;
   --muted: #8d9b93;
-  --ember: #ff8a3d;
-  --ember-ink: #1b0d03;
+  --ember: #ff8fb1;
+  --ember-ink: #2a0a16;
+  --wall: #1d2233;
+  --wall-2: #252b40;
+  --desk: #5a4030;
+  --desk-top: #6e4f3b;
+  --desk-edge: #3f2c21;
+  --prop: #c9d1e6;
+  --prop-2: #8f9ab8;
+  --lamp: #ffd98a;
+  --leaf: #6fbf8e;
+  --pot: #d8806a;
   --ok: #43c98f;
   --over: #ff7b72;
   --code-bg: #0a0f0d;
@@ -32,14 +42,14 @@
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     --bg: #eef2ef; --surface: #ffffff; --surface-2: #f4f7f5; --line: #d8e0db; --ink: #14201a; --muted: #5d6c64;
-    --ember: #e8661a; --ember-ink: #ffffff; --ok: #1f9c67; --over: #d2453b; --code-bg: #14201a; --code-ink: #dcefe4; --hole: #ffb37a;
+    --ember: #e0507e; --ember-ink: #ffffff; --wall: #e4ebf2; --wall-2: #d8e1ea; --desk: #c99f78; --desk-top: #dab38c; --desk-edge: #a98260; --prop: #ffffff; --prop-2: #9aa6bd; --lamp: #ffcf5c; --leaf: #4fa874; --pot: #d36f55; --ok: #1f9c67; --over: #d2453b; --code-bg: #14201a; --code-ink: #dcefe4; --hole: #ffb37a;
     --shadow: 0 1px 2px rgba(20,32,26,.06), 0 8px 24px rgba(20,32,26,.06);
     color-scheme: light;
   }
 }
 :root[data-theme="light"] {
   --bg: #eef2ef; --surface: #ffffff; --surface-2: #f4f7f5; --line: #d8e0db; --ink: #14201a; --muted: #5d6c64;
-  --ember: #e8661a; --ember-ink: #ffffff; --ok: #1f9c67; --over: #d2453b; --code-bg: #14201a; --code-ink: #dcefe4; --hole: #ffb37a;
+  --ember: #e0507e; --ember-ink: #ffffff; --wall: #e4ebf2; --wall-2: #d8e1ea; --desk: #c99f78; --desk-top: #dab38c; --desk-edge: #a98260; --prop: #ffffff; --prop-2: #9aa6bd; --lamp: #ffcf5c; --leaf: #4fa874; --pot: #d36f55; --ok: #1f9c67; --over: #d2453b; --code-bg: #14201a; --code-ink: #dcefe4; --hole: #ffb37a;
   --shadow: 0 1px 2px rgba(20,32,26,.06), 0 8px 24px rgba(20,32,26,.06);
   color-scheme: light;
 }
@@ -80,40 +90,62 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .back { background: none; border: 0; padding: 4px 0; color: var(--muted); font-weight: 600; margin-bottom: 10px; }
 .back:hover { color: var(--ink); }
 
-/* ---------- Inicio: el personaje ---------- */
-#scr-home { max-width: 620px; text-align: center; }
-.h-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: left; }
-#h-name { font: 800 30px/1 var(--f-display); letter-spacing: -.02em; }
-.h-stage { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
-.h-stage b { font: 700 13px/1 var(--f-body); color: var(--ember); text-transform: uppercase; letter-spacing: .1em; }
-.hearth { position: relative; margin-top: 6px; border-radius: 22px; background: radial-gradient(70% 60% at 50% 72%, color-mix(in srgb, var(--ember) 22%, transparent) 0%, transparent 70%); }
-#flame { display: block; width: 100%; height: clamp(300px, 46vh, 440px); cursor: pointer; }
-.bubble { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; font-size: 15px; min-height: 48px; text-align: center; }
-.bubble::before { content: ""; position: absolute; top: -7px; left: 50%; width: 12px; height: 12px; background: var(--surface); border-left: 1px solid var(--line); border-top: 1px solid var(--line); transform: translateX(-50%) rotate(45deg); }
+/* ---------- Inicio: el personaje sobre el escritorio ---------- */
+#scr-home { max-width: none; padding-top: 0; margin-inline: -16px; }
+.room {
+  position: relative; overflow: hidden;
+  height: calc(100vh - 82px - env(safe-area-inset-bottom, 0px)); min-height: 520px;
+  background: linear-gradient(180deg, var(--wall) 0%, var(--wall-2) 78%);
+}
+@supports (height: 100dvh) { .room { height: calc(100dvh - 82px - env(safe-area-inset-bottom, 0px)); } }
+.desk { position: absolute; left: 0; right: 0; bottom: 0; height: 20%; background: var(--desk); border-top: 10px solid var(--desk-top); box-shadow: 0 -1px 0 var(--desk-edge) inset; }
+.desk::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 6px; background: var(--desk-edge); opacity: .45; }
+.window { position: absolute; top: 18%; left: 8%; width: clamp(90px, 14vw, 150px); aspect-ratio: 4 / 5; border: 8px solid var(--prop); border-radius: 6px; background: linear-gradient(180deg, color-mix(in srgb, var(--lamp) 25%, var(--wall-2)), var(--wall-2)); opacity: .55; }
+.window::before, .window::after { content: ""; position: absolute; background: var(--prop); }
+.window::before { left: 50%; top: 0; bottom: 0; width: 6px; transform: translateX(-50%); }
+.window::after { top: 50%; left: 0; right: 0; height: 6px; transform: translateY(-50%); }
+.prop { position: absolute; bottom: calc(20% + 6px); max-width: 30%; height: auto; }
+.prop.lamp { left: 6%; width: clamp(70px, 11vw, 120px); }
+.prop.mug { right: 7%; width: clamp(58px, 8vw, 86px); }
+.prop.books { right: calc(7% + clamp(64px, 9vw, 96px)); width: clamp(54px, 7.5vw, 80px); }
+.prop .p1 { fill: var(--prop); } .prop .p2 { fill: var(--prop-2); } .prop .lt { fill: var(--lamp); }
+.prop .lf { fill: var(--leaf); } .prop .pt { fill: var(--pot); } .prop .st { fill: none; stroke: var(--prop-2); stroke-width: 3; stroke-linecap: round; }
+.steam { animation: steam 3.2s ease-in-out infinite; }
+.steam:nth-of-type(2) { animation-delay: 1.1s; }
+@keyframes steam { 0% { transform: translateY(4px); opacity: 0; } 40% { opacity: .8; } 100% { transform: translateY(-10px); opacity: 0; } }
+.glow { position: absolute; left: 6%; bottom: 20%; width: clamp(140px, 22vw, 240px); height: 30%; background: radial-gradient(50% 60% at 40% 100%, color-mix(in srgb, var(--lamp) 35%, transparent), transparent 70%); pointer-events: none; }
+#pet { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; }
+
+.hud { position: absolute; top: 14px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; pointer-events: none; }
+.hud > * { pointer-events: auto; }
+.who { display: flex; align-items: center; gap: 10px; }
+#h-level { position: relative; width: 44px; height: 44px; display: grid; place-items: center; }
+#h-level svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+#h-level .ring-bg { fill: color-mix(in srgb, var(--surface) 80%, transparent); stroke: var(--line); stroke-width: 3; }
+#h-level .ring-fg { fill: none; stroke: var(--ember); stroke-width: 3.5; stroke-linecap: round; transition: stroke-dasharray .5s ease; }
+#h-level b { position: relative; font: 800 15px/1 var(--f-display); font-variant-numeric: tabular-nums; }
+.who-txt { display: grid; line-height: 1.1; }
+#h-name { font: 800 20px/1.1 var(--f-display); letter-spacing: -.01em; }
+#h-stage { font-size: 12px; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px 5px 7px; border-radius: 99px; background: color-mix(in srgb, var(--surface) 82%, transparent); border: 1px solid var(--line); font: 700 13px/1 var(--f-body); font-variant-numeric: tabular-nums; backdrop-filter: blur(6px); }
+button.chip { cursor: pointer; }
+.chip svg { width: 16px; height: 16px; flex: none; }
+.chip.ready { border-color: var(--ember); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ember) 25%, transparent); }
+.bubble-wrap { position: absolute; left: 50%; top: 33%; transform: translateX(-50%); width: min(420px, calc(100% - 32px)); display: flex; justify-content: center; pointer-events: none; }
+.bubble { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 9px 14px; font-size: 14.5px; text-align: center; box-shadow: var(--shadow); max-width: 100%; }
+.bubble:empty { display: none; }
+.bubble::after { content: ""; position: absolute; bottom: -7px; left: 50%; width: 12px; height: 12px; background: var(--surface); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); transform: translateX(-50%) rotate(45deg); }
 .bubble.big { border-color: var(--ember); }
 .bubble.pop { animation: pop .35s ease; }
 @keyframes pop { 0% { transform: scale(.96); } 60% { transform: scale(1.02); } 100% { transform: scale(1); } }
-.xp { margin-top: 14px; text-align: left; }
-.xp-track { height: 10px; border-radius: 99px; background: var(--surface); overflow: hidden; border: 1px solid var(--line); }
-#h-xpbar { display: block; height: 100%; background: linear-gradient(90deg, #ffcf6b, var(--ember)); border-radius: 99px; transition: width .5s ease; }
-.xp-row { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); margin-top: 5px; font-variant-numeric: tabular-nums; }
-.trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
-.trio div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; text-align: left; }
-.trio b { display: block; font: 700 22px/1.1 var(--f-display); font-variant-numeric: tabular-nums; }
-.trio span { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-.quest-cta { width: 100%; margin-top: 14px; display: grid; gap: 8px; text-align: left; background: var(--surface); border: 1px solid color-mix(in srgb, var(--ember) 45%, var(--line)); border-radius: 14px; padding: 12px 14px; }
-button.quest-cta:hover { background: var(--surface-2); }
-.qc-k { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--ember); font-weight: 700; }
-.qc-go { font-size: 13px; color: var(--muted); }
-.qc-row { display: flex; gap: 10px; align-items: flex-start; }
-.qc-row b { flex: 1; min-width: 0; font-weight: 600; }
-.qc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-#h-quests { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; justify-content: center; }
-.qpill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 4px 10px 4px 5px; font-size: 12.5px; color: var(--muted); max-width: 100%; }
-.qpill.ready { border-color: var(--ember); color: var(--ink); }
-.qpill.claimed { opacity: .55; text-decoration: line-through; }
-.qp-ring { --k: 0; flex: none; width: 16px; height: 16px; border-radius: 50%; background: conic-gradient(var(--ember) calc(var(--k) * 360deg), var(--line) 0); }
-.qp-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#h-next { position: absolute; left: 50%; bottom: calc(20% - 52px); transform: translateX(-50%); width: min(460px, calc(100% - 32px)); }
+.next-pill { width: 100%; display: flex; align-items: center; gap: 10px; background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--line); border-radius: 14px; padding: 8px 8px 8px 12px; box-shadow: var(--shadow); text-align: left; }
+button.next-pill { cursor: pointer; padding: 10px 14px; }
+.np-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; }
+.np-ico { font: 800 18px/1 var(--f-display); color: var(--ember); }
+.np-go { flex: none; width: 32px; height: 32px; border-radius: 9px; border: 0; background: var(--surface-2); font: 700 20px/1 var(--f-display); color: var(--muted); }
+.np-go:hover { color: var(--ink); }
 
 /* ---------- Misiones ---------- */
 .daily-list, .mlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
@@ -145,8 +177,8 @@ button.quest-cta:hover { background: var(--surface-2); }
 /* ---------- Equipo ---------- */
 .equip-top { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 18px; align-items: start; }
 @media (max-width: 720px) { .equip-top { grid-template-columns: minmax(0, 1fr); } }
-.mirror { background: radial-gradient(70% 60% at 50% 72%, color-mix(in srgb, var(--ember) 18%, var(--surface)) 0%, var(--surface) 70%); border: 1px solid var(--line); border-radius: 16px; padding: 10px; text-align: center; }
-#equip-flame { display: block; width: 100%; height: 260px; }
+.mirror { background: linear-gradient(180deg, var(--wall) 0%, var(--wall-2) 85%, var(--desk-top) 85%, var(--desk) 100%); border: 1px solid var(--line); border-radius: 16px; padding: 10px; text-align: center; }
+#equip-pet { display: block; width: 100%; height: 260px; }
 #e-name { font: 800 20px/1 var(--f-display); }
 .slots { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
 .slot { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; padding: 8px 10px; }
@@ -217,7 +249,7 @@ button.quest-cta:hover { background: var(--surface-2); }
 .tab:hover { color: var(--ink); }
 .tab[aria-current="page"] { color: var(--ink); background: var(--surface); }
 .tab svg { width: 26px; height: 26px; }
-#tab-flame { width: 34px; height: 30px; display: block; }
+#tab-pet { width: 34px; height: 30px; display: block; }
 .tab-level { font: 700 10px/1 var(--f-mono); color: var(--ember); }
 .badge { position: absolute; top: 0; right: calc(50% - 22px); min-width: 18px; height: 18px; border-radius: 99px; background: var(--ember); color: var(--ember-ink); font: 700 11px/18px var(--f-body); padding: 0 5px; }
 #toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 30; max-width: min(520px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--ember); border-radius: 12px; padding: 10px 14px; font-size: 14px; box-shadow: var(--shadow); animation: pop .3s ease; }
@@ -342,23 +374,29 @@ body.can-ask .ask { display: grid; gap: 6px; }
 </head>
 <body>
 <section class="screen" id="scr-home" aria-label="Tu compañero">
-  <div class="h-top">
-    <span id="h-name">Brasa</span>
-    <span class="h-stage"><b id="h-stage">Chispa</b><span id="h-level">Nivel 1</span></span>
+  <div class="room">
+    <div class="window" aria-hidden="true"></div>
+    <div class="glow" aria-hidden="true"></div>
+    <div class="desk" aria-hidden="true"></div>
+    <svg class="prop lamp" viewBox="0 0 120 150" aria-hidden="true"><ellipse class="p2" cx="40" cy="144" rx="30" ry="6"/><path class="st" d="M40 142V96l34-40"/><circle class="p2" cx="74" cy="56" r="5"/><path class="p1" d="M60 50l40-30 16 22-40 26z"/><path class="lt" d="M78 64l30-20 6 8-28 18z" opacity=".9"/></svg>
+    <svg class="prop books" viewBox="0 0 80 60" aria-hidden="true"><rect class="p2" x="4" y="44" width="70" height="14" rx="3"/><rect class="pt" x="10" y="30" width="62" height="14" rx="3"/><rect class="p1" x="2" y="16" width="66" height="14" rx="3"/></svg>
+    <svg class="prop mug" viewBox="0 0 80 100" aria-hidden="true"><path class="steam st" d="M30 30c-6-8 6-12 0-20"/><path class="steam st" d="M46 30c-6-8 6-12 0-20"/><path class="p1" d="M14 40h48v44a12 12 0 0 1-12 12H26a12 12 0 0 1-12-12z"/><path class="st" d="M62 52h6a10 10 0 0 1 0 20h-6"/><rect class="pt" x="14" y="56" width="48" height="8"/></svg>
+    <canvas id="pet" role="img" aria-label="Tu compañero, una bolita blanca con orejitas que flota sobre el escritorio. Tócala para que te hable."></canvas>
+    <div class="hud">
+      <div class="who">
+        <span id="h-level" role="img"></span>
+        <span class="who-txt"><span id="h-name">Mochi</span><span id="h-stage">Semilla</span></span>
+      </div>
+      <div class="chips">
+        <span class="chip" id="h-streak" role="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z" fill="#ff9a5a" stroke="#ff9a5a"/></svg><b>0</b></span>
+        <span class="chip" id="h-xp" role="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z" fill="#ffd166" stroke="#ffd166"/></svg><b>0</b></span>
+        <button class="chip" id="h-daily" data-go="misiones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4" stroke="#7fc4ff"/><path d="M8 12l3 3 5-6" stroke="#7fc4ff"/></svg><b>0/3</b></button>
+        <span class="chip" id="h-combo" role="img" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h5l2-5 2 10 2-5h5" stroke="#ff8fb1"/></svg><b>×1,5</b></span>
+      </div>
+    </div>
+    <div class="bubble-wrap"><div class="bubble" id="h-bubble" data-bubble aria-live="polite"></div></div>
+    <div id="h-next"></div>
   </div>
-  <div class="hearth"><canvas id="flame" role="img" aria-label="Tu compañero, una llama que crece con cada tarea. Tócala para que te hable."></canvas></div>
-  <div class="bubble" id="h-bubble" data-bubble aria-live="polite"></div>
-  <div class="xp">
-    <div class="xp-track"><span id="h-xpbar"></span></div>
-    <div class="xp-row"><span id="h-xptext">0 / 40 de calor</span><span id="h-nextstage"></span></div>
-  </div>
-  <div class="trio">
-    <div><b id="h-xp">0</b><span>Calor total</span></div>
-    <div><b id="h-streak">0</b><span>Días de racha</span></div>
-    <div><b id="h-combo">—</b><span>Combo</span></div>
-  </div>
-  <div id="h-next"></div>
-  <div id="h-quests" aria-label="Misiones diarias"></div>
 </section>
 
 <section class="screen" id="scr-misiones" hidden aria-label="Misiones">
@@ -381,9 +419,9 @@ body.can-ask .ask { display: grid; gap: 6px; }
 <section class="screen" id="scr-mision" hidden aria-label="Misión principal"></section>
 
 <section class="screen" id="scr-equipo" hidden aria-label="Equipo">
-  <div class="screen-head"><div><h1>Equipo</h1><p>Lo que ganas avanzando. Cada pieza da un bono de calor mientras la llevas puesta.</p></div></div>
+  <div class="screen-head"><div><h1>Equipo</h1><p>Lo que ganas avanzando. Cada pieza da un bono de energía mientras la lleva puesta.</p></div></div>
   <div class="equip-top">
-    <div class="mirror"><canvas id="equip-flame" role="img" aria-label="Vista previa del compañero con su equipo"></canvas><span id="e-name">Brasa</span></div>
+    <div class="mirror"><canvas id="equip-pet" role="img" aria-label="Vista previa del compañero con su equipo"></canvas><span id="e-name">Mochi</span></div>
     <div>
       <ul class="slots" id="e-slots"></ul>
       <p id="e-perks"></p>
@@ -393,7 +431,7 @@ body.can-ask .ask { display: grid; gap: 6px; }
   <ul class="items" id="e-items"></ul>
   <h2 class="sec-t"><span>Atributos</span></h2>
   <div class="sheet">
-    <div class="panel"><h3>De qué está hecha tu llama</h3><div id="e-stats"></div><div id="e-facts"></div></div>
+    <div class="panel"><h3>Tu estilo de trabajo</h3><div id="e-stats"></div><div id="e-facts"></div></div>
     <div class="panel"><h3>Últimos 28 días</h3><div id="e-heat"></div><div class="heat-cap"><span>hace 4 semanas</span><span>hoy</span></div></div>
   </div>
 </section>
@@ -410,7 +448,7 @@ body.can-ask .ask { display: grid; gap: 6px; }
       </span></div></div>
     <div class="panel"><label class="row" for="menu-sound"><span>Sonido al tachar</span><span class="switch"><input type="checkbox" id="menu-sound"><i></i></span></label></div>
     <div class="panel">
-      <h3>Cómo se gana calor</h3>
+      <h3>Cómo se gana energía</h3>
       <table class="rules"><tbody>
         <tr><td>Tarea (las de PRUEBA dan más)</td><td>10 · 12</td></tr>
         <tr><td>Combo: 2 o más tareas en 20 minutos (4 o más: ×2)</td><td>×1,5</td></tr>
@@ -420,7 +458,7 @@ body.can-ask .ask { display: grid; gap: 6px; }
         <tr><td>Misión diaria</td><td>10 a 25</td></tr>
         <tr><td>Equipo puesto</td><td>bono</td></tr>
       </tbody></table>
-      <p class="muted" style="font-size:13px;margin:10px 0 0">Cambia de forma en los niveles 3, 6, 10, 15 y 21: Chispa, Brasa, Llama, Fogata, Hoguera y Faro.</p>
+      <p class="muted" style="font-size:13px;margin:10px 0 0">Crece y cambia de título en los niveles 3, 6, 10, 15 y 21: Semilla, Bolita, Pompón, Nube, Luna y Estrella.</p>
     </div>
     <div class="panel"><div class="row"><span>Guardado</span><span class="muted" data-sync>Guardado en este navegador</span></div></div>
     <div class="panel">
@@ -435,7 +473,7 @@ body.can-ask .ask { display: grid; gap: 6px; }
 
 <nav class="tabbar" aria-label="Secciones">
   <div class="tabbar-in">
-    <button class="tab" data-go="home"><canvas id="tab-flame" aria-hidden="true"></canvas><span class="tab-level" id="tab-level">Nv 1</span></button>
+    <button class="tab" data-go="home"><canvas id="tab-pet" aria-hidden="true"></canvas><span class="tab-level" id="tab-level">Nv 1</span></button>
     <button class="tab" data-go="misiones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M9 10h6M9 14h6M9 18h3"/></svg>Misiones<span class="badge" id="badge-misiones" hidden></span></button>
     <button class="tab" data-go="equipo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l4-4h8l4 4-3 3v9H7v-9z"/><path d="M9 4c0 2 1.3 3 3 3s3-1 3-3"/></svg>Equipo<span class="badge" id="badge-equipo" hidden></span></button>
     <button class="tab" data-go="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menú</button>
@@ -444,7 +482,7 @@ body.can-ask .ask { display: grid; gap: 6px; }
 
 <script src="src/parser.js"></script>
 <script src="src/sample.js"></script>
-<script src="src/flame.js"></script>
+<script src="src/pet.js"></script>
 <script src="src/app.js"></script>
 </body>
 </html>
