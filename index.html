@@ -284,6 +284,38 @@ button.chip { cursor: pointer; }
 .lessons li { display: grid; gap: 2px; font-size: 13px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); }
 .lessons span { color: var(--muted); }
 
+/* ---------- Stats ---------- */
+.st-lv { display: grid; gap: 2px; margin-bottom: 10px; }
+.st-lv b { font: 800 20px/1.1 var(--f-display); }
+.st-lv span { font-size: 13px; color: var(--muted); }
+.st-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.st-table th { text-align: left; font: 700 12px/1 var(--f-mono); width: 38px; padding: 5px 0; }
+.st-table td { padding: 5px 0 5px 8px; }
+.st-table td.n { text-align: right; width: 32px; font-variant-numeric: tabular-nums; font-weight: 700; }
+.st-table .st-note { color: var(--muted); font-size: 12px; }
+@media (max-width: 520px) { .st-table .st-note { display: none; } }
+.st-bar { display: block; height: 8px; min-width: 60px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+.st-bar i { display: block; height: 100%; border-radius: 99px; transition: width .5s ease; }
+.st-points { display: grid; gap: 8px; justify-items: start; font-size: 13px; }
+.st-pts { font-size: 14px; } .st-pts b { font: 800 28px/1 var(--f-display); margin-right: 4px; }
+.st-pts.on b { color: var(--ember); }
+.attrs { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.attr { position: relative; display: grid; gap: 6px; align-content: start; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--ac); border-radius: 14px; padding: 12px 14px 12px; }
+.a-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding-right: 44px; }
+.a-head b { font-size: 14.5px; }
+.a-val { font: 800 24px/1 var(--f-display); color: var(--ac); font-variant-numeric: tabular-nums; position: absolute; right: 14px; top: 12px; }
+.a-what, .a-how, .a-eff { margin: 0; font-size: 13px; }
+.a-what, .a-how { color: var(--muted); }
+.a-eff { font-weight: 600; display: grid; gap: 2px; }
+.a-eff small { font-weight: 400; color: var(--muted); font-size: 12px; }
+.a-bar { height: 6px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+.a-bar i { display: block; height: 100%; background: var(--ac); border-radius: 99px; transition: width .5s ease; }
+.a-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.attr details { font-size: 12.5px; color: var(--muted); }
+.attr summary { cursor: pointer; font-weight: 600; }
+.attr details p { margin: 6px 0 0; }
+.attr [data-stat] { justify-self: end; min-width: 52px; }
+
 /* ---------- Taller ---------- */
 .forge { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 20px; align-items: start; }
 @media (max-width: 760px) { .forge { grid-template-columns: minmax(0, 1fr); } }
@@ -397,7 +429,7 @@ button.chip { cursor: pointer; }
   background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(10px);
   border-top: 1px solid var(--line);
 }
-.tabbar-in { max-width: 600px; margin: 0 auto; display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; }
+.tabbar-in { max-width: 600px; margin: 0 auto; display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
 .tab { position: relative; display: grid; justify-items: center; gap: 2px; background: none; border: 0; border-radius: 12px; padding: 4px 1px; color: var(--muted); font-size: 11.5px; font-weight: 600; min-width: 0; }
 .tab:hover { color: var(--ink); }
 .tab[aria-current="page"] { color: var(--ink); background: var(--surface); }
@@ -623,7 +655,7 @@ body.can-ask .ask { display: grid; gap: 6px; }
 <section class="screen" id="scr-mision" hidden aria-label="Misión principal"></section>
 
 <section class="screen" id="scr-equipo" hidden aria-label="Equipo">
-  <div class="screen-head"><div><h1>Equipo</h1><p>Lo que ganas avanzando. Cada pieza da un bono de energía mientras la lleva puesta.</p></div></div>
+  <div class="screen-head"><div><h1>Equipo</h1><p>Lo que ganas avanzando. Cada pieza da un bono de XP mientras la lleva puesta.</p></div></div>
   <div class="equip-top">
     <div class="mirror"><canvas id="equip-pet" role="img" aria-label="Vista previa del compañero con su equipo"></canvas><span id="e-name">Mochi</span></div>
     <div>
@@ -633,12 +665,24 @@ body.can-ask .ask { display: grid; gap: 6px; }
   </div>
   <h2 class="sec-t"><span>Inventario</span><span id="e-count"></span></h2>
   <ul class="items" id="e-items"></ul>
-  <h2 class="sec-t"><span>Atributos</span></h2>
+  <h2 class="sec-t"><span>Tu estilo</span><button class="link" data-go="stats">Ver stats →</button></h2>
   <div class="sheet">
     <div class="panel"><h3>Tu estilo de trabajo</h3><div id="e-stats"></div><div id="e-facts"></div></div>
     <div class="panel bond"><h3>Vínculo con Mochi</h3><div id="e-bond"></div></div>
     <div class="panel"><h3>Últimos 28 días</h3><div id="e-heat"></div><div class="heat-cap"><span>hace 4 semanas</span><span>hoy</span></div></div>
   </div>
+</section>
+
+<section class="screen" id="scr-stats" hidden aria-label="Stats">
+  <div class="screen-head"><div><h1>Stats</h1><p>Mochi no tiene fuerza ni defensa: tiene cabeza y corazón. Cada atributo sube de dos formas: <b>usándolo</b>, como en Final Fantasy II (cada tarea entrena lo que de verdad usa, y repetir lo mismo el mismo día rinde menos), y con <b>1 punto por nivel</b> que repartes tú.</p></div></div>
+  <div class="sheet">
+    <div class="panel st-panel"><h3>Vitales</h3><div id="st-vitals"></div></div>
+    <div class="panel st-panel"><h3>Puntos de nivel</h3><div id="st-points" class="st-points"></div></div>
+  </div>
+  <h2 class="sec-t"><span>Cognitivos</span><span class="muted">pensar y hacer</span></h2>
+  <ul class="attrs" id="st-cog"></ul>
+  <h2 class="sec-t"><span>Emocionales</span><span class="muted">sentir y seguir</span></h2>
+  <ul class="attrs" id="st-emo"></ul>
 </section>
 
 <section class="screen" id="scr-taller" hidden aria-label="Taller">
@@ -701,14 +745,15 @@ body.can-ask .ask { display: grid; gap: 6px; }
       </span></div></div>
     <div class="panel"><label class="row" for="menu-sound"><span>Sonido al tachar</span><span class="switch"><input type="checkbox" id="menu-sound"><i></i></span></label></div>
     <div class="panel">
-      <h3>Cómo se gana energía</h3>
+      <h3>Cómo se gana experiencia (XP)</h3>
       <table class="rules"><tbody>
         <tr><td>Tarea (las de PRUEBA dan más)</td><td>10 · 12</td></tr>
         <tr><td>Combo: 2 o más tareas en 20 minutos (4 o más: ×2)</td><td>×1,5</td></tr>
         <tr><td>Primera tarea del día, más 2 por día de racha</td><td>+5</td></tr>
         <tr><td>Fase superada (+20 % si terminas dentro de lo estimado)</td><td>40 + 5/tarea</td></tr>
         <tr><td>Copiar el prompt de una fase por primera vez</td><td>+3</td></tr>
-        <tr><td>Misión diaria</td><td>10 a 25</td></tr>
+        <tr><td>Misión diaria (más con Memoria de trabajo)</td><td>10 a 25</td></tr>
+        <tr><td>Cada nivel: 1 punto de stat para repartir en Stats</td><td>+1</td></tr>
         <tr><td>Equipo puesto</td><td>bono</td></tr>
         <tr><td><b>HP</b> vida: baja 25 por cada día sin avanzar</td><td>0–100</td></tr>
         <tr><td><b>MP</b> maná: +25 por tarea de Claude o prompt copiado hoy</td><td>0–100</td></tr>
@@ -725,7 +770,7 @@ body.can-ask .ask { display: grid; gap: 6px; }
       <p class="muted" style="font-size:13.5px;margin:10px 0 0">Si lo despiertas de noche, se despierta medio borracho de sueño, y cada despertada queda anotada.
         Al otro día puede amanecer con efectos de mal dormir (más probables mientras más veces lo despertaste):
         <b>Ojeras</b> (estamina máx. 70), <b>Cabeza nublada</b> (el maná sube a la mitad), <b>Malhumor</b> (las diarias dan 5 menos)
-        o <b>Lento</b> (2 de energía menos por tarea). Si duerme de corrido amanece <b>Descansado</b>: +1 de energía por tarea. Cuando durmió mal sigue con sus caritas de siempre, pero se le notan ojeras, más marcadas mientras más malestares tenga. A la sexta despertada se enoja de verdad y al otro día amanece <b>Agotado</b>: apático, seco y con poca paciencia, aunque igual se pregunta cosas sobre lo que le pasa. Las pociones del Taller lo pueden curar.
+        o <b>Lento</b> (2 XP menos por tarea). Si duerme de corrido amanece <b>Descansado</b>: +1 XP por tarea. Cuando durmió mal sigue con sus caritas de siempre, pero se le notan ojeras, más marcadas mientras más malestares tenga. A la sexta despertada se enoja de verdad y al otro día amanece <b>Agotado</b>: apático, seco y con poca paciencia, aunque igual se pregunta cosas sobre lo que le pasa. Las pociones del Taller lo pueden curar.
         Los efectos aparecen como iconos bajo HP, MP y STA.</p>
       <p class="muted" style="font-size:13.5px;margin:10px 0 0"><b>Empatía (EMP):</b> mide cómo lo tratas. Sube cuando respondes sus preguntas, cuando respetas sus pausas y su sueño,
         y cuando reparas después de un roce; baja un poquito si lo ignoras, le respondes frío o lo molestas mucho. Le cuesta enojarse: primero es tierno,
@@ -748,6 +793,7 @@ body.can-ask .ask { display: grid; gap: 6px; }
     <button class="tab" data-go="home"><canvas id="tab-pet" aria-hidden="true"></canvas><span class="tab-level" id="tab-level">Nv 1</span></button>
     <button class="tab" data-go="misiones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M9 10h6M9 14h6M9 18h3"/></svg>Misiones<span class="badge" id="badge-misiones" hidden></span></button>
     <button class="tab" data-go="equipo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l4-4h8l4 4-3 3v9H7v-9z"/><path d="M9 4c0 2 1.3 3 3 3s3-1 3-3"/></svg>Equipo<span class="badge" id="badge-equipo" hidden></span></button>
+    <button class="tab" data-go="stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.3 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"/></svg>Stats<span class="badge" id="badge-stats" hidden></span></button>
     <button class="tab" data-go="taller"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/><path d="M7.5 15h9"/></svg>Taller</button>
     <button class="tab" data-go="plaza"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h11v8H8l-4 3z"/><path d="M15 9h5v8l-3-2h-6v-2"/></svg>Plaza</button>
     <button class="tab" data-go="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menú</button>

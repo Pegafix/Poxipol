@@ -237,7 +237,7 @@
   // ---------- sueño y efectos del día ----------
   // Cada vez que lo despiertas de noche queda anotado. Al otro día, con suerte o sin ella, amanece con efectos.
   const EFFECTS = {
-    descansado: { name: 'Descansado', good: true, text: 'Durmió de corrido: +1 de energía por tarea y más ánimo.',
+    descansado: { name: 'Descansado', good: true, text: 'Durmió de corrido: +1 XP por tarea y más ánimo.',
       svg: '<path d="M12 4a8 8 0 1 0 8 8 6 6 0 0 1-8-8z" fill="#ffd166" stroke="#ffd166"/>' },
     ojeras: { name: 'Ojeras', text: 'Durmió mal: la estamina no pasa de 70 hoy.',
       svg: '<circle cx="8" cy="10" r="2.5" fill="currentColor"/><circle cx="16" cy="10" r="2.5" fill="currentColor"/><path d="M5 15q3 2 6 0M13 15q3 2 6 0" stroke="#a78bfa"/>' },
@@ -247,7 +247,7 @@
       svg: '<path d="M8 8l3 2M16 8l-3 2" stroke="#ff6b81"/><path d="M8 17q4-3 8 0" stroke="#ff6b81"/><circle cx="12" cy="12" r="9" stroke="#ff6b81"/>' },
     agotado: { name: 'Agotado', text: 'Lo despertaste 6 veces: anda apático, con poca paciencia y le cuesta todo.',
       svg: '<path d="M5 9h5M14 9h5" stroke="#ff6b81"/><path d="M8 16h8" stroke="#ff6b81"/><path d="M12 3v2M4 5l1.5 1.5M20 5l-1.5 1.5" stroke="#ff6b81"/>' },
-    lento: { name: 'Lento', text: 'Va en cámara lenta: 2 de energía menos por tarea hoy.',
+    lento: { name: 'Lento', text: 'Va en cámara lenta: 2 XP menos por tarea hoy.',
       svg: '<path d="M4 16c0-4 3-7 7-7s6 3 6 6H4zM17 15h3" stroke="#6fbf8e"/><circle cx="11" cy="14" r="2.5" stroke="#6fbf8e"/>' }
   };
   function nightKey(t) { const h = new Date(t).getHours(); return dayKey(h >= 23 ? t + DAY : t); }
@@ -294,7 +294,7 @@
   // Estamina: trabajo del día; cada tarea suma 20.
   function vitals(tot) {
     const idle = tot.last ? Math.floor((startOfDay(Date.now()) - startOfDay(tot.last)) / DAY) : 0;
-    const hp = Math.max(5, 100 - Math.max(0, idle - 1) * 25);
+    const hp = Math.max(5, Math.round(100 - Math.max(0, idle - 1) * 25 * (1 - Math.min(0.5, 0.05 * statB('resiliencia')))));
     const d = todayStats();
     const mp = Math.min(100, (d.fam.claude + d.prompts) * (hasFx('nublado') ? 12.5 : 25));
     const sta = Math.min(hasFx('ojeras') ? 70 : 100, d.tasks * 20);
@@ -305,7 +305,7 @@
   function startOfDay(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
   function comboNow() {
     const now = Date.now();
-    return allTaskEvents().filter(e => now - e.at < 20 * 60000).length;
+    return allTaskEvents().filter(e => now - e.at < comboWindow()).length;
   }
   function reqProgress(req, tot) {
     const lv = levelOf(tot.xp).L;
@@ -330,11 +330,11 @@
     }[req.type];
   }
   function perkText(perk) {
-    if (perk.all) return `+${perk.all} de energía por cada tarea`;
-    if (perk.fam) return `+${perk.xp} por tarea de ${FAMILY_INFO[perk.fam].label.toLowerCase()}`;
-    if (perk.phase) return `+${perk.phase} al superar una fase`;
-    if (perk.daily) return `+${perk.daily} con la primera tarea del día`;
-    if (perk.quest) return `+${perk.quest} por misión diaria`;
+    if (perk.all) return `+${perk.all} XP por cada tarea`;
+    if (perk.fam) return `+${perk.xp} XP por tarea de ${FAMILY_INFO[perk.fam].label.toLowerCase()}`;
+    if (perk.phase) return `+${perk.phase} XP al superar una fase`;
+    if (perk.daily) return `+${perk.daily} XP con la primera tarea del día`;
+    if (perk.quest) return `+${perk.quest} XP por misión diaria`;
     if (perk.bond) return `+${perk.bond} % de empatía cuando lo tratas bien`;
     return '';
   }
@@ -351,6 +351,150 @@
     });
     return b;
   }
+  // ---------- stats: atributos de Mochi ----------
+  // Dos formas de subir, como en un JRPG pero sin los típicos fuerza/defensa:
+  //  1. Usándolos (estilo Final Fantasy II): cada tarea, fase, mezcla o conversación entrena lo que de verdad usa.
+  //     Repetir lo mismo el mismo día rinde cada vez menos (retornos decrecientes).
+  //  2. Un punto por nivel que repartes tú.
+  const ATTRS = [
+    { id: 'logica', g: 'cog', name: 'Razonamiento lógico', color: '#7fc4ff',
+      what: 'Resolver problemas nuevos encadenando pasos.',
+      basis: 'Inteligencia fluida (Cattell). Mejora practicando el mismo tipo de problema; lo que se entrena en un juego se transfiere poco a otras cosas.',
+      how: 'Delegar a Claude, construir y probar.', eff: b => `+${Math.ceil(b / 2)} XP por tarea de Claude` },
+    { id: 'memoria', g: 'cog', name: 'Memoria de trabajo', color: '#a98bff',
+      what: 'Mantener varias cosas en la cabeza mientras trabajas.',
+      basis: 'Modelo de Baddeley. Su capacidad casi no se entrena, pero partir el trabajo en pasos baja la carga (Sweller, carga cognitiva).',
+      how: 'Fases completas y misiones diarias.', eff: b => `+${Math.min(15, b)} XP por misión diaria` },
+    { id: 'agilidad', g: 'cog', name: 'Agilidad manual', color: '#5fd3a0',
+      what: 'Precisión y soltura con las herramientas.',
+      basis: 'Aprendizaje motor en etapas (Fitts y Posner): de pensar cada movimiento a que salga solo. Necesita repetición espaciada.',
+      how: 'Construir, crear y mezclar en el Taller.', eff: b => `+${Math.ceil(b / 2)} XP por tarea de construir o crear` },
+    { id: 'analisis', g: 'cog', name: 'Análisis crítico', color: '#ffb35c',
+      what: 'Revisar, dudar y encontrar fallas.',
+      basis: 'Pensamiento lento y deliberado (Kahneman). Se entrena verificando resultados, no solo leyéndolos.',
+      how: 'Probar, revisar lo que hace Claude y descubrir recetas.', eff: b => `+${Math.ceil(b / 2)} XP por tarea de prueba` },
+    { id: 'tolerancia', g: 'emo', name: 'Tolerancia a la frustración', color: '#ff8f8f',
+      what: 'Seguir aunque algo no salga.',
+      basis: 'Regulación emocional (Gross): notar la emoción y elegir qué hacer con ella, en vez de reprimirla.',
+      how: 'Pruebas, mezclas fallidas y volver a intentar.', eff: b => `Mochi aguanta ${b * 4} % más toques` },
+    { id: 'resiliencia', g: 'emo', name: 'Resiliencia', color: '#ffd166',
+      what: 'Volver después de una pausa o un tropiezo.',
+      basis: 'Mentalidad de crecimiento (Dweck): el error como información. En estudios grandes el efecto es modesto; ayuda más cuando hay apoyo.',
+      how: 'Volver después de días sin avanzar y acertar después de fallar.', eff: b => `La vida baja ${Math.min(50, b * 5)} % más lento` },
+    { id: 'empatia', g: 'emo', name: 'Empatía', color: '#ff7fb0',
+      what: 'Entender lo que siente el otro y responder bien.',
+      basis: 'Inteligencia emocional (Goleman) y responder a las invitaciones a conectar (Gottman).',
+      how: 'Tratar bien a Mochi, responder sus preguntas y aprender de otros en la Plaza.', eff: b => `+${b * 4} % de empatía ganada con Mochi` },
+    { id: 'enfoque', g: 'emo', name: 'Enfoque', color: '#6fd6e8',
+      what: 'Sostener la atención en una sola cosa.',
+      basis: 'Estado de flujo (Csikszentmihalyi) y práctica deliberada (Ericsson): bloques concentrados con un objetivo claro.',
+      how: 'Combos, días seguidos y misiones diarias.', eff: b => `Ventana de combo +${Math.min(10, b)} min` },
+    { id: 'metacog', g: 'emo', name: 'Metacognición', color: '#c7a6ff',
+      what: 'Saber cómo aprendes y planificar.',
+      basis: 'Flavell; dificultades deseables (Bjork): estimar, revisar y ajustar en vez de solo repetir.',
+      how: 'Registrar horas, terminar fases dentro de lo estimado y copiar prompts.', eff: b => `+${b * 3} % XP al superar una fase` }
+  ];
+  const ATTR = Object.fromEntries(ATTRS.map(a => [a.id, a]));
+  // Qué entrena cada tipo de tarea (suma 1).
+  const FAM_TRAINS = {
+    build: { agilidad: 0.45, logica: 0.35, memoria: 0.2 },
+    claude: { analisis: 0.4, logica: 0.35, metacog: 0.25 },
+    create: { agilidad: 0.4, enfoque: 0.35, memoria: 0.25 },
+    test: { analisis: 0.45, tolerancia: 0.35, logica: 0.2 }
+  };
+  const attrNeed = L => Math.round(20 * Math.pow(L, 1.25)); // 20, 48, 79, 113, 150…
+  let attrCache = { t: 0, v: null };
+  function attrs(tot) {
+    if (!tot && attrCache.v && Date.now() - attrCache.t < 1500) return attrCache.v;
+    tot = tot || totals();
+    const pts = Object.fromEntries(ATTRS.map(a => [a.id, 0]));
+    const reps = {};
+    const add = (day, id, p) => { const k = day + '|' + id, r = reps[k] || 0; reps[k] = r + 1; pts[id] += p / (1 + 0.15 * r); };
+    const ev = tot.events.slice().sort((a, b) => a.at - b.at);
+    ev.forEach((e, i) => {
+      const d = dayKey(e.at);
+      Object.entries(FAM_TRAINS[familyOf(e.tag)]).forEach(([id, w]) => add(d, id, 10 * w));
+      if (i >= 2 && e.at - ev[i - 2].at <= 20 * 60000) add(d, 'enfoque', 3);
+    });
+    // Días: cada día activo entrena enfoque; volver después de 2+ días sin avanzar entrena resiliencia.
+    const starts = [...new Set(ev.map(e => startOfDay(e.at)))].sort((a, b) => a - b);
+    starts.forEach((s, i) => {
+      const d = dayKey(s);
+      add(d, 'enfoque', 1);
+      if (i && Math.round((s - starts[i - 1]) / DAY) >= 3) add(d, 'resiliencia', 12);
+      else add(d, 'resiliencia', 1);
+    });
+    Object.values(state.projects).forEach(p => {
+      p.roadmap.phases.forEach(ph => {
+        const pp = p.progress.phases[ph.n];
+        if (!pp) return;
+        if (pp.hours > 0) pts.metacog += 2;
+        if (!pp.doneAt) return;
+        const d = dayKey(pp.doneAt);
+        add(d, 'memoria', 6); add(d, 'metacog', 5);
+        if (pp.hours > 0 && ph.hours > 0 && pp.hours <= ph.hours) add(d, 'metacog', 6);
+      });
+      Object.values(p.progress.prompts).forEach(v => { const d = dayKey(typeof v === 'number' ? v : 0); add(d, 'metacog', 2); add(d, 'analisis', 1); });
+    });
+    const pr = state.profile;
+    const claimN = (pr.claimsOld || 0) + Object.values(pr.claims).reduce((n, day) => n + Object.keys(day).length, 0);
+    pts.memoria += 3 * claimN; pts.enfoque += 2 * claimN;
+    const ws = workshop();
+    Object.entries(ws.trylog || {}).forEach(([d, [ok, fail, back]]) => {
+      for (let i = 0; i < ok; i++) { add(d, 'agilidad', 4); add(d, 'analisis', 2); }
+      for (let i = 0; i < fail; i++) { add(d, 'agilidad', 2); add(d, 'tolerancia', 3); }
+      for (let i = 0; i < back; i++) { add(d, 'tolerancia', 4); add(d, 'resiliencia', 4); }
+    });
+    const bd = bond();
+    Object.entries(bd.pos).forEach(([d, n]) => { for (let i = 0; i < n; i++) add(d, 'empatia', 1.5); });
+    pts.empatia += 5 * Object.keys(bd.lessons).length + (bd.empOld || 0);
+    if (bd.lessons.respect) pts.tolerancia += 5;
+
+    const alloc = pr.statPts || {};
+    const out = { _spent: 0 };
+    ATTRS.forEach(a => {
+      let L = 1, rest = pts[a.id];
+      while (rest >= attrNeed(L)) { rest -= attrNeed(L); L++; }
+      const given = alloc[a.id] || 0;
+      out._spent += given;
+      out[a.id] = { trained: L, into: rest, need: attrNeed(L), given, value: L + given, pts: pts[a.id] };
+    });
+    out._avail = Math.max(0, levelOf(tot.xp).L - 1 - out._spent);
+    attrCache = { t: Date.now(), v: out };
+    return out;
+  }
+  const statB = id => attrs()[id].value - 1; // bono: lo que tiene por sobre el nivel 1
+  function giveStat(id) {
+    const a = attrs(totals());
+    if (!ATTR[id] || a._avail < 1) return;
+    const pr = state.profile;
+    pr.statPts = pr.statPts || {};
+    pr.statPts[id] = (pr.statPts[id] || 0) + 1;
+    attrCache.t = 0; touchProfile();
+    renderAll();
+    say(pick([`${ATTR[id].name} subió a ${attrs()[id].value}. Lo siento en las orejitas.`, `¡+1 a ${ATTR[id].name.toLowerCase()}!`, `Gracias. Voy a usar bien ese punto de ${ATTR[id].name.toLowerCase()}.`]));
+  }
+  function resetStats() {
+    const pr = state.profile, k = dayKey(Date.now());
+    if (pr.statReset === k || !Object.keys(pr.statPts || {}).length) return;
+    if (!confirm('¿Reasignar todos los puntos? Lo entrenado practicando se queda. Puedes hacerlo una vez al día.')) return;
+    pr.statPts = {}; pr.statReset = k; attrCache.t = 0; touchProfile(); renderAll();
+  }
+  // Lo que subió practicando entre dos fotos de los atributos.
+  function attrUps(before) {
+    attrCache.t = 0;
+    const now = attrs(totals());
+    return ATTRS.filter(a => now[a.id].trained > before[a.id].trained).map(a => `${a.name} ${now[a.id].trained}`);
+  }
+  function noteProgress(before, lvBefore, lvAfter) {
+    const ups = attrUps(before);
+    const msgs = [];
+    if (lvAfter > lvBefore) msgs.push(`Tienes ${lvAfter - lvBefore === 1 ? '1 punto' : (lvAfter - lvBefore) + ' puntos'} de stat para repartir.`);
+    if (ups.length) msgs.push(`Practicando subió: ${ups.join(', ')}.`);
+    if (msgs.length) setTimeout(() => say(msgs.join(' '), state.screen === 'home'), 2600);
+  }
+  const comboWindow = () => (20 + Math.min(10, statB('enfoque'))) * 60000;
+
   // Desbloquea el equipo cuyo requisito ya se cumple. Lo ganado se queda aunque luego se desmarque algo.
   function checkUnlocks(silent) {
     const tot = totals();
@@ -509,6 +653,12 @@
     cauldron.forEach(m => { if (m !== 'agua') pr.mats[m] = Math.max(0, (pr.mats[m] || 0) - 1); });
     cauldron.length = 0;
     const isNew = rec && !pr.recipes[key];
+    // Cada intento entrena (estilo FF2): acertar, fallar y sobre todo acertar después de fallar.
+    const tk = dayKey(Date.now());
+    pr.trylog = pr.trylog || {};
+    const tl = pr.trylog[tk] || (pr.trylog[tk] = [0, 0, 0]);
+    if (rec) { tl[0]++; if (pr.lastFail) tl[2]++; } else tl[1]++;
+    pr.lastFail = !rec;
     let title, icon, sub, fact;
     if (!rec) {
       title = 'Mezcla fallida'; sub = FAIL[process]; icon = foodSvg(FOOD.engrudo);
@@ -634,7 +784,7 @@
         const k = uid + ':' + pid;
         if (pr.taught[k] || Object.keys(pr.taught).length >= 40) return;
         pr.taught[k] = Date.now(); pr.teachXp = (pr.teachXp || 0) + 15; changed = true;
-        msgs.push(`${plazaName(uid)} aprendió con lo que compartiste: +15 de energía`);
+        msgs.push(`${plazaName(uid)} aprendió con lo que compartiste: +15 XP`);
         bondChange(1, 'teach');
       });
     });
@@ -763,7 +913,7 @@
     const fam = { build: 0, claude: 0, create: 0, test: 0 };
     ev.forEach(e => fam[familyOf(e.tag)]++);
     let combo = 0;
-    for (let i = 2; i < ev.length; i++) if (ev[i].at - ev[i - 2].at <= 20 * 60000) combo = 1;
+    for (let i = 2; i < ev.length; i++) if (ev[i].at - ev[i - 2].at <= comboWindow()) combo = 1;
     let prompts = 0;
     Object.values(state.projects).forEach(p => Object.values(p.progress.prompts).forEach(v => { if (typeof v === 'number' && dayKey(v) === k) prompts++; }));
     return { tasks: ev.length, fam, combo, prompts };
@@ -775,29 +925,32 @@
       return { q, have, ready: have >= q.goal && !claims[q.id], claimed: !!claims[q.id] };
     });
   }
+  const questXp = q => Math.max(1, q.xp + perkBonus('quest') + Math.min(15, statB('memoria')) - (hasFx('malhumor') ? 5 : 0));
   function claimQuest(id, el) {
     const k = dayKey(Date.now());
     const qs = questState().find(x => x.q.id === id);
     if (!qs || !qs.ready) return;
-    const xp = Math.max(1, qs.q.xp + perkBonus('quest') - (hasFx('malhumor') ? 5 : 0));
-    const before = levelOf(totals().xp).L;
+    const xp = questXp(qs.q);
+    const before = levelOf(totals().xp).L, aBefore = attrs(totals());
     // Guarda solo la última semana día a día; lo anterior queda sumado.
     const claims = state.profile.claims;
     Object.keys(claims).forEach(day => {
       const [y, m, dd] = day.split('-').map(Number);
       if (Date.now() - new Date(y, m - 1, dd).getTime() > 8 * DAY) {
-        Object.values(claims[day]).forEach(v => (state.profile.claimedXp += v)); delete claims[day];
+        Object.values(claims[day]).forEach(v => (state.profile.claimedXp += v));
+        state.profile.claimsOld = (state.profile.claimsOld || 0) + Object.keys(claims[day]).length; delete claims[day];
       }
     });
     (claims[k] || (claims[k] = {}))[id] = xp;
     giveFrom('raro');
     touchProfile();
     sparkFrom(el, 'create', () => { feedAll(0.8); crackle(1.5); });
-    floatXP(el, '+' + xp);
+    floatXP(el, '+' + xp + ' XP');
     const after = levelOf(totals().xp).L;
     checkUnlocks(true);
     renderAll();
-    say(after > before ? `Misión diaria cumplida. ¡Nivel ${after}!` : `Misión diaria cumplida: +${xp}.`, after > before);
+    noteProgress(aBefore, before, after);
+    say(after > before ? `Misión diaria cumplida: +${xp} XP. ¡Nivel ${after}!` : `Misión diaria cumplida: +${xp} XP.`, after > before);
   }
 
   // ---------- acciones sobre tareas ----------
@@ -818,7 +971,9 @@
     const combo = comboNow();
     const mult = combo >= 4 ? 2 : combo >= 2 ? 1.5 : 1;
     const fx = (hasFx('descansado') ? 1 : 0) - (hasFx('lento') ? 2 : 0);
-    let xp = Math.max(1, Math.round(((t.tag === 'PRUEBA' ? 12 : 10) + perkBonus('task', familyOf(t.tag)) + fx) * mult));
+    const fam = familyOf(t.tag), aBefore = attrs(tot);
+    const sb = Math.ceil(statB(fam === 'claude' ? 'logica' : fam === 'test' ? 'analisis' : 'agilidad') / 2);
+    let xp = Math.max(1, Math.round(((t.tag === 'PRUEBA' ? 12 : 10) + perkBonus('task', fam) + fx + sb) * mult));
     if (firstToday) xp += 5 + 2 * Math.min(10, streakOf(tot.days)) + perkBonus('daily');
     prog.tasks[t.id] = { at: Date.now(), xp };
     // material por tipo de tarea, una sola vez por tarea
@@ -832,6 +987,7 @@
     checkUnlocks(true);
     renderAll();
     const ready = questState().filter(x => x.ready).length;
+    noteProgress(aBefore, before, after);
     if (after > before) {
       const s = STAGES[stageOf(after)].name;
       say(stageOf(after) > stageOf(before) ? `¡Evolucioné! Ahora soy ${s}. Nivel ${after}.` : `¡Nivel ${after}! Me siento más esponjoso.`, true);
@@ -846,7 +1002,7 @@
       say(pick([`Combo ×${mult}. No pares ahora.`, `¡Ñam! Combo ×${mult}.`]));
     } else {
       const left = ph.tasks.filter(x => !prog.tasks[x.id]).length;
-      say(left ? pick([`+${xp}. Quedan ${left} en «${ph.title}».`, `Ñam. ${left} más y la fase está.`, `+${xp} de energía. :3`]) :
+      say(left ? pick([`+${xp}. Quedan ${left} en «${ph.title}».`, `Ñam. ${left} más y la fase está.`, `+${xp} XP. :3`]) :
         `Todas las tareas de «${ph.title}» listas. Confirma: ${(ph.fields.find(f => /^Listo/i.test(f.k)) || {}).v || 'la fase está terminada'}.`);
     }
   }
@@ -855,8 +1011,10 @@
     const pp = p.progress.phases[ph.n] || (p.progress.phases[ph.n] = {});
     if (pp.doneAt) return;
     const before = levelOf(totals().xp).L;
+    const aBefore = attrs(totals());
     let xp = 40 + 5 * ph.tasks.length + perkBonus('phase');
     if (pp.hours > 0 && ph.hours > 0 && pp.hours <= ph.hours) xp = Math.round(xp * 1.2);
+    xp = Math.round(xp * (1 + 0.03 * statB('metacog')));
     if (pp.timerStart) stopTimer(p, ph, true);
     pp.doneAt = Date.now(); pp.xp = xp;
     if (!pp.oro) { pp.oro = 1; giveFrom('fase', 2); }
@@ -869,6 +1027,7 @@
     if (next) state.open.add(next.n);
     checkUnlocks(true);
     renderAll();
+    noteProgress(aBefore, before, after);
     say(next ? `¡Fase ${ph.n} superada! +${xp}.${after > before ? ' Nivel ' + after + '.' : ''} Sigue «${next.title}».`
       : `¡Misión principal cumplida! «${missionTitle(p)}» está completa. +${xp}.`, true);
   }
@@ -1060,11 +1219,11 @@
   // Cambia la empatía. Sube más lento cuando ya es alta y baja más suave si el vínculo es fuerte (como en la vida).
   function bondChange(delta, lesson) {
     const bd = bond(), k = dayKey(Date.now());
-    if (delta > 0) { bd.pos[k] = (bd.pos[k] || 0) + 1; delta *= (bd.emp > 70 ? 0.6 : 1) * (1 + perkBonus('bond') / 100); }
+    if (delta > 0) { bd.pos[k] = (bd.pos[k] || 0) + 1; delta *= (bd.emp > 70 ? 0.6 : 1) * (1 + perkBonus('bond') / 100) * (1 + 0.04 * statB('empatia')); }
     if (delta < 0) { bd.neg[k] = (bd.neg[k] || 0) + 1; delta *= bd.emp > 70 ? 0.7 : 1; }
     const before = tierOf(bd.emp);
     bd.emp = Math.max(0, Math.min(100, Math.round((bd.emp + delta) * 10) / 10));
-    [bd.pos, bd.neg, bd.ignored].forEach(m => { const ks = Object.keys(m); if (ks.length > 14) ks.slice(0, ks.length - 14).forEach(x => delete m[x]); });
+    [bd.pos, bd.neg, bd.ignored].forEach(m => { const ks = Object.keys(m); if (ks.length > 14) ks.slice(0, ks.length - 14).forEach(x => { if (m === bd.pos) bd.empOld = (bd.empOld || 0) + 1.5 * m[x]; delete m[x]; }); });
     if (lesson && !bd.lessons[lesson]) bd.lessons[lesson] = Date.now();
     if (!bd.lessons.ratio && (bd.pos[k] || 0) >= 5 && (bd.pos[k] || 0) >= 5 * (bd.neg[k] || 0)) bd.lessons.ratio = Date.now();
     touchProfile();
@@ -1298,6 +1457,7 @@
     }
     if (c.worn || c.v.hp <= 25) k *= 0.85;
     k *= { waking: 0.8, peak: 1, dip: 0.85, peak2: 1, calm: 0.95, winddown: 0.75 }[c.phase] || 1;
+    k *= 1 + 0.04 * statB('tolerancia');
     k /= 1 + 0.3 * pester().n;
     return (12 + bd.emp / 7) * k; // de 12 a 26 toques seguidos en un día tranquilo
   }
@@ -1592,7 +1752,7 @@
     return null;
   }
   // ---------- navegación ----------
-  const SCREENS = ['home', 'misiones', 'mision', 'equipo', 'taller', 'plaza', 'menu'];
+  const SCREENS = ['home', 'misiones', 'mision', 'equipo', 'stats', 'taller', 'plaza', 'menu'];
   function go(screen, opts) {
     if (!SCREENS.includes(screen)) screen = 'home';
     if (screen === 'mision' && !(opts && opts.id ? state.projects[opts.id] : active())) screen = 'misiones';
@@ -1620,6 +1780,7 @@
     if (state.screen === 'misiones') renderMissions(tot);
     if (state.screen === 'mision') renderMission();
     if (state.screen === 'equipo') renderEquip(tot);
+    if (state.screen === 'stats') renderStats(tot);
     if (state.screen === 'taller') renderWorkshop();
     if (state.screen === 'plaza') renderPlaza();
     if (state.screen === 'menu') renderMenu();
@@ -1646,6 +1807,8 @@
     const b1 = $('#badge-misiones'); b1.hidden = !ready; b1.textContent = ready;
     const fresh = (state.profile.newItems || []).length;
     const b2 = $('#badge-equipo'); b2.hidden = !fresh; b2.textContent = fresh;
+    const pts = attrs(tot)._avail;
+    const b3 = $('#badge-stats'); b3.hidden = !pts; b3.textContent = pts;
   }
 
   function tagChip(tag) {
@@ -1671,7 +1834,7 @@
     bar('#v-emp', Math.round(bd.emp), `Empatía ${Math.round(bd.emp)}/100 · ${tr.name}: ${tr.text}`);
     const chip = (id, n, label) => { const el = $(id); el.querySelector('b').textContent = n; el.title = label; el.setAttribute('aria-label', label); };
     chip('#h-streak', streak, `Racha: ${streak} ${streak === 1 ? 'día' : 'días'}`);
-    chip('#h-xp', tot.xp >= 10000 ? Math.round(tot.xp / 1000) + 'k' : tot.xp, `Energía total: ${tot.xp}`);
+    chip('#h-xp', tot.xp >= 10000 ? Math.round(tot.xp / 1000) + 'k' : tot.xp, `Experiencia total: ${tot.xp} XP`);
     chip('#h-daily', `${qDone}/${qs.length}`, qReady ? `${qReady} misión diaria lista para reclamar` : `Misiones diarias cobradas: ${qDone} de ${qs.length}`);
     $('#h-daily').classList.toggle('ready', qReady > 0);
     const combo = $('#h-combo');
@@ -1690,7 +1853,7 @@
     $('#xp-pct').textContent = pct + '%';
     const xb = $('#xpbar');
     xb.setAttribute('aria-valuenow', pct);
-    xb.title = `Nivel ${lv.L}: ${lv.into} de ${lv.need} de energía para el nivel ${lv.L + 1}`;
+    xb.title = `Nivel ${lv.L}: ${lv.into} de ${lv.need} XP para el nivel ${lv.L + 1}`;
     if (!$('#h-bubble').textContent) think();
   }
 
@@ -1699,7 +1862,7 @@
     $('#m-daily').innerHTML = qs.map(x => `
       <li class="daily ${x.claimed ? 'claimed' : x.ready ? 'ready' : ''}">
         <span class="d-ring" style="--k:${x.have / x.q.goal}"><span>${x.have}/${x.q.goal}</span></span>
-        <span class="d-text"><b>${esc(x.q.text)}</b><small>+${Math.max(1, x.q.xp + perkBonus('quest') - (hasFx('malhumor') ? 5 : 0))} de energía</small></span>
+        <span class="d-text"><b>${esc(x.q.text)}</b><small>+${questXp(x.q)} XP</small></span>
         ${x.claimed ? '<span class="d-done">Cobrada</span>' : `<button class="btn small ${x.ready ? 'primary' : 'ghost'}" data-claim="${x.q.id}" ${x.ready ? '' : 'disabled'}>Reclamar</button>`}
       </li>`).join('');
     const ids = Object.keys(state.projects).sort((a, b) => state.projects[b].updatedAt - state.projects[a].updatedAt);
@@ -1800,7 +1963,7 @@
         }).join('')}</ul>
         <div class="gate">
           ${pp.doneAt
-            ? `<span class="gate-ok">Superada el ${fmtDate(pp.doneAt)} · +${pp.xp} de energía</span><button class="link" data-reopen="${ph.n}">Reabrir</button>`
+            ? `<span class="gate-ok">Superada el ${fmtDate(pp.doneAt)} · +${pp.xp} XP</span><button class="link" data-reopen="${ph.n}">Reabrir</button>`
             : `<button class="btn primary" data-complete="${ph.n}" ${all ? '' : 'disabled'}>Fase superada</button>
                <span class="muted">${all ? 'Confirma solo si se cumple el criterio «Listo cuando».' : `Faltan ${ph.tasks.length - d} tareas.`}</span>`}
         </div>
@@ -1809,7 +1972,7 @@
             <span class="prompt-actions"><button class="btn small" data-copy="${ph.n}">Copiar prompt</button><button class="btn small ghost" data-copyctx="${ph.n}">Copiar con contexto</button></span></div>
           ${vars.filter(v => !p.vars[v]).length ? `<div class="prompt-vars">${vars.map(v => `<label class="var"><span>[${esc(v)}]</span><input id="pv-${ph.n}-${esc(v)}" data-var="${esc(v)}" value="${esc(p.vars[v] || '')}" placeholder="completa antes de copiar"></label>`).join('')}</div>` : ''}
           <pre>${promptHTML(p, ph.prompt)}</pre>
-          ${p.progress.prompts[ph.n] ? '' : '<div class="prompt-hint">Copiarlo por primera vez da +3 de energía.</div>'}
+          ${p.progress.prompts[ph.n] ? '' : '<div class="prompt-hint">Copiarlo por primera vez da +3 XP.</div>'}
         </div>` : ''}
         <div class="ask">
           <label for="ask-${ph.n}">Preguntarle a Claude sobre esta fase</label>
@@ -1876,7 +2039,7 @@
         state.activeId = Object.keys(state.projects)[0] || null;
         persistLocal();
         if (state.db && state.uid) saveRemote(p.id);
-        go('misiones'); say('Misión quitada. La energía que ganaste con ella se fue con ella.');
+        go('misiones'); say('Misión quitada. La experiencia que ganaste con ella se fue con ella.');
       } else if (b.id === 'dz-no') renderMission();
     };
     box.oninput = e => {
@@ -1916,6 +2079,40 @@
     } finally { btn.disabled = false; }
   }
 
+  // Stats: tabla de vitales y los nueve atributos, con lo entrenado, lo asignado y su efecto.
+  function renderStats(tot) {
+    const lv = levelOf(tot.xp), v = vitals(tot), a = attrs(tot), bd = bond(), pr = state.profile;
+    const row = (k, val, max, color, note) => `<tr><th>${k}</th><td><span class="st-bar"><i style="width:${Math.min(100, val / max * 100).toFixed(0)}%;background:${color}"></i></span></td><td class="n">${val}${max === 100 ? '' : ''}</td><td class="st-note">${esc(note)}</td></tr>`;
+    $('#st-vitals').innerHTML = `
+      <div class="st-lv"><b>Nivel ${lv.L}</b><span>${esc(STAGES[stageOf(lv.L)].name)} · ${tot.xp} XP · faltan ${lv.need - lv.into} XP para el nivel ${lv.L + 1}</span></div>
+      <table class="st-table"><tbody>
+        ${row('HP', v.hp, 100, '#ff6b81', 'Vida: baja con los días sin avanzar')}
+        ${row('MP', v.mp, 100, '#7fc4ff', 'Maná: aprender con Claude hoy')}
+        ${row('STA', v.sta, 100, '#ffd166', 'Estamina: tareas de hoy')}
+        ${row('EMP', Math.round(bd.emp), 100, '#ff7fb0', 'Empatía de Mochi contigo · ' + TIERS[tierOf(bd.emp)].name)}
+      </tbody></table>`;
+    const k = dayKey(Date.now()), any = Object.keys(pr.statPts || {}).length;
+    $('#st-points').innerHTML = `<span class="st-pts ${a._avail ? 'on' : ''}"><b>${a._avail}</b> ${a._avail === 1 ? 'punto disponible' : 'puntos disponibles'}</span>
+      <span class="muted">Ganas 1 por cada nivel (${lv.L - 1} en total, ${a._spent} repartidos).</span>
+      <span class="muted">Elige según lo que quieres que Mochi haga mejor. Lo entrenado practicando no se compra: solo se gana usándolo.</span>
+      ${any ? `<button class="btn small ghost" id="st-reset" ${pr.statReset === k ? 'disabled title="Ya reasignaste hoy"' : ''}>Reasignar</button>` : ''}`;
+    const card = x => {
+      const s = a[x.id], b = s.value - 1;
+      return `<li class="attr" style="--ac:${x.color}">
+        <div class="a-head"><b>${esc(x.name)}</b><span class="a-val">${s.value}</span></div>
+        <p class="a-what">${esc(x.what)}</p>
+        <div class="a-bar" title="Entrenado: ${Math.floor(s.into)} de ${s.need} para el nivel ${s.trained + 1}"><i style="width:${(s.into / s.need * 100).toFixed(1)}%"></i></div>
+        <div class="a-meta"><span>Entrenado ${s.trained} · ${Math.floor(s.into)}/${s.need}</span><span>${s.given ? 'Puntos +' + s.given : 'Sin puntos'}</span></div>
+        <p class="a-eff">${b ? esc(x.eff(b)) : 'Sin efecto todavía'}<small>Con 1 más: ${esc(x.eff(b + 1))}</small></p>
+        <p class="a-how"><b>Sube con:</b> ${esc(x.how)}</p>
+        <details><summary>Base científica</summary><p>${esc(x.basis)}</p></details>
+        <button class="btn small ${a._avail ? 'primary' : 'ghost'}" data-stat="${x.id}" ${a._avail ? '' : 'disabled'} aria-label="Dar 1 punto a ${esc(x.name)}">+1</button>
+      </li>`;
+    };
+    $('#st-cog').innerHTML = ATTRS.filter(x => x.g === 'cog').map(card).join('');
+    $('#st-emo').innerHTML = ATTRS.filter(x => x.g === 'emo').map(card).join('');
+  }
+
   function renderEquip(tot) {
     const fresh = new Set(state.profile.newItems || []);
     const eq = state.profile.equipped;
@@ -1925,7 +2122,7 @@
       return `<li class="slot ${it ? 'full' : ''}"><span class="slot-ico">${it ? `<svg viewBox="0 0 40 40" aria-hidden="true">${it.svg}</svg>` : ''}</span><span><small>${label}</small><b>${it ? esc(it.name) : 'Vacío'}</b></span></li>`;
     }).join('');
     const perks = Object.values(eq).map(id => ITEM[id]).filter(Boolean).map(it => perkText(it.perk));
-    $('#e-perks').textContent = perks.length ? 'Bonos activos: ' + perks.join(' · ') : 'Sin bonos activos. Equipa algo para ganar energía extra.';
+    $('#e-perks').textContent = perks.length ? 'Bonos activos: ' + perks.join(' · ') : 'Sin bonos activos. Equipa algo para ganar XP extra.';
     const owned = ITEMS.filter(it => state.profile.unlocked[it.id]).length;
     $('#e-count').textContent = `${owned} de ${ITEMS.length}`;
     $('#e-items').innerHTML = Object.keys(SLOTS).map(slot => ITEMS.filter(i => i.slot === slot).map(it => {
@@ -2114,6 +2311,9 @@
       if (up) { usePotion(up.dataset.use, up); return; }
       const c = e.target.closest('[data-claim]');
       if (c) { claimQuest(c.dataset.claim, c); return; }
+      const st = e.target.closest('[data-stat]');
+      if (st) { giveStat(st.dataset.stat); return; }
+      if (e.target.closest('#st-reset')) { resetStats(); return; }
       const q = e.target.closest('[data-equip]');
       if (q) {
         const it = ITEM[q.dataset.equip];

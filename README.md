@@ -15,8 +15,18 @@ Carga tus guías de desarrollo en PDF (formato "Hoja de ruta paso a paso & integ
     - **No es un bucle**: cada pausa del día lo deja con menos paciencia, pullas más pesadas y pausas más largas. Se le pasa con media hora de calma.
     - **Qué cambia lo que dice**: la empatía (seco si es reservado, cariñoso si es cercano), cómo durmió (agotado o con malhumor aguanta menos; descansado, un poco más) y la hora (en la mañana "primero el café", de noche "mañana tocas pasto, hoy tocas almohada").
   - **Expresiones**: feliz, guiño, sorpresa, enamorado, tímido, pensativo, ojos brillantes, somnoliento, bostezo, enojón, triste, mareado, dormido, ojeras y gotita de sudor.
-- **Misiones**: tres misiones diarias que cambian cada día y se reclaman por energía, y la lista de misiones principales (una por PDF). Al abrir una ves todo lo de la guía: fases, campos, tareas, prompts, cronómetro y registro.
-- **Equipo**: 20 piezas en 6 ranuras (cabeza, cara, cuello, joya, base, aura) que se desbloquean avanzando. Cada una se ve sobre el personaje y da un bono de energía mientras la llevas puesta. También muestra los atributos y los últimos 28 días.
+- **Misiones**: tres misiones diarias que cambian cada día y se reclaman por XP (más con Memoria de trabajo), y la lista de misiones principales (una por PDF). Al abrir una ves todo lo de la guía: fases, campos, tareas, prompts, cronómetro y registro.
+- **Equipo**: 20 piezas en 6 ranuras (cabeza, cara, cuello, joya, base, aura) que se desbloquean avanzando. Cada una se ve sobre el personaje y da un bono de XP mientras la llevas puesta. También muestra los atributos y los últimos 28 días.
+- **Stats**: la tabla de Mochi.
+  - **Vitales**: arriba, nivel, XP y lo que falta para el siguiente, más HP, MP, STA y EMP.
+  - **Atributos**: debajo, nueve atributos que no son los típicos de un JRPG.
+    - Cognitivos: Razonamiento lógico, Memoria de trabajo, Agilidad manual y Análisis crítico.
+    - Emocionales: Tolerancia a la frustración, Resiliencia, Empatía, Enfoque y Metacognición.
+  - **Cómo suben** los atributos, de dos formas:
+    - **Usándolos**, como en Final Fantasy II. Cada tarea entrena lo que usa: construir sube agilidad, lógica y memoria; delegar a Claude, análisis, lógica y metacognición; crear, agilidad, enfoque y memoria; probar, análisis, tolerancia y lógica. También entrenan las fases, los prompts, las misiones diarias, los combos, volver después de días sin avanzar, las mezclas del Taller (fallar entrena tolerancia) y tratar bien a Mochi. Repetir lo mismo el mismo día rinde cada vez menos.
+    - **Con 1 punto por nivel** que repartes tú. Se puede reasignar una vez al día.
+  - **Efecto de cada atributo**: XP extra en tareas, misiones o fases, ventana de combo más larga, vida que baja más lento, Mochi con más paciencia y empatía que sube más rápido.
+  - Cada atributo muestra su base científica.
 - **Taller**: química, cocina y orfebrería de verdad. Avanzar da materiales reales (metales y carbón de las tareas de construir; arena, cal, vinagre, bicarbonato… de las de Claude; harina, levadura, cacao, cera… de las de crear; leche, limón, sal, miel… de las de probar; oro o plata de las fases; hierbas al tratar bien a Mochi; el agua nunca se acaba). Se eligen de 1 a 3 y un proceso (en frío, calentar, hornear, fundir, forjar). Las 33 recetas son reales (bronce, latón, acero, oro rosa, electro, plata de ley, vidrio, cerámica, mortero, jabón de ceniza, pan, requesón, limonada, tés, experimentos como bicarbonato con vinagre…) y **la app no las enseña**: no hay pistas, solo se ven las que uno descubre. Lo fabricado sirve para otras mezclas, las comidas cuidan a Mochi y las aleaciones se forjan en joyas.
 - **Plaza**: comunidad entre quienes usan la página. Se publican descubrimientos (con la receta adjunta), preguntas, debates (con postura de acuerdo o en desacuerdo) y pedidos de material; se responde, se marca lo útil y se regalan materiales. Si alguien prueba una receta compartida y le sale, quien la compartió gana energía ("enseñaste a…"). Cada persona escribe solo su propio documento y lee el de todos; lo de otras personas se valida antes de mostrarse.
 - **Menú**: nombre del compañero, tema, sonido, reglas de la energía y reinicio.
@@ -36,9 +46,9 @@ Dentro de la sección "Hoja de ruta", por cada `Fase N: Título · X h estimadas
 
 Si vuelves a cargar una versión nueva de la misma guía, el progreso se conserva (cada tarea se identifica por su texto).
 
-## Cómo se gana energía (XP)
+## Cómo se gana experiencia (XP)
 
-| Acción | Energía |
+| Acción | XP |
 | --- | --- |
 | Tarea | 10 (PRUEBA: 12) |
 | Combo: 2+ tareas en 20 min | ×1,5 (4+: ×2) |
@@ -47,6 +57,7 @@ Si vuelves a cargar una versión nueva de la misma guía, el progreso se conserv
 | Copiar el prompt de una fase por primera vez | +3 |
 | Misión diaria | 10 a 25 |
 | Equipo puesto | bono según la pieza |
+| Cada nivel | 1 punto de stat para repartir |
 
 El tipo de tarea que más haces da color a los destellos que salen al tachar (azul construir, verde delegar, ámbar crear, rojo probar). Si pasan días sin avanzar, Mochi se duerme, pero nunca se va.
 
