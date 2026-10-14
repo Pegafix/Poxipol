@@ -19,7 +19,7 @@
   ];
   const familyOf = tag => FAMILY[tag] || 'create';
 
-  const SLOTS = { head: 'Cabeza', face: 'Cara', neck: 'Cuello', base: 'Base', aura: 'Aura' };
+  const SLOTS = { head: 'Cabeza', face: 'Cara', neck: 'Cuello', joya: 'Joya', base: 'Base', aura: 'Aura' };
   const ITEMS = [
     { id: 'gorro', slot: 'head', name: 'Gorro de lana', perk: { fam: 'create', xp: 2 }, req: { type: 'level', n: 2 },
       svg: '<path d="M8 26a12 12 0 0 1 24 0z" fill="#c8423b"/><rect x="6" y="24" width="28" height="7" rx="3.5" fill="#efe6d2"/><circle cx="20" cy="10" r="4" fill="#efe6d2"/>' },
@@ -48,7 +48,20 @@
     { id: 'chispas', slot: 'aura', name: 'Chispas azules', perk: { fam: 'build', xp: 1 }, req: { type: 'hours', n: 10 },
       svg: '<g fill="#7fc4ff"><path d="M12 6l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/><path d="M28 18l1.5 4.5 4.5 1.5-4.5 1.5-1.5 4.5-1.5-4.5-4.5-1.5 4.5-1.5z"/></g>' },
     { id: 'estrellas', slot: 'aura', name: 'Polvo de estrellas', perk: { all: 2 }, req: { type: 'level', n: 9 },
-      svg: '<g fill="#ffe9a8"><path d="M20 4l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/><path d="M32 26l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z"/><path d="M8 26l1.2 3 3 1.2-3 1.2L8 34.6l-1.2-3-3-1.2 3-1.2z"/></g>' }
+      svg: '<g fill="#ffe9a8"><path d="M20 4l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/><path d="M32 26l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z"/><path d="M8 26l1.2 3 3 1.2-3 1.2L8 34.6l-1.2-3-3-1.2 3-1.2z"/></g>' },
+    // Joyas: se forjan en el Taller
+    { id: 'anillo', slot: 'joya', name: 'Arete de hierro', perk: { fam: 'build', xp: 2 }, req: { type: 'craft', n: 1 }, color: '#9aa3b8',
+      svg: '<circle cx="20" cy="16" r="7" fill="none" stroke="#9aa3b8" stroke-width="3"/><path d="M20 23l-4 9h8z" fill="#7d8597"/>' },
+    { id: 'amuleto', slot: 'joya', name: 'Amuleto de cristal', perk: { fam: 'claude', xp: 2 }, req: { type: 'craft', n: 1 }, color: '#6ec5ff',
+      svg: '<path d="M14 6h12" stroke="#c9a23a" stroke-width="2"/><path d="M20 10l8 10-8 12-8-12z" fill="#6ec5ff"/><path d="M20 10l3 10-3 12" fill="#a8defd"/>' },
+    { id: 'broche', slot: 'joya', name: 'Broche de arcilla', perk: { fam: 'create', xp: 2 }, req: { type: 'craft', n: 1 }, color: '#d8806a',
+      svg: '<circle cx="20" cy="20" r="11" fill="#d8806a"/><circle cx="20" cy="20" r="6" fill="#f2b6a0"/><circle cx="20" cy="20" r="2" fill="#c9a23a"/>' },
+    { id: 'dije', slot: 'joya', name: 'Dije de chispa', perk: { fam: 'test', xp: 3 }, req: { type: 'craft', n: 1 }, color: '#ffd166',
+      svg: '<path d="M20 6l3.5 9.5L33 19l-9.5 3.5L20 32l-3.5-9.5L7 19l9.5-3.5z" fill="#ffd166"/>' },
+    { id: 'perlas', slot: 'joya', name: 'Collar de perlas', perk: { quest: 5 }, req: { type: 'craft', n: 1 }, color: '#f4f1ea',
+      svg: '<path d="M8 12q12 22 24 0" fill="none" stroke="#c9a23a" stroke-width="1.5"/><g fill="#f4f1ea" stroke="#c9c2b4"><circle cx="10" cy="16" r="3"/><circle cx="14" cy="22" r="3"/><circle cx="20" cy="25" r="3.4"/><circle cx="26" cy="22" r="3"/><circle cx="30" cy="16" r="3"/></g>' },
+    { id: 'pulsera', slot: 'joya', name: 'Pulsera de la amistad', perk: { bond: 20 }, req: { type: 'craft', n: 1 }, color: '#ff8fb1',
+      svg: '<circle cx="20" cy="20" r="11" fill="none" stroke="#ff8fb1" stroke-width="4" stroke-dasharray="5 3"/><circle cx="20" cy="9" r="3" fill="#6fbf8e"/>' }
   ];
   const ITEM = Object.fromEntries(ITEMS.map(i => [i.id, i]));
 
@@ -231,6 +244,8 @@
       svg: '<path d="M7 17h10a4 4 0 0 0 0-8 5 5 0 0 0-9.5-1A4 4 0 0 0 7 17z" fill="#9aa6bd" stroke="#9aa6bd"/>' },
     malhumor: { name: 'Malhumor', text: 'Anda de malas: las misiones diarias dan 5 menos hoy.',
       svg: '<path d="M8 8l3 2M16 8l-3 2" stroke="#ff6b81"/><path d="M8 17q4-3 8 0" stroke="#ff6b81"/><circle cx="12" cy="12" r="9" stroke="#ff6b81"/>' },
+    agotado: { name: 'Agotado', text: 'Lo despertaste 6 veces: anda apático, con poca paciencia y le cuesta todo.',
+      svg: '<path d="M5 9h5M14 9h5" stroke="#ff6b81"/><path d="M8 16h8" stroke="#ff6b81"/><path d="M12 3v2M4 5l1.5 1.5M20 5l-1.5 1.5" stroke="#ff6b81"/>' },
     lento: { name: 'Lento', text: 'Va en cámara lenta: 2 de energía menos por tarea hoy.',
       svg: '<path d="M4 16c0-4 3-7 7-7s6 3 6 6H4zM17 15h3" stroke="#6fbf8e"/><circle cx="11" cy="14" r="2.5" stroke="#6fbf8e"/>' }
   };
@@ -260,15 +275,18 @@
         list = ['ojeras', 'nublado', 'malhumor', 'lento'].filter(() => rnd() < p);
         if (!list.length && wakes >= 3) list = ['ojeras'];
         list = list.slice(0, 3);
+        if (wakes >= 6) list = ['agotado'].concat(list.slice(0, 2));
       }
       sd.roll = { day: today, wakes, effects: list, told: false };
       touchProfile();
     }
-    return sd.roll.effects;
+    const cured = (state.profile.boosts && state.profile.boosts.day === today && state.profile.boosts.cured) || [];
+    return sd.roll.effects.filter(id => !cured.includes(id));
   }
   const hasFx = id => todayEffects().includes(id);
   // Cuántos malestares trae hoy por dormir mal (0 a 3).
   const badFx = () => todayEffects().filter(id => !EFFECTS[id].good).length;
+  const isDrained = () => hasFx('agotado');
 
   // Vida, maná y estamina del día.
   // HP: constancia; baja 25 por cada día sin avanzar. MP: aprendizaje del día (tareas de Claude y prompts copiados).
@@ -279,6 +297,8 @@
     const d = todayStats();
     const mp = Math.min(100, (d.fam.claude + d.prompts) * (hasFx('nublado') ? 12.5 : 25));
     const sta = Math.min(hasFx('ojeras') ? 70 : 100, d.tasks * 20);
+    const bo = state.profile.boosts && state.profile.boosts.day === dayKey(Date.now()) ? state.profile.boosts : null;
+    if (bo) return { hp: Math.min(100, hp + (bo.hp || 0)), mp: Math.min(100, mp + (bo.mp || 0)), sta: Math.min(hasFx('ojeras') ? 70 : 100, sta + (bo.sta || 0)), idle };
     return { hp, mp, sta, idle };
   }
   function startOfDay(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
@@ -297,6 +317,7 @@
   function reqText(req) {
     return {
       level: `Llega al nivel ${req.n}`,
+      craft: 'Fórjala en el Taller',
       fam: `Completa ${req.n} tareas de ${FAMILY_INFO[req.fam] ? FAMILY_INFO[req.fam].label.toLowerCase() : ''}`,
       missions: req.n === 1 ? 'Termina una misión principal' : `Termina ${req.n} misiones principales`,
       prompts: `Copia ${req.n} prompts para Claude`,
@@ -313,6 +334,7 @@
     if (perk.phase) return `+${perk.phase} al superar una fase`;
     if (perk.daily) return `+${perk.daily} con la primera tarea del día`;
     if (perk.quest) return `+${perk.quest} por misión diaria`;
+    if (perk.bond) return `+${perk.bond} % de empatía cuando lo tratas bien`;
     return '';
   }
   function perkBonus(kind, fam) {
@@ -324,6 +346,7 @@
       if (kind === 'phase' && k.phase) b += k.phase;
       if (kind === 'daily' && k.daily) b += k.daily;
       if (kind === 'quest' && k.quest) b += k.quest;
+      if (kind === 'bond' && k.bond) b += k.bond;
     });
     return b;
   }
@@ -336,6 +359,120 @@
     state.profile.newItems = (state.profile.newItems || []).concat(fresh.map(i => i.id));
     touchProfile();
     if (!silent) say(`¡Encontré ${fresh.length > 1 ? fresh.length + ' cosas' : '«' + fresh[0].name + '»'}! Míralo en Equipo.`, true);
+  }
+
+  // ---------- taller: materiales, mezclas y orfebrería ----------
+  // Los materiales salen de lo que haces: cada tipo de tarea da el suyo, las fases dan oro, las diarias perlas
+  // y tratar bien a Mochi da hierbas. En el caldero se mezclan 2 o 3 para hacer pociones o forjar joyas.
+  const MATS = {
+    hierro: { name: 'Hierro', from: 'tareas de construir', color: '#9aa3b8',
+      svg: '<path d="M6 26l6-10h16l6 10z" fill="#9aa3b8"/><path d="M12 16h16l2 3H10z" fill="#c3c9d6"/>' },
+    cristal: { name: 'Cristal', from: 'tareas de Claude y prompts', color: '#6ec5ff',
+      svg: '<path d="M20 5l10 10-10 20-10-20z" fill="#6ec5ff"/><path d="M20 5l4 10-4 20" fill="#a8defd"/>' },
+    arcilla: { name: 'Arcilla', from: 'tareas de crear', color: '#d8806a',
+      svg: '<path d="M8 26c0-8 6-14 12-14s12 6 12 14c0 4-6 6-12 6s-12-2-12-6z" fill="#d8806a"/><ellipse cx="17" cy="19" rx="3" ry="2" fill="#eaa48f"/>' },
+    chispa: { name: 'Chispa', from: 'tareas de probar', color: '#ffd166',
+      svg: '<path d="M20 4l4 11 11 4-11 4-4 11-4-11-11-4 11-4z" fill="#ffd166"/>' },
+    oro: { name: 'Oro', from: 'fases superadas', color: '#f5c542',
+      svg: '<path d="M7 28l5-12h16l5 12z" fill="#f5c542"/><path d="M12 16h16l2 4H10z" fill="#ffe08a"/><circle cx="26" cy="12" r="2" fill="#fff6c0"/>' },
+    perla: { name: 'Perla', from: 'misiones diarias', color: '#f4f1ea',
+      svg: '<circle cx="20" cy="20" r="10" fill="#f4f1ea" stroke="#d6cfc2"/><circle cx="16" cy="16" r="3" fill="#fff"/>' },
+    hierba: { name: 'Hierba', from: 'tratar bien a Mochi', color: '#6fbf8e',
+      svg: '<path d="M20 34c0-12 2-20 10-26-1 10-4 18-10 26z" fill="#6fbf8e"/><path d="M20 34C18 24 14 18 8 14c2 10 6 16 12 20z" fill="#4fa874"/>' }
+  };
+  // Recetas: ingredientes ordenados alfabéticamente unidos por "+".
+  const RECIPES = {
+    'hierba+hierba': { id: 'te', kind: 'potion', name: 'Té de manzanilla', hint: 'Dos de lo mismo, verde y calmante.', text: 'Quita las ojeras y la lentitud de hoy.', cure: ['ojeras', 'lento'], color: '#cfe8a0' },
+    'chispa+hierba': { id: 'cafe', kind: 'potion', name: 'Café de grano', hint: 'Algo verde con algo que chispea.', text: '+40 de estamina hoy.', boost: { sta: 40 }, color: '#8a5a3a' },
+    'cristal+hierba': { id: 'claridad', kind: 'potion', name: 'Poción de claridad', hint: 'Lo que se ve a través, con algo verde.', text: 'Despeja la cabeza nublada y da +25 de maná hoy.', cure: ['nublado'], boost: { mp: 25 }, color: '#8fd3ff' },
+    'hierba+perla': { id: 'calma', kind: 'potion', name: 'Elixir de calma', hint: 'Algo del mar con algo del campo.', text: 'Quita el malhumor de hoy.', cure: ['malhumor'], color: '#f3d6e4' },
+    'cristal+hierba+perla': { id: 'siesta', kind: 'potion', name: 'Siesta embotellada', hint: 'Mar, campo y algo transparente.', text: 'Cura el agotamiento y el malhumor de hoy.', cure: ['agotado', 'malhumor'], color: '#b9a8ff' },
+    'arcilla+hierba+hierro': { id: 'caldo', kind: 'potion', name: 'Caldo reconfortante', hint: 'Tierra, metal y algo verde.', text: '+40 de vida hoy.', boost: { hp: 40 }, color: '#e8b27a' },
+    'hierro+hierro+oro': { id: 'anillo', kind: 'jewel', name: 'Arete de hierro', hint: 'Dos metales grises y algo dorado.' },
+    'cristal+cristal+oro': { id: 'amuleto', kind: 'jewel', name: 'Amuleto de cristal', hint: 'Dos transparentes y algo dorado.' },
+    'arcilla+arcilla+oro': { id: 'broche', kind: 'jewel', name: 'Broche de arcilla', hint: 'Dos de tierra y algo dorado.' },
+    'chispa+chispa+oro': { id: 'dije', kind: 'jewel', name: 'Dije de chispa', hint: 'Dos que brillan y algo dorado.' },
+    'oro+perla+perla': { id: 'perlas', kind: 'jewel', name: 'Collar de perlas', hint: 'Dos del mar y algo dorado.' },
+    'arcilla+hierba+perla': { id: 'pulsera', kind: 'jewel', name: 'Pulsera de la amistad', hint: 'Tierra, mar y campo: lo que une.' }
+  };
+  const POTION = Object.fromEntries(Object.values(RECIPES).filter(r => r.kind === 'potion').map(r => [r.id, r]));
+  const ODD = { id: 'engrudo', kind: 'potion', name: 'Engrudo raro', text: 'No hace nada… pero Mochi lo prueba igual.', color: '#a3a07a' };
+  POTION.engrudo = ODD;
+  function workshop() {
+    const pr = state.profile;
+    if (!pr.mats) pr.mats = {};
+    if (!pr.bag) pr.bag = {};
+    if (!pr.recipes) pr.recipes = {};
+    if (!pr.gift) { pr.gift = 1; pr.mats.hierba = (pr.mats.hierba || 0) + 3; pr.mats.chispa = (pr.mats.chispa || 0) + 1; pr.mats.cristal = (pr.mats.cristal || 0) + 1; }
+    return pr;
+  }
+  function giveMat(id, n, silent) {
+    const pr = workshop();
+    pr.mats[id] = (pr.mats[id] || 0) + (n || 1);
+    touchProfile();
+    if (!silent && state.screen !== 'home') floatMat(id, n || 1);
+  }
+  function floatMat(id, n) {
+    const tab = document.querySelector('.tab[data-go="taller"]');
+    if (!tab) return;
+    const r = tab.getBoundingClientRect();
+    const f = document.createElement('span');
+    f.className = 'floatxp mat'; f.innerHTML = `<svg viewBox="0 0 40 40" aria-hidden="true">${MATS[id].svg}</svg>+${n}`;
+    f.style.left = r.left + r.width / 2 - 14 + 'px'; f.style.top = r.top - 26 + 'px';
+    document.body.appendChild(f); setTimeout(() => f.remove(), 1100);
+  }
+  const FAM_MAT = { build: 'hierro', claude: 'cristal', create: 'arcilla', test: 'chispa' };
+  const cauldron = [];
+  function mixKey(list) { return list.slice().sort().join('+'); }
+  function doMix(btn) {
+    const pr = workshop();
+    if (cauldron.length < 2) return;
+    const key = mixKey(cauldron);
+    const rec = RECIPES[key];
+    const out = $('#t-result');
+    if (rec && rec.kind === 'jewel' && pr.unlocked[rec.id]) {
+      out.innerHTML = `<p class="muted">Ya tienes ${esc(rec.name.toLowerCase())}. No gastes materiales en otra.</p>`; return;
+    }
+    cauldron.forEach(m => (pr.mats[m] = Math.max(0, (pr.mats[m] || 0) - 1)));
+    const cur = cauldron.splice(0);
+    let made;
+    if (!rec) { made = ODD; pr.bag.engrudo = (pr.bag.engrudo || 0) + 1; }
+    else {
+      pr.recipes[key] = 1;
+      made = rec;
+      if (rec.kind === 'jewel') { pr.unlocked[rec.id] = Date.now(); pr.newItems = (pr.newItems || []).concat(rec.id); }
+      else pr.bag[rec.id] = (pr.bag[rec.id] || 0) + 1;
+    }
+    touchProfile();
+    crackle(rec ? 1.5 : 0.6); feedAll(0.3);
+    const pot = $('#t-pot'); pot.classList.remove('boil'); void pot.offsetWidth; pot.classList.add('boil');
+    renderWorkshop();
+    const item = made.kind === 'jewel' ? ITEM[made.id] : null;
+    $('#t-result').innerHTML = `<div class="made ${rec ? '' : 'odd'}">
+      <span class="made-ico" style="--c:${made.color || (item && item.color) || '#ccc'}">${item ? `<svg viewBox="0 0 40 40" aria-hidden="true">${item.svg}</svg>` : potionSvg(made)}</span>
+      <span><small>${rec ? (made.kind === 'jewel' ? 'Joya forjada' : 'Poción lista') : 'Mezcla fallida'}</small><b>${esc(made.name)}</b>
+      <span>${esc(made.kind === 'jewel' ? perkText(item.perk) + '. Póntela en Equipo.' : made.text)}</span></span></div>`;
+    say(rec ? `¡Hiciste ${made.name.toLowerCase()}!` : 'Eso no salió… pero huele chistoso.', !!rec);
+  }
+  function potionSvg(r) {
+    return `<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M16 4h8v8l8 14a6 6 0 0 1-5 9H13a6 6 0 0 1-5-9l8-14z" fill="${r.color || '#ccc'}" opacity=".9"/><path d="M15 4h10" stroke="#9aa3b8" stroke-width="3" stroke-linecap="round"/><circle cx="17" cy="24" r="2" fill="#fff" opacity=".7"/></svg>`;
+  }
+  // Darle una poción: cura efectos o sube vitales hoy. Cuidar también es un idioma.
+  function usePotion(id, el) {
+    const pr = workshop(), r = POTION[id];
+    if (!r || !(pr.bag[id] > 0)) return;
+    pr.bag[id]--;
+    const today = dayKey(Date.now());
+    if (!pr.boosts || pr.boosts.day !== today) pr.boosts = { day: today, hp: 0, mp: 0, sta: 0, cured: [] };
+    const b = pr.boosts;
+    (r.cure || []).forEach(c => { if (!b.cured.includes(c)) b.cured.push(c); });
+    Object.entries(r.boost || {}).forEach(([k, v]) => (b[k] = Math.min(100, (b[k] || 0) + v)));
+    touchProfile();
+    sparkFrom(el, 'create', () => feedAll(0.8));
+    bondChange(id === 'engrudo' ? 0.5 : 2, 'care');
+    renderAll();
+    say(id === 'engrudo' ? pick(['*lo prueba* …sabe a lunes. Gracias igual.', 'Mmm… crujiente. ¿Era comida?']) : pick([`¡Gracias por ${r.name.toLowerCase()}! Me siento mejor.`, 'Qué rico… me cuidaste. Gracias.']), true);
+    if (pets.home) pets.home.express(id === 'engrudo' ? 'dizzy' : 'love', 2500);
   }
 
   // ---------- misiones diarias ----------
@@ -380,6 +517,7 @@
       }
     });
     (claims[k] || (claims[k] = {}))[id] = xp;
+    giveMat('perla');
     touchProfile();
     sparkFrom(el, 'create', () => { feedAll(0.8); crackle(1.5); });
     floatXP(el, '+' + xp);
@@ -410,6 +548,9 @@
     let xp = Math.max(1, Math.round(((t.tag === 'PRUEBA' ? 12 : 10) + perkBonus('task', familyOf(t.tag)) + fx) * mult));
     if (firstToday) xp += 5 + 2 * Math.min(10, streakOf(tot.days)) + perkBonus('daily');
     prog.tasks[t.id] = { at: Date.now(), xp };
+    // material por tipo de tarea, una sola vez por tarea
+    prog.mats = prog.mats || {};
+    if (!prog.mats[t.id]) { prog.mats[t.id] = 1; giveMat(FAM_MAT[familyOf(t.tag)]); }
     if (!pp.startAt) pp.startAt = Date.now();
     touch(p);
     sparkFrom(fromEl, familyOf(t.tag), () => { feedAll(mult > 1 ? 1 : 0.6); crackle(mult); });
@@ -445,6 +586,7 @@
     if (pp.hours > 0 && ph.hours > 0 && pp.hours <= ph.hours) xp = Math.round(xp * 1.2);
     if (pp.timerStart) stopTimer(p, ph, true);
     pp.doneAt = Date.now(); pp.xp = xp;
+    if (!pp.oro) { pp.oro = 1; giveMat('oro', 2); }
     touch(p);
     sparkFrom(fromEl, 'create', () => { feedAll(1.4); crackle(2); });
     floatXP(fromEl, '+' + xp);
@@ -574,7 +716,7 @@
     if (v.hp <= 25) alert *= 0.5;
     const worn = v.sta >= 80 && h >= 17;
     if (worn) alert *= 0.75;
-    if (phase !== 'sleep') { if (hasFx('lento')) alert *= 0.85; if (hasFx('descansado')) alert = Math.min(1, alert + 0.1); }
+    if (phase !== 'sleep') { if (hasFx('lento')) alert *= 0.85; if (hasFx('agotado')) alert *= 0.7; if (hasFx('descansado')) alert = Math.min(1, alert + 0.1); }
     const curious = v.mp >= 50;
     const sky = h >= 20.5 || h < 6 ? 'night' : h < 8 ? 'dawn' : h < 18 ? 'day' : 'dusk';
     return { phase, alert: Math.min(1, alert + (curious && phase !== 'sleep' ? 0.1 : 0)), sleeping: phase === 'sleep' || v.hp <= 15, worn, curious, sky, v };
@@ -630,6 +772,7 @@
     validate: { t: 'Validar no es estar de acuerdo', d: 'Validar es decir "tiene sentido que te sientas así". Hace que el otro se sienta escuchado.' },
     cold: { t: 'Decir cómo te hizo sentir', d: 'Si alguien te responde frío, puedes decir cómo te hizo sentir sin atacar: "eso me dolió un poquito". Así el otro entiende sin sentirse culpado.' },
     sleep: { t: 'Cuidar el descanso del otro', d: 'Respetar el sueño y los tiempos del otro es una forma silenciosa de respeto.' },
+    care: { t: 'Cuidar también es un idioma', d: 'Hacer algo concreto por el otro, como un tecito cuando está cansado, también dice "me importas". (Chapman: actos de servicio)' },
     space: { t: 'Aceptar un "no quiero hablar"', d: 'Cuando alguien no quiere hablar, aceptarlo sin insistir le deja la puerta abierta para volver.' }
   };
   function bond() {
@@ -640,7 +783,7 @@
   // Cambia la empatía. Sube más lento cuando ya es alta y baja más suave si el vínculo es fuerte (como en la vida).
   function bondChange(delta, lesson) {
     const bd = bond(), k = dayKey(Date.now());
-    if (delta > 0) { bd.pos[k] = (bd.pos[k] || 0) + 1; delta *= bd.emp > 70 ? 0.6 : 1; }
+    if (delta > 0) { bd.pos[k] = (bd.pos[k] || 0) + 1; delta *= (bd.emp > 70 ? 0.6 : 1) * (1 + perkBonus('bond') / 100); }
     if (delta < 0) { bd.neg[k] = (bd.neg[k] || 0) + 1; delta *= bd.emp > 70 ? 0.7 : 1; }
     const before = tierOf(bd.emp);
     bd.emp = Math.max(0, Math.min(100, Math.round((bd.emp + delta) * 10) / 10));
@@ -701,6 +844,17 @@
     ['Gracias por tratarme bonito.', 'Eres mi persona favorita para aprender.', 'Me siento seguro contigo.', 'Cuando algo sale mal, igual estamos juntos.', 'Te quiero, ¿sabías?']
   ];
   const ASK_MULT = [0.4, 0.7, 1, 1.2, 1.3];
+  // Agotado: apático y seco, pero igual pensando, y sobre lo que le pasa.
+  const DRAINED_LINES = ['Mmm.', 'No tengo ganas de mucho hoy.', 'Todo me cuesta el doble.', 'Perdona si ando seco. Dormí fatal.',
+    'Hoy solo quiero existir despacito.', 'No es contigo… es el sueño.', 'Estoy, pero a medias.', 'Meh.', 'Me pesan hasta las orejas.'];
+  const DRAINED_WONDER = ['¿Por qué si no duermo, todo me molesta más?', '¿Se puede recuperar el sueño perdido?',
+    '¿Por qué el cuerpo no se acostumbra a dormir poco?', '¿Cuántas horas duerme un gato al día?', '¿Será que el cerebro se limpia mientras dormimos?',
+    '¿Por qué de noche todo parece más grave?', '¿Un café arregla una mala noche? Creo que no.'];
+  const DRAINED_ASK = [
+    { id: 'malanoche', q: '¿Tú también has dormido mal alguna vez?', r: [['Sí', 'Entonces me entiendes. Hoy vamos lento.', 'warm', null, 'validate'], ['No', 'Qué suerte. Cuídalo mucho.', 'ok']] },
+    { id: 'tranquilo', q: '¿Me dejas tranquilo un rato? No es contigo.', r: [['Claro', 'Gracias. De verdad.', 'warm', null, 'space'], ['¿Por qué?', 'Porque dormí fatal y necesito bajar las revoluciones.', 'ok']] },
+    { id: 'curar', q: '¿Me harías un tecito en el Taller? Eso me ayudaría.', r: [['Voy', 'Gracias… eres buena persona.', 'warm', 'taller'], ['Después', 'Ok…', 'ok']] }
+  ];
 
   // Habla dormido: incoherencias de sueño.
   const SLEEPTALK = [
@@ -739,6 +893,7 @@
     ojeras: ['Anoche dormí mal… ando con ojeras.', 'Me despertaron… hoy no doy para tanto.'],
     nublado: ['Tengo la cabeza nublada. Me cuesta pensar.', 'Hoy las ideas vienen lento, como con neblina.'],
     malhumor: ['Ando de malas. No es contigo.', 'Hmph. Dormí poquito.'],
+    agotado: ['Me despertaste seis veces. Hoy no estoy bien.', 'Dormí fatal. No me pidas mucho hoy, por favor.'],
     lento: ['Hoy voy en cámara lenta…', 'Mis orejitas no despiertan todavía.']
   };
   const asked = {};
@@ -778,15 +933,22 @@
       next(); return;
     }
     const bd = bond(), tier = tierOf(bd.emp);
+    if (isDrained() && !(sleepData().roll && !sleepData().roll.told)) {
+      const today0 = dayKey(Date.now()), r0 = Math.random();
+      const dq = DRAINED_ASK.filter(x => !asked[today0 + x.id]);
+      if (dq.length && r0 < 0.18) { const x = pick(dq); asked[today0 + x.id] = 1; face('apathetic', 2000); showThought(x.q, x.r); pending = x.id; holdUntil = Date.now() + 25000; next(); return; }
+      if (r0 < 0.45) { pets.home.pop('?'); face('apathetic', 3000); showThought(pick(DRAINED_WONDER)); next(); return; }
+      face(Math.random() < 0.15 ? 'grumpy' : 'apathetic', 2500); showThought(pick(DRAINED_LINES)); next(); return;
+    }
     // Primer pensamiento del día: cómo durmió.
     const sd = sleepData(), fx = todayEffects();
     if (sd.roll && !sd.roll.told && fx.length) {
       sd.roll.told = true; touchProfile();
-      const main = fx[0];
+      const main = fx.includes('agotado') ? 'agotado' : fx[0];
       if (main === 'descansado' && bd.nightBonus !== sd.roll.day) { bd.nightBonus = sd.roll.day; bondChange(2, 'sleep'); }
       showThought(pick(MORNING_FX[main]));
       const nb = badFx();
-      face(main === 'descansado' ? 'happy' : nb >= 3 ? 'grumpy' : nb === 2 ? 'sad' : 'yawn', 4000);
+      face(main === 'descansado' ? 'happy' : isDrained() ? 'grumpy' : nb >= 2 ? 'sad' : 'yawn', 4000);
       holdUntil = Date.now() + 9000; next(); return;
     }
     // Preguntar: más probable cuando está despierto, con el maná alto y con más confianza.
@@ -800,7 +962,7 @@
       showThought(x.q, x.r); pending = x.id; holdUntil = Date.now() + 25000; next(); return;
     }
     if (r < askP) { pets.home.pop('?'); face(Math.random() < 0.7 ? 'thinking' : 'sparkle', 3500); showThought(pick(WONDER)); next(); return; }
-    if (hasFx('malhumor') && badFx() >= 2 && Math.random() < 0.3) { face(badFx() >= 3 ? 'grumpy' : 'sad', 3000); showThought(pick(['Hoy ando sensible por el sueño. Ten paciencia conmigo, ¿sí?', 'Dormí poquito y se me nota. No es contigo.', 'Hmph… bueno, igual te quiero.'])); next(); return; }
+    if (hasFx('malhumor') && !isDrained() && badFx() >= 2 && Math.random() < 0.3) { face('sad', 3000); showThought(pick(['Hoy ando sensible por el sueño. Ten paciencia conmigo, ¿sí?', 'Dormí poquito y se me nota. No es contigo.', 'Hmph… bueno, igual te quiero.'])); next(); return; }
     if (c.worn && Math.random() < 0.5) { face('drowsy', 3000); showThought(pick(['Hoy trabajaste harto. Descansar también suma.', 'Uf, qué día. Me sudan las orejitas.'])); next(); return; }
     if (c.v.hp <= 25) { face('sad', 3500); showThought(pick(['Tengo sueño… pero quiero aprender.', 'Un ratito nomás y despierto.', 'Te extrañé. ¿Seguimos?'])); next(); return; }
     const roll = Math.random();
@@ -818,6 +980,11 @@
     const [, reaction, tone, dest, lesson] = rep;
     const isRepair = pending === 'repair', isLimit = pending === 'limit';
     pending = null;
+    if (tone === 'warm') {
+      const bdh = bond(), kh = dayKey(Date.now());
+      bdh.herbs = bdh.herbs || {};
+      if ((bdh.herbs[kh] || 0) < 5) { bdh.herbs = { [kh]: (bdh.herbs[kh] || 0) + 1 }; giveMat('hierba', 1, true); }
+    }
     if (tone === 'warm') { pets.home.feed(0.5); bondChange(isRepair ? 4 : isLimit ? 1.5 : 3, isRepair ? 'repair' : lesson || 'bid'); }
     else if (tone === 'ok') bondChange(1, lesson || 'bid');
     else bondChange(-2, 'cold');
@@ -834,7 +1001,7 @@
   function annoyance() {
     const now = Date.now();
     while (pokes.length && now - pokes[0] > 45000) pokes.shift();
-    const patience = 10 + bond().emp / 8;         // de 10 a 22 toques seguidos
+    const patience = (10 + bond().emp / 8) * (isDrained() ? 0.6 : 1); // de 10 a 22 toques seguidos (menos si está agotado)
     return pokes.length / patience;
   }
   const CUTE = ['¡Jiji, cosquillas!', '¡Blub!', '¿Me llamaste?', '¡Boing!', '*rueda feliz*', '¡Hola, hola!', 'Jeje, ¿qué pasó?', '¡Soy una bolita!', '*hace burbujitas*', '¿Jugamos?'];
@@ -852,7 +1019,12 @@
       const n = registerWake();
       pets.home.set({ sleepy: false, drowsy: true });
       if (n >= 2) bondChange(n >= 4 ? -2 : -1);
-      if (n >= 4) { pets.home.express('sad', 5000, true); think(pick(WOKEN_LIMIT)); pending = null; }
+      if (n >= 6) {
+        pets.home.express('grumpy', 6000, true);
+        think(pick(['Ya basta, por favor. Es la sexta vez. Estoy enojado y muy cansado, porque necesito dormir. Mañana voy a estar fatal. Déjame descansar.',
+          'Me despertaste seis veces. Me siento enojado y agotado. Necesito que me dejes dormir hasta mañana.']));
+        pending = null;
+      } else if (n >= 4) { pets.home.express('sad', 5000, true); think(pick(WOKEN_LIMIT)); pending = null; }
       else if (n >= 2) { pets.home.express(pick(['dizzy', 'squint', 'drowsy']), 4500, true); think(pick(WOKEN_AGAIN)); }
       else { pets.home.express(pick(['dizzy', 'squint', 'surprised']), 4500, true); think(pick(WOKEN)); }
       renderHome(totals());
@@ -872,7 +1044,10 @@
     const a = annoyance();
     // Si hay una pregunta abierta, el toque no la borra.
     if (pending) { pets.home.feed(0.3); pets.home.express(pick(['happy', 'shy']), 1200); return; }
-    if (a < 0.4) {
+    if (a < 0.4 && isDrained()) {
+      pets.home.express(Math.random() < 0.3 ? 'grumpy' : 'apathetic', 1600);
+      holdUntil = 0; think(pick(['Mmm.', '¿Qué?', 'Hoy no tengo pila.', 'Estoy aquí… más o menos.', 'Ajá.']));
+    } else if (a < 0.4) {
       pets.home.feed(0.4);
       pets.home.express(pick(['happy', 'wink', 'surprised', 'shy', 'love']), 1600);
       holdUntil = 0;
@@ -926,7 +1101,7 @@
     return null;
   }
   // ---------- navegación ----------
-  const SCREENS = ['home', 'misiones', 'mision', 'equipo', 'menu'];
+  const SCREENS = ['home', 'misiones', 'mision', 'equipo', 'taller', 'menu'];
   function go(screen, opts) {
     if (!SCREENS.includes(screen)) screen = 'home';
     if (screen === 'mision' && !(opts && opts.id ? state.projects[opts.id] : active())) screen = 'misiones';
@@ -954,6 +1129,7 @@
     if (state.screen === 'misiones') renderMissions(tot);
     if (state.screen === 'mision') renderMission();
     if (state.screen === 'equipo') renderEquip(tot);
+    if (state.screen === 'taller') renderWorkshop();
     if (state.screen === 'menu') renderMenu();
   }
 
@@ -965,7 +1141,7 @@
     const room = $('.room'); if (room) { room.dataset.sky = cz.sky; room.dataset.phase = cz.phase; }
     const fxNow = todayEffects();
     const bad = fxNow.filter(id => !EFFECTS[id].good).length;
-    const mood = cz.v.hp <= 25 ? 'sad' : bad >= 3 ? 'grumpy' : cz.alert >= 0.9 && cz.curious ? 'sparkle' : 'neutral';
+    const mood = fxNow.includes('agotado') ? 'apathetic' : cz.v.hp <= 25 ? 'sad' : cz.alert >= 0.9 && cz.curious ? 'sparkle' : 'neutral';
     const opts = { stage: stg, heat, sleepy: cz.sleeping, drowsy: !cz.sleeping && cz.alert < 0.5, alert: cz.alert, mood, ojeras: bad, sweat: cz.worn, tint: famTop[1] ? FAMILY_INFO[famTop[0]].color : '#ffd166', ground: 0.85, equip: Object.assign({}, state.profile.equipped) };
     Object.values(pets).forEach(f => f.set(opts));
   }
@@ -1189,7 +1365,7 @@
         const text = b.dataset.copy != null ? fillVars(p, ph.prompt) : contextPrompt(p, ph);
         copyText(text, b).then(ok => {
           if (ok && !p.progress.prompts[ph.n]) {
-            p.progress.prompts[ph.n] = Date.now(); touch(p);
+            p.progress.prompts[ph.n] = Date.now(); touch(p); giveMat('cristal');
             feedAll(0.3); checkUnlocks(true); renderTabs();
             say('Prompt copiado: +3. Pégalo en Claude y vuelve con el resultado.');
             const hint = b.closest('.prompt').querySelector('.prompt-hint'); if (hint) hint.remove();
@@ -1304,6 +1480,40 @@
       <div><b>${tot.missions}</b><span>misiones</span></div><div><b>${fmtH(tot.hours)}</b><span>horas</span></div>`;
   }
 
+  function renderWorkshop() {
+    const pr = workshop();
+    const inPot = id => cauldron.filter(x => x === id).length;
+    $('#t-mats').innerHTML = Object.entries(MATS).map(([id, m]) => {
+      const left = (pr.mats[id] || 0) - inPot(id);
+      return `<li><button class="jar" data-mat="${id}" ${left > 0 && cauldron.length < 3 ? '' : 'disabled'} title="${esc(m.name)}: sale de ${esc(m.from)}">
+        <svg viewBox="0 0 40 40" aria-hidden="true">${m.svg}</svg><b>${left}</b><span>${esc(m.name)}</span></button></li>`;
+    }).join('');
+    $('#t-slots').innerHTML = [0, 1, 2].map(i => {
+      const id = cauldron[i];
+      return `<button class="slot-in ${id ? 'full' : ''}" data-unslot="${i}" ${id ? '' : 'disabled'} aria-label="${id ? 'Sacar ' + MATS[id].name : 'Espacio vacío'}">${id ? `<svg viewBox="0 0 40 40" aria-hidden="true">${MATS[id].svg}</svg>` : '+'}</button>`;
+    }).join('');
+    const col = cauldron.length ? cauldron.map(id => MATS[id].color) : ['#7a6a9a'];
+    $('#t-pot').style.setProperty('--brew', col[0]); $('#t-pot').style.setProperty('--brew2', col[col.length - 1]);
+    $('#t-mix').disabled = cauldron.length < 2;
+    const known = mixKey(cauldron);
+    $('#t-hint').textContent = cauldron.length < 2 ? 'Elige 2 o 3 materiales.' : pr.recipes[known] ? `Ya conoces esta mezcla: ${RECIPES[known].name}.` : 'Mezcla desconocida… ¿qué saldrá?';
+    $('#t-book').innerHTML = Object.entries(RECIPES).map(([key, r]) => {
+      const knownR = pr.recipes[key];
+      const item = r.kind === 'jewel' ? ITEM[r.id] : null;
+      return `<li class="rec ${knownR ? 'known' : ''}">
+        <span class="rec-ico">${knownR ? (item ? `<svg viewBox="0 0 40 40" aria-hidden="true">${item.svg}</svg>` : potionSvg(r)) : '?'}</span>
+        <span class="rec-txt"><small>${r.kind === 'jewel' ? 'Joya' : 'Poción'}</small><b>${knownR ? esc(r.name) : '???'}</b>
+          <span>${knownR ? key.split('+').map(m => MATS[m].name).join(' + ') + ' · ' + esc(r.kind === 'jewel' ? perkText(item.perk) : r.text) : 'Pista: ' + esc(r.hint)}</span></span></li>`;
+    }).join('');
+    const bag = Object.entries(pr.bag).filter(([, n]) => n > 0);
+    $('#t-bag').innerHTML = bag.length ? bag.map(([id, n]) => `<li class="potion">
+        <span class="rec-ico">${potionSvg(POTION[id])}</span>
+        <span class="rec-txt"><b>${esc(POTION[id].name)} ×${n}</b><span>${esc(POTION[id].text)}</span></span>
+        <button class="btn small primary" data-use="${id}">Dársela a Mochi</button></li>`).join('')
+      : '<li class="muted">Vacía. Mezcla algo en el caldero.</li>';
+    $('#t-known').textContent = `${Object.keys(pr.recipes).length} de ${Object.keys(RECIPES).length}`;
+  }
+
   function renderMenu() {
     const pr = state.profile;
     const nm = $('#menu-name'); if (document.activeElement !== nm) nm.value = pr.name || 'Mochi';
@@ -1391,6 +1601,14 @@
       if (g) { go(g.dataset.go); return; }
       const m = e.target.closest('[data-open-mission]');
       if (m) { go('mision', { id: m.dataset.openMission }); return; }
+      const mt = e.target.closest('[data-mat]');
+      if (mt) { if (cauldron.length < 3) cauldron.push(mt.dataset.mat); $('#t-result').innerHTML = ''; renderWorkshop(); return; }
+      const us = e.target.closest('[data-unslot]');
+      if (us) { cauldron.splice(Number(us.dataset.unslot), 1); renderWorkshop(); return; }
+      if (e.target.closest('#t-mix')) { doMix(e.target.closest('#t-mix')); return; }
+      if (e.target.closest('#t-clear')) { cauldron.length = 0; $('#t-result').innerHTML = ''; renderWorkshop(); return; }
+      const up = e.target.closest('[data-use]');
+      if (up) { usePotion(up.dataset.use, up); return; }
       const c = e.target.closest('[data-claim]');
       if (c) { claimQuest(c.dataset.claim, c); return; }
       const q = e.target.closest('[data-equip]');

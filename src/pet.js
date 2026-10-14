@@ -123,6 +123,34 @@
           ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx + bw, y - bh); ctx.lineTo(cx + bw, y + bh); ctx.closePath(); ctx.fill();
           ctx.fillStyle = '#2a54b0'; ctx.beginPath(); ctx.arc(cx, y, R * 0.065, 0, Math.PI * 2); ctx.fill();
         }
+        // joyas del Taller
+        if (E.joya) {
+          const ex = cx + R * 0.74, eyy = cy - R * 0.5;
+          if (E.joya === 'perlas') {
+            for (let i = -3; i <= 3; i++) {
+              const a = i / 3 * 0.9, x = cx + Math.sin(a) * R * 0.62, y = cy + R * 0.16 + Math.cos(a) * R * 0.1;
+              ctx.fillStyle = '#f4f1ea'; ctx.strokeStyle = '#cfc6b6'; ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.arc(x, y, R * (i === 0 ? 0.075 : 0.06), 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            }
+          } else if (E.joya === 'broche') {
+            const bx = cx - R * 0.5, by = cy + R * 0.32;
+            ctx.fillStyle = '#d8806a'; ctx.beginPath(); ctx.arc(bx, by, R * 0.11, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#f2b6a0'; ctx.beginPath(); ctx.arc(bx, by, R * 0.06, 0, Math.PI * 2); ctx.fill();
+          } else if (E.joya === 'pulsera') {
+            ctx.strokeStyle = '#ff8fb1'; ctx.lineWidth = Math.max(2, R * 0.05); ctx.setLineDash([R * 0.06, R * 0.04]);
+            ctx.beginPath(); ctx.ellipse(cx - R * 0.56, cy - R * 0.6, R * 0.2, R * 0.07, -0.45, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+            ctx.fillStyle = '#6fbf8e'; ctx.beginPath(); ctx.arc(cx - R * 0.42, cy - R * 0.55, R * 0.045, 0, Math.PI * 2); ctx.fill();
+          } else {
+            // arete colgando de la orejita derecha
+            const col = { anillo: '#9aa3b8', amuleto: '#6ec5ff', dije: '#ffd166' }[E.joya] || '#ccc';
+            ctx.strokeStyle = '#c9a23a'; ctx.lineWidth = Math.max(1, R * 0.025);
+            ctx.beginPath(); ctx.arc(ex, eyy, R * 0.05, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = col;
+            const sw = Math.sin(t / 25) * R * 0.03;
+            if (E.joya === 'dije') star(ex + sw, eyy + R * 0.14, R * 0.09, t / 30);
+            else { ctx.beginPath(); ctx.moveTo(ex + sw, eyy + R * 0.05); ctx.lineTo(ex + sw + R * 0.06, eyy + R * 0.14); ctx.lineTo(ex + sw, eyy + R * 0.24); ctx.lineTo(ex + sw - R * 0.06, eyy + R * 0.14); ctx.closePath(); ctx.fill(); }
+          }
+        }
         const hy = cy - R * 0.84;
         if (E.head === 'gorro') {
           ctx.fillStyle = '#c8423b';
@@ -219,6 +247,7 @@
         st.winkAt = now + 20000 + Math.random() * 20000;
       }
       if (st.drowsy && (st.mood === 'neutral' || st.mood === 'sparkle')) return 'drowsy';
+      if (st.mood === 'apathetic' && now < st.blinkEnd && now > st.blinkAt) return 'sleep';
       return st.mood;
     }
 
@@ -292,6 +321,12 @@
             ctx.beginPath(); ctx.moveTo(ex - s * er * 1.1, y - er * 0.25); ctx.quadraticCurveTo(ex, y - er * 0.35, ex + s * er * 1.45, y + er * 0.35); ctx.stroke();
             ctx.lineWidth = Math.max(1.4, R * 0.055); break;
           }
+          case 'apathetic': {
+            ctx.beginPath(); ctx.arc(ex, y + er * 0.15, er * 0.9, 0, Math.PI); ctx.closePath(); ctx.fill();
+            ctx.lineWidth = Math.max(1.2, R * 0.04);
+            ctx.beginPath(); ctx.moveTo(ex - er * 1.3, y + er * 0.1); ctx.lineTo(ex + er * 1.3, y + er * 0.1); ctx.stroke();
+            ctx.lineWidth = Math.max(1.4, R * 0.055); break;
+          }
           case 'grumpy': {
             ctx.beginPath(); ctx.arc(ex, y, er, 0, Math.PI); ctx.closePath(); ctx.fill();
             ctx.lineWidth = Math.max(1.2, R * 0.04);
@@ -320,6 +355,8 @@
         ctx.fillStyle = '#7a3448'; ctx.beginPath(); ctx.ellipse(cx, my + R * 0.05, R * 0.05, R * 0.065, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = INK;
       } else if (e === 'grumpy' || e === 'sad') {
         ctx.beginPath(); ctx.arc(cx + lx, my + R * 0.1, R * 0.07, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+      } else if (e === 'apathetic') {
+        ctx.beginPath(); ctx.moveTo(cx - R * 0.07 + lx, my + R * 0.04); ctx.lineTo(cx + R * 0.07 + lx, my + R * 0.04); ctx.stroke();
       } else if (e === 'thinking') {
         ctx.beginPath(); ctx.moveTo(cx - R * 0.02 + lx, my + R * 0.03); ctx.lineTo(cx + R * 0.09 + lx, my + R * 0.01); ctx.stroke();
       } else if (e === 'dizzy') {
