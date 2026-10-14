@@ -267,6 +267,8 @@
     return sd.roll.effects;
   }
   const hasFx = id => todayEffects().includes(id);
+  // Cuántos malestares trae hoy por dormir mal (0 a 3).
+  const badFx = () => todayEffects().filter(id => !EFFECTS[id].good).length;
 
   // Vida, maná y estamina del día.
   // HP: constancia; baja 25 por cada día sin avanzar. MP: aprendizaje del día (tareas de Claude y prompts copiados).
@@ -572,7 +574,7 @@
     if (v.hp <= 25) alert *= 0.5;
     const worn = v.sta >= 80 && h >= 17;
     if (worn) alert *= 0.75;
-    if (phase !== 'sleep') { if (hasFx('lento')) alert *= 0.75; if (hasFx('ojeras')) alert *= 0.85; if (hasFx('descansado')) alert = Math.min(1, alert + 0.1); }
+    if (phase !== 'sleep') { if (hasFx('lento')) alert *= 0.85; if (hasFx('descansado')) alert = Math.min(1, alert + 0.1); }
     const curious = v.mp >= 50;
     const sky = h >= 20.5 || h < 6 ? 'night' : h < 8 ? 'dawn' : h < 18 ? 'day' : 'dusk';
     return { phase, alert: Math.min(1, alert + (curious && phase !== 'sleep' ? 0.1 : 0)), sleeping: phase === 'sleep' || v.hp <= 15, worn, curious, sky, v };
@@ -783,7 +785,8 @@
       const main = fx[0];
       if (main === 'descansado' && bd.nightBonus !== sd.roll.day) { bd.nightBonus = sd.roll.day; bondChange(2, 'sleep'); }
       showThought(pick(MORNING_FX[main]));
-      face(main === 'descansado' ? 'happy' : main === 'malhumor' ? 'grumpy' : main === 'nublado' ? 'dizzy' : 'drowsy', 4000);
+      const nb = badFx();
+      face(main === 'descansado' ? 'happy' : nb >= 3 ? 'grumpy' : nb === 2 ? 'sad' : 'yawn', 4000);
       holdUntil = Date.now() + 9000; next(); return;
     }
     // Preguntar: más probable cuando está despierto, con el maná alto y con más confianza.
@@ -797,7 +800,7 @@
       showThought(x.q, x.r); pending = x.id; holdUntil = Date.now() + 25000; next(); return;
     }
     if (r < askP) { pets.home.pop('?'); face(Math.random() < 0.7 ? 'thinking' : 'sparkle', 3500); showThought(pick(WONDER)); next(); return; }
-    if (hasFx('malhumor') && Math.random() < 0.3) { face('grumpy', 3000); showThought(pick(['Hoy ando sensible por el sueño. Ten paciencia conmigo, ¿sí?', 'Dormí poquito y se me nota. No es contigo.', 'Hmph… bueno, igual te quiero.'])); next(); return; }
+    if (hasFx('malhumor') && badFx() >= 2 && Math.random() < 0.3) { face(badFx() >= 3 ? 'grumpy' : 'sad', 3000); showThought(pick(['Hoy ando sensible por el sueño. Ten paciencia conmigo, ¿sí?', 'Dormí poquito y se me nota. No es contigo.', 'Hmph… bueno, igual te quiero.'])); next(); return; }
     if (c.worn && Math.random() < 0.5) { face('drowsy', 3000); showThought(pick(['Hoy trabajaste harto. Descansar también suma.', 'Uf, qué día. Me sudan las orejitas.'])); next(); return; }
     if (c.v.hp <= 25) { face('sad', 3500); showThought(pick(['Tengo sueño… pero quiero aprender.', 'Un ratito nomás y despierto.', 'Te extrañé. ¿Seguimos?'])); next(); return; }
     const roll = Math.random();
@@ -961,8 +964,9 @@
     const cz = circadian(tot);
     const room = $('.room'); if (room) { room.dataset.sky = cz.sky; room.dataset.phase = cz.phase; }
     const fxNow = todayEffects();
-    const mood = cz.v.hp <= 25 ? 'sad' : fxNow.includes('malhumor') ? 'grumpy' : cz.alert >= 0.9 && cz.curious ? 'sparkle' : 'neutral';
-    const opts = { stage: stg, heat, sleepy: cz.sleeping, drowsy: !cz.sleeping && cz.alert < 0.5, alert: cz.alert, mood, ojeras: fxNow.includes('ojeras'), sweat: cz.worn, tint: famTop[1] ? FAMILY_INFO[famTop[0]].color : '#ffd166', ground: 0.85, equip: Object.assign({}, state.profile.equipped) };
+    const bad = fxNow.filter(id => !EFFECTS[id].good).length;
+    const mood = cz.v.hp <= 25 ? 'sad' : bad >= 3 ? 'grumpy' : cz.alert >= 0.9 && cz.curious ? 'sparkle' : 'neutral';
+    const opts = { stage: stg, heat, sleepy: cz.sleeping, drowsy: !cz.sleeping && cz.alert < 0.5, alert: cz.alert, mood, ojeras: bad, sweat: cz.worn, tint: famTop[1] ? FAMILY_INFO[famTop[0]].color : '#ffd166', ground: 0.85, equip: Object.assign({}, state.profile.equipped) };
     Object.values(pets).forEach(f => f.set(opts));
   }
 

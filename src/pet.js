@@ -261,9 +261,11 @@
         ctx.fillStyle = INK;
       };
       // ojeras (mal dormir): medialunas moradas bajo los ojos
-      if (st.ojeras && e !== 'sleep') {
-        ctx.save(); ctx.strokeStyle = 'rgba(120,90,160,.45)'; ctx.lineWidth = Math.max(1.5, er * 0.6);
-        [-1, 1].forEach(s => { ctx.beginPath(); ctx.arc(cx + s * dx, ey + er * 0.6, er * 1.3, Math.PI * 0.2, Math.PI * 0.8); ctx.stroke(); });
+      const oj = st.ojeras === true ? 1 : Math.min(3, st.ojeras || 0);
+      if (oj && e !== 'sleep') {
+        // ojeras: más marcadas mientras peor durmió (1 a 3 malestares)
+        ctx.save(); ctx.strokeStyle = `rgba(120,90,160,${0.28 + 0.14 * oj})`; ctx.lineWidth = Math.max(1.5, er * (0.45 + 0.15 * oj));
+        [-1, 1].forEach(s => { ctx.beginPath(); ctx.arc(cx + s * dx, ey + er * (0.55 + 0.05 * oj), er * (1.2 + 0.1 * oj), Math.PI * 0.2, Math.PI * 0.8); ctx.stroke(); });
         ctx.restore(); ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1.4, R * 0.055);
       }
       [-1, 1].forEach(s => {
@@ -283,7 +285,14 @@
             for (let a = 0; a < Math.PI * 5; a += 0.3) { const rr = er * 0.15 * a / Math.PI * 1.1; ctx.lineTo(ex + Math.cos(a + st.t / 8 * s) * rr, y + Math.sin(a + st.t / 8 * s) * rr); }
             ctx.stroke(); ctx.lineWidth = Math.max(1.4, R * 0.055); break;
           }
-          case 'drowsy': case 'grumpy': {
+          case 'drowsy': {
+            // cansado: ojito a media asta con el párpado caído hacia afuera
+            ctx.beginPath(); ctx.arc(ex, y + er * 0.1, er, 0.05 * Math.PI, 0.95 * Math.PI); ctx.closePath(); ctx.fill();
+            ctx.lineWidth = Math.max(1.2, R * 0.04);
+            ctx.beginPath(); ctx.moveTo(ex - s * er * 1.1, y - er * 0.25); ctx.quadraticCurveTo(ex, y - er * 0.35, ex + s * er * 1.45, y + er * 0.35); ctx.stroke();
+            ctx.lineWidth = Math.max(1.4, R * 0.055); break;
+          }
+          case 'grumpy': {
             ctx.beginPath(); ctx.arc(ex, y, er, 0, Math.PI); ctx.closePath(); ctx.fill();
             ctx.lineWidth = Math.max(1.2, R * 0.04);
             ctx.beginPath(); ctx.moveTo(ex - er * 1.4, y - er * 0.15); ctx.lineTo(ex + er * 1.4, y - er * 0.15); ctx.stroke();
