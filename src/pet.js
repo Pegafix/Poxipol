@@ -9,6 +9,7 @@
     const st = {
       stage: 0, heat: 1, tint: '#ff8fb1', equip: {}, ground: 0.8, happyUntil: 0, pulse: 0, sleepy: false,
       alert: 1, drowsy: false, yawnAt: 0, yawnUntil: 0, symbol: null,
+      mood: 'neutral', expr: null, ojeras: false, sweat: false, winkAt: 0,
       blinkAt: 0, blinkEnd: 0, look: [0, 0], particles: [], t: 0
     };
     let w = 0, h = 0, dpr = 1, raf = 0, visible = true;
@@ -201,15 +202,42 @@
       ctx.fillStyle = pb; ctx.beginPath(); ctx.ellipse(cx, cy + R * 0.58, R * 0.5, R * 0.36, 0, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
       // cachetes
-      ctx.fillStyle = 'rgba(255,150,180,.45)';
+      const e = currentExpr(now);
+      ctx.fillStyle = e === 'love' || e === 'shy' ? 'rgba(255,120,160,.75)' : 'rgba(255,150,180,.45)';
       ctx.beginPath(); ctx.ellipse(cx - R * 0.56, cy + R * 0.04, R * 0.13, R * 0.08, 0, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.ellipse(cx + R * 0.56, cy + R * 0.04, R * 0.13, R * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Expresión vigente: una temporal (express) manda sobre el ánimo de fondo (mood).
+    function currentExpr(now) {
+      if (st.sleepy) return st.expr && now < st.expr.until && st.expr.wake ? st.expr.name : 'sleep';
+      if (st.expr && now < st.expr.until) return st.expr.name;
+      if (now < st.happyUntil) return 'happy';
+      if (now < st.yawnUntil) return 'yawn';
+      if (st.mood === 'neutral' && st.alert >= 0.8 && now > st.winkAt) {
+        if (st.winkAt) { st.expr = { name: 'wink', until: now + 700 }; st.winkAt = now + 25000 + Math.random() * 30000; return 'wink'; }
+        st.winkAt = now + 20000 + Math.random() * 20000;
+      }
+      if (st.drowsy && (st.mood === 'neutral' || st.mood === 'sparkle')) return 'drowsy';
+      return st.mood;
+    }
+
+    function brows(cx, y, dx, er, kind) {
+      // kind: 'angry' (\ /) o 'sad' (/ \)
+      ctx.lineWidth = Math.max(1.2, er * 0.55);
+      [-1, 1].forEach(s => {
+        const x0 = cx + s * dx - er * 1.3, x1 = cx + s * dx + er * 1.3;
+        const inner = kind === 'angry' ? er * 0.6 : -er * 0.6;
+        ctx.beginPath();
+        if (s < 0) { ctx.moveTo(x0, y - er * 2.3 - inner * 0.0); ctx.lineTo(x1, y - er * 2.3 + inner); }
+        else { ctx.moveTo(x0, y - er * 2.3 + inner); ctx.lineTo(x1, y - er * 2.3); }
+        ctx.stroke();
+      });
     }
 
     function drawFace(g, now) {
       const { cx, cy, R } = g;
       const ey = cy - R * 0.14, dx = R * 0.32, er = R * 0.075;
-      const happy = now < st.happyUntil;
       const blinking = now > st.blinkAt && now < st.blinkEnd;
       if (now > st.blinkEnd) {
         // con sueño parpadea más lento y más seguido
@@ -220,46 +248,92 @@
         if (st.yawnAt) st.yawnUntil = now + 1600;
         st.yawnAt = now + 9000 + Math.random() * 9000;
       }
-      const yawning = now < st.yawnUntil && !st.sleepy;
-      const lx = st.look[0] * R * 0.04 * st.alert, ly = st.look[1] * R * 0.03 * st.alert;
+      const e = currentExpr(now);
+      let lx = st.look[0] * R * 0.04 * st.alert, ly = st.look[1] * R * 0.03 * st.alert;
+      if (e === 'thinking') { lx = R * 0.035; ly = -R * 0.035; }
       ctx.strokeStyle = INK; ctx.fillStyle = INK; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       ctx.lineWidth = Math.max(1.4, R * 0.055);
+      const arcUp = (x, y) => { ctx.beginPath(); ctx.arc(x, y + er * 0.6, er * 1.2, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke(); };
+      const closed = (x, y) => { ctx.beginPath(); ctx.arc(x, y - er * 0.4, er * 1.1, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke(); };
+      const dot = (x, y, k) => {
+        ctx.beginPath(); ctx.arc(x, y, er * k, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x + er * 0.35 * k, y - er * 0.35 * k, er * 0.32 * k, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = INK;
+      };
+      // ojeras (mal dormir): medialunas moradas bajo los ojos
+      if (st.ojeras && e !== 'sleep') {
+        ctx.save(); ctx.strokeStyle = 'rgba(120,90,160,.45)'; ctx.lineWidth = Math.max(1.5, er * 0.6);
+        [-1, 1].forEach(s => { ctx.beginPath(); ctx.arc(cx + s * dx, ey + er * 0.6, er * 1.3, Math.PI * 0.2, Math.PI * 0.8); ctx.stroke(); });
+        ctx.restore(); ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1.4, R * 0.055);
+      }
       [-1, 1].forEach(s => {
         const ex = cx + s * dx + lx, y = ey + ly;
-        if (happy && !st.sleepy) { ctx.beginPath(); ctx.arc(ex, y + er * 0.6, er * 1.2, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke(); }
-        else if (yawning) {
-          // ojos apretados "> <"
-          const tip = ex - s * er * 0.6, arm = ex + s * er;
-          ctx.beginPath(); ctx.moveTo(arm, y - er * 0.8); ctx.lineTo(tip, y); ctx.lineTo(arm, y + er * 0.8); ctx.stroke();
-        }
-        else if (st.sleepy || blinking) { ctx.beginPath(); ctx.arc(ex, y - er * 0.4, er * 1.1, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke(); }
-        else if (st.drowsy) {
-          // ojitos a media asta: solo la mitad de abajo y un párpado recto
-          ctx.beginPath(); ctx.arc(ex, y, er, 0, Math.PI); ctx.closePath(); ctx.fill();
-          ctx.lineWidth = Math.max(1.2, R * 0.04);
-          ctx.beginPath(); ctx.moveTo(ex - er * 1.4, y - er * 0.15); ctx.lineTo(ex + er * 1.4, y - er * 0.15); ctx.stroke();
-          ctx.lineWidth = Math.max(1.4, R * 0.055);
-        } else {
-          ctx.beginPath(); ctx.arc(ex, y, er * (1 + 0.15 * st.alert), 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex + er * 0.35, y - er * 0.35, er * 0.32, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = INK;
+        switch (e) {
+          case 'happy': arcUp(ex, y); break;
+          case 'wink': if (s < 0) dot(ex, y, 1); else arcUp(ex, y); break;
+          case 'sleep': closed(ex, y); break;
+          case 'yawn': case 'squint': {
+            const tip = ex - s * er * 0.6, arm = ex + s * er;
+            ctx.beginPath(); ctx.moveTo(arm, y - er * 0.8); ctx.lineTo(tip, y); ctx.lineTo(arm, y + er * 0.8); ctx.stroke(); break;
+          }
+          case 'surprised': dot(ex, y, 1.45); break;
+          case 'love': ctx.fillStyle = '#ff5f8f'; heart(ex, y + er * 0.2, er * 1.25); ctx.fillStyle = INK; break;
+          case 'dizzy': {
+            ctx.lineWidth = Math.max(1, R * 0.03); ctx.beginPath();
+            for (let a = 0; a < Math.PI * 5; a += 0.3) { const rr = er * 0.15 * a / Math.PI * 1.1; ctx.lineTo(ex + Math.cos(a + st.t / 8 * s) * rr, y + Math.sin(a + st.t / 8 * s) * rr); }
+            ctx.stroke(); ctx.lineWidth = Math.max(1.4, R * 0.055); break;
+          }
+          case 'drowsy': case 'grumpy': {
+            ctx.beginPath(); ctx.arc(ex, y, er, 0, Math.PI); ctx.closePath(); ctx.fill();
+            ctx.lineWidth = Math.max(1.2, R * 0.04);
+            ctx.beginPath(); ctx.moveTo(ex - er * 1.4, y - er * 0.15); ctx.lineTo(ex + er * 1.4, y - er * 0.15); ctx.stroke();
+            ctx.lineWidth = Math.max(1.4, R * 0.055); break;
+          }
+          case 'sparkle': {
+            dot(ex, y, 1.2); ctx.fillStyle = '#fff'; star(ex - er * 0.35, y + er * 0.3, er * 0.45, st.t / 20); ctx.fillStyle = INK; break;
+          }
+          case 'shy': ctx.beginPath(); ctx.arc(ex, y + er * 0.2, er * 0.75, 0, Math.PI * 2); ctx.fill(); break;
+          default: if (blinking) closed(ex, y); else dot(ex, y, 1 + 0.15 * st.alert);
         }
       });
+      if (e === 'grumpy') brows(cx + lx, ey + ly, dx, er, 'angry');
+      if (e === 'sad') brows(cx + lx, ey + ly, dx, er, 'sad');
+      if (e === 'thinking') { ctx.lineWidth = Math.max(1.2, er * 0.5); ctx.beginPath(); ctx.moveTo(cx + dx - er * 1.2 + lx, ey - er * 2.4); ctx.lineTo(cx + dx + er * 1.2 + lx, ey - er * 2.8); ctx.stroke(); }
+
       const my = cy + R * 0.05 + ly, mw = R * 0.12;
       ctx.lineWidth = Math.max(1.1, R * 0.028);
-      if (yawning) {
-        // bostezo: boquita en "o"
-        const k = Math.sin(Math.min(1, (st.yawnUntil - now) / 1600) * Math.PI);
+      if (e === 'yawn') {
+        const k = now < st.yawnUntil ? Math.sin(Math.min(1, (st.yawnUntil - now) / 1600) * Math.PI) : 0.6 + 0.3 * Math.sin(st.t / 10);
         ctx.fillStyle = '#7a3448';
         ctx.beginPath(); ctx.ellipse(cx, my + R * 0.04, R * 0.07, R * (0.04 + 0.08 * k), 0, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = INK;
-        return;
+      } else if (e === 'surprised') {
+        ctx.fillStyle = '#7a3448'; ctx.beginPath(); ctx.ellipse(cx, my + R * 0.05, R * 0.05, R * 0.065, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = INK;
+      } else if (e === 'grumpy' || e === 'sad') {
+        ctx.beginPath(); ctx.arc(cx + lx, my + R * 0.1, R * 0.07, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+      } else if (e === 'thinking') {
+        ctx.beginPath(); ctx.moveTo(cx - R * 0.02 + lx, my + R * 0.03); ctx.lineTo(cx + R * 0.09 + lx, my + R * 0.01); ctx.stroke();
+      } else if (e === 'dizzy') {
+        ctx.beginPath();
+        for (let x = -mw; x <= mw; x += mw / 4) ctx.lineTo(cx + x, my + R * 0.03 + Math.sin(x / mw * Math.PI * 2 + st.t / 6) * R * 0.02);
+        ctx.stroke();
+      } else if (e === 'sleep' && Math.sin(st.t / 70) > 0.6) {
+        // a veces duerme con la boquita abierta
+        ctx.beginPath(); ctx.ellipse(cx, my + R * 0.03, R * 0.035, R * 0.025, 0, 0, Math.PI * 2); ctx.stroke();
+      } else {
+        // boca ":3" (ω)
+        ctx.beginPath();
+        ctx.arc(cx - mw / 2 + lx, my, mw / 2, Math.PI, 0, true);
+        ctx.arc(cx + mw / 2 + lx, my, mw / 2, Math.PI, 0, true);
+        ctx.stroke();
       }
-      // boca ":3" (ω)
-      ctx.beginPath();
-      ctx.arc(cx - mw / 2 + lx, my, mw / 2, Math.PI, 0, true);
-      ctx.arc(cx + mw / 2 + lx, my, mw / 2, Math.PI, 0, true);
-      ctx.stroke();
+      // gotita de sudor (cansancio por mucho trabajo) o de nervios al despertarlo
+      if ((st.sweat || e === 'grumpy' || e === 'dizzy') && e !== 'sleep') {
+        const sx = cx + R * 0.72, sy = cy - R * 0.45 + Math.sin(st.t / 20) * R * 0.02;
+        ctx.fillStyle = 'rgba(120,190,255,.9)';
+        ctx.beginPath(); ctx.moveTo(sx, sy - R * 0.12); ctx.quadraticCurveTo(sx + R * 0.08, sy, sx, sy + R * 0.06); ctx.quadraticCurveTo(sx - R * 0.08, sy, sx, sy - R * 0.12); ctx.fill();
+        ctx.fillStyle = INK;
+      }
     }
 
     function drawSymbol(g, now) {
@@ -312,7 +386,7 @@
         ctx.fillText('z', g.cx + g.R * 0.85 + z * g.R * 0.3, g.cy - g.R * (0.9 + z * 0.6));
         ctx.globalAlpha = 1;
       }
-      if (!reduce || st.particles.length || now < st.happyUntil || (st.symbol && now < st.symbol.until)) raf = requestAnimationFrame(frame);
+      if (!reduce || st.particles.length || now < st.happyUntil || (st.symbol && now < st.symbol.until) || (st.expr && now < st.expr.until + 50)) raf = requestAnimationFrame(frame);
     }
 
     function kick() { if (!raf) raf = requestAnimationFrame(frame); }
@@ -339,6 +413,7 @@
         kick();
       },
       pop(ch) { st.symbol = { ch, until: performance.now() + 1800 }; kick(); },
+      express(name, ms, wake) { st.expr = { name, until: performance.now() + (ms || 2500), wake: !!wake }; kick(); },
       center() {
         const r = canvas.getBoundingClientRect(); const g = geometry();
         return [r.left + g.cx, r.top + g.cy + g.R * 0.5];

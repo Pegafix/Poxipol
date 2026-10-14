@@ -220,6 +220,54 @@
     while (days.has(dayKey(t))) { n++; t -= DAY; }
     return n;
   }
+  // ---------- sueño y efectos del día ----------
+  // Cada vez que lo despiertas de noche queda anotado. Al otro día, con suerte o sin ella, amanece con efectos.
+  const EFFECTS = {
+    descansado: { name: 'Descansado', good: true, text: 'Durmió de corrido: +1 de energía por tarea y más ánimo.',
+      svg: '<path d="M12 4a8 8 0 1 0 8 8 6 6 0 0 1-8-8z" fill="#ffd166" stroke="#ffd166"/>' },
+    ojeras: { name: 'Ojeras', text: 'Durmió mal: la estamina no pasa de 70 hoy.',
+      svg: '<circle cx="8" cy="10" r="2.5" fill="currentColor"/><circle cx="16" cy="10" r="2.5" fill="currentColor"/><path d="M5 15q3 2 6 0M13 15q3 2 6 0" stroke="#a78bfa"/>' },
+    nublado: { name: 'Cabeza nublada', text: 'Le cuesta concentrarse: el maná sube a la mitad hoy.',
+      svg: '<path d="M7 17h10a4 4 0 0 0 0-8 5 5 0 0 0-9.5-1A4 4 0 0 0 7 17z" fill="#9aa6bd" stroke="#9aa6bd"/>' },
+    malhumor: { name: 'Malhumor', text: 'Anda de malas: las misiones diarias dan 5 menos hoy.',
+      svg: '<path d="M8 8l3 2M16 8l-3 2" stroke="#ff6b81"/><path d="M8 17q4-3 8 0" stroke="#ff6b81"/><circle cx="12" cy="12" r="9" stroke="#ff6b81"/>' },
+    lento: { name: 'Lento', text: 'Va en cámara lenta: 2 de energía menos por tarea hoy.',
+      svg: '<path d="M4 16c0-4 3-7 7-7s6 3 6 6H4zM17 15h3" stroke="#6fbf8e"/><circle cx="11" cy="14" r="2.5" stroke="#6fbf8e"/>' }
+  };
+  function nightKey(t) { const h = new Date(t).getHours(); return dayKey(h >= 23 ? t + DAY : t); }
+  function sleepData() { return state.profile.sleep || (state.profile.sleep = { log: {}, roll: null }); }
+  function registerWake() {
+    const sd = sleepData(), k = nightKey(Date.now());
+    sd.log[k] = Math.min(6, (sd.log[k] || 0) + 1);
+    const keys = Object.keys(sd.log);
+    if (keys.length > 10) keys.slice(0, keys.length - 10).forEach(x => delete sd.log[x]);
+    touchProfile();
+    return sd.log[k];
+  }
+  // Efectos de hoy según cómo durmió anoche (se sortean una vez por día, con la misma suerte si recargas).
+  function todayEffects() {
+    const h = new Date().getHours();
+    if (h >= 23 || h < 7) return [];
+    const sd = sleepData(), today = dayKey(Date.now());
+    if (!sd.roll || sd.roll.day !== today) {
+      const wakes = sd.log[today] || 0;
+      let seed = hashStr(today + ':' + wakes);
+      const rnd = () => (seed = Math.imul(seed ^ (seed >>> 15), 2246822519) >>> 0, seed / 4294967296);
+      let list = [];
+      if (!wakes) list = ['descansado'];
+      else {
+        const p = Math.min(0.9, 0.25 * wakes);
+        list = ['ojeras', 'nublado', 'malhumor', 'lento'].filter(() => rnd() < p);
+        if (!list.length && wakes >= 3) list = ['ojeras'];
+        list = list.slice(0, 3);
+      }
+      sd.roll = { day: today, wakes, effects: list, told: false };
+      touchProfile();
+    }
+    return sd.roll.effects;
+  }
+  const hasFx = id => todayEffects().includes(id);
+
   // Vida, maná y estamina del día.
   // HP: constancia; baja 25 por cada día sin avanzar. MP: aprendizaje del día (tareas de Claude y prompts copiados).
   // Estamina: trabajo del día; cada tarea suma 20.
@@ -227,8 +275,8 @@
     const idle = tot.last ? Math.floor((startOfDay(Date.now()) - startOfDay(tot.last)) / DAY) : 0;
     const hp = Math.max(5, 100 - Math.max(0, idle - 1) * 25);
     const d = todayStats();
-    const mp = Math.min(100, (d.fam.claude + d.prompts) * 25);
-    const sta = Math.min(100, d.tasks * 20);
+    const mp = Math.min(100, (d.fam.claude + d.prompts) * (hasFx('nublado') ? 12.5 : 25));
+    const sta = Math.min(hasFx('ojeras') ? 70 : 100, d.tasks * 20);
     return { hp, mp, sta, idle };
   }
   function startOfDay(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
@@ -319,7 +367,7 @@
     const k = dayKey(Date.now());
     const qs = questState().find(x => x.q.id === id);
     if (!qs || !qs.ready) return;
-    const xp = qs.q.xp + perkBonus('quest');
+    const xp = Math.max(1, qs.q.xp + perkBonus('quest') - (hasFx('malhumor') ? 5 : 0));
     const before = levelOf(totals().xp).L;
     // Guarda solo la última semana día a día; lo anterior queda sumado.
     const claims = state.profile.claims;
@@ -356,7 +404,8 @@
     const firstToday = !tot.days.has(dayKey(Date.now()));
     const combo = comboNow();
     const mult = combo >= 4 ? 2 : combo >= 2 ? 1.5 : 1;
-    let xp = Math.round(((t.tag === 'PRUEBA' ? 12 : 10) + perkBonus('task', familyOf(t.tag))) * mult);
+    const fx = (hasFx('descansado') ? 1 : 0) - (hasFx('lento') ? 2 : 0);
+    let xp = Math.max(1, Math.round(((t.tag === 'PRUEBA' ? 12 : 10) + perkBonus('task', familyOf(t.tag)) + fx) * mult));
     if (firstToday) xp += 5 + 2 * Math.min(10, streakOf(tot.days)) + perkBonus('daily');
     prog.tasks[t.id] = { at: Date.now(), xp };
     if (!pp.startAt) pp.startAt = Date.now();
@@ -523,6 +572,7 @@
     if (v.hp <= 25) alert *= 0.5;
     const worn = v.sta >= 80 && h >= 17;
     if (worn) alert *= 0.75;
+    if (phase !== 'sleep') { if (hasFx('lento')) alert *= 0.75; if (hasFx('ojeras')) alert *= 0.85; if (hasFx('descansado')) alert = Math.min(1, alert + 0.1); }
     const curious = v.mp >= 50;
     const sky = h >= 20.5 || h < 6 ? 'night' : h < 8 ? 'dawn' : h < 18 ? 'day' : 'dusk';
     return { phase, alert: Math.min(1, alert + (curious && phase !== 'sleep' ? 0.1 : 0)), sleeping: phase === 'sleep' || v.hp <= 15, worn, curious, sky, v };
@@ -548,7 +598,7 @@
     'Mejorar es lento. Y está bien.', 'Si no entiendo, pregunto.', ':3'
   ];
   const BY_PHASE = {
-    sleep: ['Zzz…', 'Zzz… soñando con estrellas…', 'Dormir ordena lo que aprendimos hoy… zzz', 'Zzz… mañana seguimos…'],
+    sleep: ['Zzz…', 'Zzz… zzz…', 'Zzz… (ronquidito)', '…mmm…', 'Zzz… soñando con estrellas…', 'Dormir ordena lo que aprendimos hoy… zzz', 'Zzz… mañana seguimos…', 'Zzz… *se da vuelta*', 'Zzz… el cerebro guarda lo de hoy…', '…ñam ñam… zzz', 'Zzz… *suspiro*'],
     waking: ['*bostezo* …buenos días.', 'Todavía tengo los ojos pegados.', 'Despacito, que recién despierto.', 'La luz de la mañana ayuda a despertar.'],
     peak: ['¡Me siento con la cabeza despejada!', 'Buena hora para lo difícil.', 'Hoy tengo ganas de preguntar todo.'],
     dip: ['Después de comer me da sueñito… es normal.', 'Un vaso de agua y seguimos.', 'Un ratito de pausa no hace mal.'],
@@ -584,6 +634,38 @@
       { id: 'dormir', q: 'Ya es tarde. ¿Dejamos lo de hoy hasta aquí?', r: [['Sí, a descansar', 'Dormir también es aprender. Buenas noches.'], ['Un poquito más', 'Ok, pero no te desveles mucho.']] }
     ]
   };
+  // Habla dormido: incoherencias de sueño.
+  const SLEEPTALK = [
+    '…no, mamá, las nubes no se doblan…', '…pásame el queso de la luna…', '…¿quién dejó el martes encendido?…',
+    '…tres patos y un teorema…', '…sí, sí, ya compilé el arcoíris…', '…las tareas tienen patitas…',
+    '…¿y si el café soñara conmigo?…', '…cinco minutitos más…', '…mi oreja izquierda sabe algo…',
+    '…no me cambien la gravedad…', '…el wifi de los peces…', '…¿quién movió la luna? ah, fui yo…',
+    '…ñam… tarta de ecuaciones…', '…sí profe, el gato hizo la tarea…', '…shhh, los números están durmiendo…',
+    '…¿ya es jueves en Saturno?…', '…me falta un calcetín del universo…', '…bolita… redonda… infinita…',
+    '…no, no, el lunes no, por favor…', '…aprendí a volar pero solo los domingos…', '…dile a la lámpara que la quiero…',
+    '…mmm… prompts de chocolate…', '…el examen era de cantar…', '…¿por qué la tostada sabe mi nombre?…',
+    '…los pingüinos me deben plata…', '…ya voy, ya voy… *no va*…', '…el agua está muy mojada hoy…',
+    '…siete por ocho… ¿frambuesa?…', '…esa nube me copió el peinado…'
+  ];
+  // Lo que dice si lo despiertas: medio borracho de sueño.
+  const WOKEN = [
+    '¿Eh? ¿Quién? ¿Ya es la prueba?', '…¿dónde dejé mis orejas?…', 'No estaba durmiendo… pensaba con los ojos cerrados.',
+    '¿Qué hora es? ¿Por qué hay luz en mi cara?', 'Mmm… ¿las tareas ya se fueron a dormir?', '…cinco minutos más… o cinco años…',
+    '¡Oye! Estaba soñando con un teorema de pan.', '¿Ah? Sí, sí… el gato es el presidente… zzz', '…¿mañana es hoy o ayer?…',
+    '*bosteza* …¿ya ganamos?', 'Estaba en la mejor parte del sueño…', 'Shh… dormir también es aprender.'
+  ];
+  const WOKEN_AGAIN = [
+    'Otra vez… mañana voy a andar hecho pomada.', '¡Déjame dormir! (con cariño)', 'Si sigues, mañana amanezco con ojeras…',
+    'Mi cuerpito necesita sus horas…', 'Grrr… zzz… grrr…', 'Me despertaste de nuevo. Lo voy a recordar.'
+  ];
+  // Cómo amanece según la noche.
+  const MORNING_FX = {
+    descansado: ['¡Dormí como piedra! Me siento nuevo.', 'Qué rico dormir de corrido.'],
+    ojeras: ['Anoche dormí mal… ando con ojeras.', 'Me despertaron… hoy no doy para tanto.'],
+    nublado: ['Tengo la cabeza nublada. Me cuesta pensar.', 'Hoy las ideas vienen lento, como con neblina.'],
+    malhumor: ['Ando de malas. No es contigo.', 'Hmph. Dormí poquito.'],
+    lento: ['Hoy voy en cámara lenta…', 'Mis orejitas no despiertan todavía.']
+  };
   const asked = {};
   let thinkTimer = 0, holdUntil = 0;
   function showThought(text, replies) {
@@ -597,13 +679,28 @@
       b._replies = replies || null;
     }, 260);
   }
-  function think(text) {
+  // Pensamientos con expresión. "expr" acompaña la frase (pensativo, guiño, enojón…).
+  function think(text, expr) {
     clearTimeout(thinkTimer);
     const c = circadian();
-    const next = () => { thinkTimer = setTimeout(() => think(), c.sleeping ? 26000 : Math.round(20000 - 11000 * c.alert)); };
-    if (text) { showThought(text); holdUntil = Date.now() + 7000; next(); return; }
+    const next = () => { thinkTimer = setTimeout(() => think(), c.sleeping ? 16000 : Math.round(20000 - 11000 * c.alert)); };
+    const face = (n, ms) => { if (pets.home && n) pets.home.express(n, ms || 3200); };
+    if (text) { showThought(text); face(expr); holdUntil = Date.now() + 7000; next(); return; }
     if (Date.now() < holdUntil) { next(); return; }
-    if (c.sleeping) { showThought(pick(BY_PHASE.sleep)); next(); return; }
+    if (c.sleeping) {
+      // a veces habla dormido
+      if (Math.random() < 0.4) showThought(pick(SLEEPTALK)); else showThought(pick(BY_PHASE.sleep));
+      next(); return;
+    }
+    // Primer pensamiento del día: cómo durmió.
+    const sd = sleepData(), fx = todayEffects();
+    if (sd.roll && !sd.roll.told && fx.length) {
+      sd.roll.told = true; touchProfile();
+      const main = fx[0];
+      showThought(pick(MORNING_FX[main]));
+      face(main === 'descansado' ? 'happy' : main === 'malhumor' ? 'grumpy' : main === 'nublado' ? 'dizzy' : 'drowsy', 4000);
+      holdUntil = Date.now() + 9000; next(); return;
+    }
     // Preguntar: más probable cuando está despierto o con el maná alto.
     const askP = 0.15 + 0.35 * c.alert + (c.curious ? 0.15 : 0);
     const today = dayKey(Date.now());
@@ -611,13 +708,17 @@
     const r = Math.random();
     if (mine.length && r < askP * 0.45) {
       const x = pick(mine); asked[today + x.id] = 1;
-      pets.home.pop('?');
+      pets.home.pop('?'); face('thinking', 2500);
       showThought(x.q, x.r); holdUntil = Date.now() + 25000; next(); return;
     }
-    if (r < askP) { pets.home.pop('?'); showThought(pick(WONDER)); next(); return; }
-    if (c.worn && Math.random() < 0.5) { showThought('Hoy trabajaste harto. Descansar también suma.'); next(); return; }
-    if (c.v.hp <= 25) { showThought(pick(['Tengo sueño… pero quiero aprender.', 'Un ratito nomás y despierto.', 'Te extrañé. ¿Seguimos?'])); next(); return; }
-    showThought(Math.random() < 0.4 ? pick(BY_PHASE[c.phase]) : pick(MUSE));
+    if (r < askP) { pets.home.pop('?'); face(Math.random() < 0.7 ? 'thinking' : 'sparkle', 3500); showThought(pick(WONDER)); next(); return; }
+    if (hasFx('malhumor') && Math.random() < 0.35) { face('grumpy', 3500); showThought(pick(['Hmph.', 'Hoy no estoy para chistes.', 'Mejor no me hables… bueno, sí, háblame.', 'Dormí mal y se nota.'])); next(); return; }
+    if (c.worn && Math.random() < 0.5) { face('drowsy', 3000); showThought(pick(['Hoy trabajaste harto. Descansar también suma.', 'Uf, qué día. Me sudan las orejitas.'])); next(); return; }
+    if (c.v.hp <= 25) { face('sad', 3500); showThought(pick(['Tengo sueño… pero quiero aprender.', 'Un ratito nomás y despierto.', 'Te extrañé. ¿Seguimos?'])); next(); return; }
+    const phaseLine = Math.random() < 0.4;
+    showThought(phaseLine ? pick(BY_PHASE[c.phase]) : pick(MUSE));
+    if (!phaseLine) face(pick(['wink', 'happy', 'shy', null, null]), 2200);
+    else if (c.phase === 'waking' || c.phase === 'winddown') face('yawn', 1600);
     next();
   }
   function answer(i) {
@@ -625,20 +726,26 @@
     const rep = b && b._replies && b._replies[i];
     if (!rep) return;
     pets.home.feed(0.5);
-    if (rep[2]) { showThought(rep[1]); holdUntil = Date.now() + 2000; setTimeout(() => go(rep[2]), 1100); return; }
+    if (rep[2]) { showThought(rep[1]); pets.home.express('surprised', 1200); holdUntil = Date.now() + 2000; setTimeout(() => go(rep[2]), 1100); return; }
     pets.home.pop('!');
-    holdUntil = 0; think(rep[1]);
+    holdUntil = 0; think(rep[1], i === 0 ? 'love' : 'shy');
   }
-  // Toques: despierto responde; dormido abre un ojo y vuelve a dormir.
+  // Toques: despierto responde; dormido se despierta medio borracho de sueño, y eso pasa la cuenta mañana.
   function poke() {
     const c = circadian();
-    if (c.sleeping) {
+    if (c.sleeping && circadian().phase === 'sleep') {
+      const n = registerWake();
       pets.home.set({ sleepy: false, drowsy: true });
-      think(pick(['Mmm… ¿qué hora es? Es hora de dormir…', 'Shh… dormir también es aprender.', '*abre un ojo* …mañana, ¿ya?']));
+      const line = n >= 2 && Math.random() < 0.6 ? pick(WOKEN_AGAIN) : pick(WOKEN);
+      pets.home.express(n >= 3 ? 'grumpy' : pick(['dizzy', 'squint', 'surprised', 'grumpy']), 4500, true);
+      think(line);
+      renderHome(totals());
       setTimeout(() => renderPets(totals()), 5000);
       return;
     }
+    if (c.sleeping) { think('Zzz… estoy muy cansadito.', 'sad'); return; }
     pets.home.feed(0.4);
+    pets.home.express(pick(['happy', 'wink', 'surprised', 'shy', 'love']), 1600);
     holdUntil = 0; think();
   }
 
@@ -700,7 +807,9 @@
     const famTop = Object.entries(tot.fam).sort((a, b) => b[1] - a[1])[0];
     const cz = circadian(tot);
     const room = $('.room'); if (room) { room.dataset.sky = cz.sky; room.dataset.phase = cz.phase; }
-    const opts = { stage: stg, heat, sleepy: cz.sleeping, drowsy: !cz.sleeping && cz.alert < 0.5, alert: cz.alert, tint: famTop[1] ? FAMILY_INFO[famTop[0]].color : '#ffd166', ground: 0.85, equip: Object.assign({}, state.profile.equipped) };
+    const fxNow = todayEffects();
+    const mood = cz.v.hp <= 25 ? 'sad' : fxNow.includes('malhumor') ? 'grumpy' : cz.alert >= 0.9 && cz.curious ? 'sparkle' : 'neutral';
+    const opts = { stage: stg, heat, sleepy: cz.sleeping, drowsy: !cz.sleeping && cz.alert < 0.5, alert: cz.alert, mood, ojeras: fxNow.includes('ojeras'), sweat: cz.worn, tint: famTop[1] ? FAMILY_INFO[famTop[0]].color : '#ffd166', ground: 0.85, equip: Object.assign({}, state.profile.equipped) };
     Object.values(pets).forEach(f => f.set(opts));
   }
 
@@ -741,6 +850,14 @@
     const combo = $('#h-combo');
     combo.hidden = c < 2;
     if (c >= 2) chip('#h-combo', '×' + (c >= 4 ? 2 : 1.5), 'Combo activo');
+    const sd = sleepData(), fxList = todayEffects();
+    const hr = new Date().getHours();
+    const wakesTonight = hr >= 23 || hr < 7 ? sd.log[nightKey(Date.now())] || 0 : 0;
+    $('#h-status').innerHTML = fxList.map(id => {
+      const f = EFFECTS[id];
+      const why = f.good ? '' : ` (lo despertaste ${sd.roll.wakes} ${sd.roll.wakes === 1 ? 'vez' : 'veces'} anoche)`;
+      return `<span class="fx ${f.good ? 'good' : 'bad'}" role="img" title="${esc(f.name + ': ' + f.text + why)}" aria-label="${esc(f.name + ': ' + f.text + why)}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true">${f.svg}</svg></span>`;
+    }).join('') + (wakesTonight ? `<span class="fx bad" role="img" title="Lo despertaste ${wakesTonight} ${wakesTonight === 1 ? 'vez' : 'veces'} esta noche" aria-label="Despertado ${wakesTonight} veces esta noche"><b>${wakesTonight}</b></span>` : '');
     const pct = Math.floor(lv.into / lv.need * 100);
     $('#xp-fill').style.width = (lv.into / lv.need * 100).toFixed(1) + '%';
     $('#xp-pct').textContent = pct + '%';
@@ -755,7 +872,7 @@
     $('#m-daily').innerHTML = qs.map(x => `
       <li class="daily ${x.claimed ? 'claimed' : x.ready ? 'ready' : ''}">
         <span class="d-ring" style="--k:${x.have / x.q.goal}"><span>${x.have}/${x.q.goal}</span></span>
-        <span class="d-text"><b>${esc(x.q.text)}</b><small>+${x.q.xp + perkBonus('quest')} de energía</small></span>
+        <span class="d-text"><b>${esc(x.q.text)}</b><small>+${Math.max(1, x.q.xp + perkBonus('quest') - (hasFx('malhumor') ? 5 : 0))} de energía</small></span>
         ${x.claimed ? '<span class="d-done">Cobrada</span>' : `<button class="btn small ${x.ready ? 'primary' : 'ghost'}" data-claim="${x.q.id}" ${x.ready ? '' : 'disabled'}>Reclamar</button>`}
       </li>`).join('');
     const ids = Object.keys(state.projects).sort((a, b) => state.projects[b].updatedAt - state.projects[a].updatedAt);

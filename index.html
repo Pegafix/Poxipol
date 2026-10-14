@@ -116,7 +116,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .scene .lf { fill: var(--leaf); } .scene .pt { fill: var(--pot); } .scene .lt { fill: var(--lamp); }
 .scene .ln { stroke: var(--prop-2); fill: none; stroke-linecap: round; }
 .scene .sh { fill: rgba(20,12,30,.18); }
-.win { top: 12%; left: 7%; width: clamp(120px, 17vw, 210px); }
+.win { top: max(12%, 112px); left: 7%; width: clamp(120px, 17vw, 210px); }
 .shelf { top: 15%; right: 6%; width: clamp(150px, 22vw, 270px); }
 .desk { position: absolute; left: 0; right: 0; bottom: 0; height: 22%; }
 .desk-top { position: absolute; left: 0; right: 0; top: 0; height: 42%;
@@ -155,6 +155,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 button.chip { cursor: pointer; }
 .chip svg { width: 16px; height: 16px; flex: none; }
 .chip.ready { border-color: var(--ember); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ember) 25%, transparent); }
+
+.status { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.status:empty { display: none; }
+.fx { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); }
+.fx svg { width: 15px; height: 15px; }
+.fx.good { border-color: color-mix(in srgb, #ffd166 60%, var(--line)); }
+.fx.bad { border-color: color-mix(in srgb, var(--hp) 55%, var(--line)); }
+.fx b { font: 800 11px/1 var(--f-mono); color: var(--hp); }
 
 /* Nube de pensamiento */
 .thought { position: absolute; z-index: 3; left: 50%; top: 30%; transform: translateX(-50%); width: min(340px, calc(100% - 48px)); display: flex; justify-content: center; pointer-events: none; }
@@ -476,6 +484,7 @@ body.can-ask .ask { display: grid; gap: 6px; }
           <div class="vital" id="v-hp" role="img"><span>HP</span><span class="vt"><i></i></span><em>100</em></div>
           <div class="vital" id="v-mp" role="img"><span>MP</span><span class="vt"><i></i></span><em>0</em></div>
           <div class="vital" id="v-sta" role="img"><span>STA</span><span class="vt"><i></i></span><em>0</em></div>
+          <div class="status" id="h-status" aria-label="Efectos de hoy"></div>
         </div>
       </div>
       <div class="chips">
@@ -560,6 +569,11 @@ body.can-ask .ask { display: grid; gap: 6px; }
         duerme de 23:00 a 7:00, despierta lento y con bostezos, está más despierto y preguntón entre 9 y 13 y entre 15 y 19,
         le baja el sueñito después de almuerzo y se va calmando de noche. Con poca vida (HP) o mucho trabajo en el día, se cansa antes;
         con el maná (MP) alto, pregunta más.</p>
+      <p class="muted" style="font-size:13.5px;margin:10px 0 0">Si lo despiertas de noche, se despierta medio borracho de sueño, y cada despertada queda anotada.
+        Al otro día puede amanecer con efectos de mal dormir (más probables mientras más veces lo despertaste):
+        <b>Ojeras</b> (estamina máx. 70), <b>Cabeza nublada</b> (el maná sube a la mitad), <b>Malhumor</b> (las diarias dan 5 menos)
+        o <b>Lento</b> (2 de energía menos por tarea). Si duerme de corrido amanece <b>Descansado</b>: +1 de energía por tarea.
+        Los efectos aparecen como iconos bajo HP, MP y STA.</p>
     </div>
     <div class="panel"><div class="row"><span>Guardado</span><span class="muted" data-sync>Guardado en este navegador</span></div></div>
     <div class="panel">
