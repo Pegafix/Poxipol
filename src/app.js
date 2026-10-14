@@ -506,35 +506,140 @@
     document.body.appendChild(f);
     setTimeout(() => f.remove(), 1100);
   }
-  // Lo que piensa: cosas simples sobre aprender, la vida y las ganas de mejorar.
-  const THOUGHTS = [
-    'Hoy quiero entender algo nuevo.', '¿Por qué el cielo es azul?', 'Un poquito cada día también es mucho.',
-    '¿Las estrellas sabrán que las miramos?', 'Equivocarse es otra forma de aprender.', '¿De dónde vienen los sueños?',
-    '¿Cuántas cosas no sé que no sé?', 'Quiero ser un poquito mejor que ayer.', '¿El universo termina en alguna parte?',
-    'Leer es viajar sin moverse.', '¿Por qué existe algo en vez de nada?', 'Si practico, mañana será más fácil.',
-    '¿Los peces sabrán que están mojados?', 'Aprender cansa, pero me gusta.', '¿Qué es pensar, en realidad?',
-    'Las preguntas son más divertidas que las respuestas.', '¿De qué color ve el mundo un gato?', 'Un error menos es un paso más.',
-    '¿Cuántos granos de arena habrá?', 'Hoy no lo sé. Quizás mañana sí.', '¿Por qué la música da escalofríos?',
-    'Todo experto fue principiante.', '¿Tendrá fin la curiosidad?', '¿Qué se sentirá ser una nube?',
-    'Despacio también se llega.', '¿Por qué bostezar se contagia?', 'Quiero aprender a aprender.',
-    '¿El tiempo existe o solo lo contamos?', 'Cada día sé una cosita más.', '¿Qué pensaba la gente hace mil años mirando la luna?',
-    'Lo difícil de hoy es lo fácil de mañana.', '¿Por qué olvidamos algunas cosas?', 'Me gusta cuando algo por fin tiene sentido.',
-    '¿Habrá alguien más allá afuera?', 'Mejorar es lento. Y está bien.', '¿Por qué el café huele tan rico?',
-    '¿Qué había antes del primer recuerdo?', 'Si no entiendo, pregunto.', '¿Por qué nos da risa lo inesperado?', ':3'
+  // ---------- reloj interno ----------
+  // Mochi respeta el ritmo del sueño: duerme de 23 a 7, despierta lento, rinde más a media mañana
+  // y a media tarde, baja después de almuerzo y se calma de noche. Su estado (HP, STA) también pesa.
+  function circadian(tot) {
+    const d = new Date(), h = d.getHours() + d.getMinutes() / 60;
+    let phase, alert;
+    if (h >= 23 || h < 7) { phase = 'sleep'; alert = 0; }
+    else if (h < 9) { phase = 'waking'; alert = 0.35 + (h - 7) * 0.15; }
+    else if (h < 13) { phase = 'peak'; alert = 1; }
+    else if (h < 15) { phase = 'dip'; alert = 0.55; }
+    else if (h < 19) { phase = 'peak2'; alert = 0.9; }
+    else if (h < 21) { phase = 'calm'; alert = 0.6; }
+    else { phase = 'winddown'; alert = 0.3; }
+    const v = vitals(tot || totals());
+    if (v.hp <= 25) alert *= 0.5;
+    const worn = v.sta >= 80 && h >= 17;
+    if (worn) alert *= 0.75;
+    const curious = v.mp >= 50;
+    const sky = h >= 20.5 || h < 6 ? 'night' : h < 8 ? 'dawn' : h < 18 ? 'day' : 'dusk';
+    return { phase, alert: Math.min(1, alert + (curious && phase !== 'sleep' ? 0.1 : 0)), sleeping: phase === 'sleep' || v.hp <= 15, worn, curious, sky, v };
+  }
+
+  // ---------- lo que piensa ----------
+  const WONDER = [
+    '¿Por qué el cielo es azul?', '¿Las estrellas sabrán que las miramos?', '¿De dónde vienen los sueños?',
+    '¿Cuántas cosas no sé que no sé?', '¿El universo termina en alguna parte?', '¿Por qué existe algo en vez de nada?',
+    '¿Los peces sabrán que están mojados?', '¿Qué es pensar, en realidad?', '¿De qué color ve el mundo un gato?',
+    '¿Cuántos granos de arena habrá?', '¿Por qué la música da escalofríos?', '¿Tendrá fin la curiosidad?',
+    '¿Qué se sentirá ser una nube?', '¿Por qué bostezar se contagia?', '¿El tiempo existe o solo lo contamos?',
+    '¿Qué pensaba la gente hace mil años mirando la luna?', '¿Por qué olvidamos algunas cosas?', '¿Habrá alguien más allá afuera?',
+    '¿Qué había antes del primer recuerdo?', '¿Por qué nos da risa lo inesperado?', '¿Por qué soñamos con gente que no conocemos?',
+    '¿Cómo sabe una semilla hacia dónde crecer?', '¿Cuál fue la primera palabra que alguien dijo?', '¿Por qué el agua no tiene sabor?'
   ];
-  let thoughtIdx = Math.floor(Math.random() * THOUGHTS.length), thinkTimer = 0;
-  function think(text) {
+  const MUSE = [
+    'Hoy quiero entender algo nuevo.', 'Un poquito cada día también es mucho.', 'Equivocarse es otra forma de aprender.',
+    'Quiero ser un poquito mejor que ayer.', 'Leer es viajar sin moverse.', 'Si practico, mañana será más fácil.',
+    'Aprender cansa, pero me gusta.', 'Las preguntas son más divertidas que las respuestas.', 'Un error menos es un paso más.',
+    'Hoy no lo sé. Quizás mañana sí.', 'Todo experto fue principiante.', 'Despacio también se llega.', 'Quiero aprender a aprender.',
+    'Cada día sé una cosita más.', 'Lo difícil de hoy es lo fácil de mañana.', 'Me gusta cuando algo por fin tiene sentido.',
+    'Mejorar es lento. Y está bien.', 'Si no entiendo, pregunto.', ':3'
+  ];
+  const BY_PHASE = {
+    sleep: ['Zzz…', 'Zzz… soñando con estrellas…', 'Dormir ordena lo que aprendimos hoy… zzz', 'Zzz… mañana seguimos…'],
+    waking: ['*bostezo* …buenos días.', 'Todavía tengo los ojos pegados.', 'Despacito, que recién despierto.', 'La luz de la mañana ayuda a despertar.'],
+    peak: ['¡Me siento con la cabeza despejada!', 'Buena hora para lo difícil.', 'Hoy tengo ganas de preguntar todo.'],
+    dip: ['Después de comer me da sueñito… es normal.', 'Un vaso de agua y seguimos.', 'Un ratito de pausa no hace mal.'],
+    peak2: ['La tarde también es buena para aprender.', 'Me volvieron las ganas.', 'Una cosa más y otra más.'],
+    calm: ['Ya va bajando el sol.', 'Buen momento para repasar lo de hoy.', 'Hoy aprendimos algo, ¿cierto?'],
+    winddown: ['*bostezo* ya casi es hora de dormir.', 'Las pantallas de noche espantan el sueño.', 'Dormir bien también es estudiar.', 'Mañana sigo pensando en eso.']
+  };
+  // Preguntas para ti, según la hora. Cada respuesta tiene una reacción.
+  const ASK = {
+    waking: [
+      { id: 'dormiste', q: '¿Dormiste bien?', r: [['Sí', '¡Bien! Un cerebro descansado aprende mejor.'], ['Más o menos', 'Hoy vamos suave entonces. Un paso chico basta.']] },
+      { id: 'agua', q: '¿Ya tomaste agua?', r: [['Sí', '¡Bien! Yo también… creo.'], ['Todavía no', 'Un vasito y despertamos juntos.']] },
+      { id: 'meta', q: '¿Qué quieres aprender hoy?', r: [['Algo nuevo', '¡Me encanta! Vamos a las misiones.', 'misiones'], ['Repasar', 'Repasar es aprender dos veces.']] }
+    ],
+    peak: [
+      { id: 'tarea', q: '¿Hacemos una tarea chiquita?', r: [['Vamos', '¡Sí! Te espero en Misiones.', 'misiones'], ['Después', 'Ok, aquí me quedo pensando.']] },
+      { id: 'curioso', q: '¿Qué es lo más raro que sabes?', r: [['Algo genial', '¡Cuéntaselo a alguien! Así no se olvida.'], ['No sé', 'Entonces hoy buscamos uno.']] },
+      { id: 'pregunta', q: '¿Tienes alguna duda que nunca preguntaste?', r: [['Sí', 'Pregúntala hoy. Nadie nace sabiendo.'], ['No', 'Seguro aparece una. Siempre aparece.']] }
+    ],
+    dip: [
+      { id: 'almuerzo', q: '¿Almorzaste?', r: [['Sí', 'Por eso el sueñito. Es normal.'], ['No', 'Comer algo ayuda a pensar.']] },
+      { id: 'pausa', q: '¿Te tomaste un descanso?', r: [['Sí', 'Descansar también es avanzar.'], ['No', 'Cinco minutos y volvemos mejor.']] }
+    ],
+    peak2: [
+      { id: 'aprendiste', q: '¿Qué aprendiste hoy?', r: [['Algo bueno', '¡Eso! Se me erizan las orejitas.'], ['Nada aún', 'Todavía queda tarde. Una tarea chica.', 'misiones']] },
+      { id: 'tarde', q: '¿Una más antes de que oscurezca?', r: [['Dale', '¡Vamos!', 'misiones'], ['Ya hice harto', 'Te creo. Lo hiciste bien.']] }
+    ],
+    calm: [
+      { id: 'mejor', q: '¿Qué fue lo mejor de tu día?', r: [['Algo lindo', 'Guárdalo en la memoria.'], ['Nada especial', 'Los días tranquilos también cuentan.']] },
+      { id: 'manana', q: '¿Qué quieres mejorar mañana?', r: [['Tengo idea', 'Pensarlo ya es la mitad.'], ['No sé', 'Lo soñamos y mañana vemos.']] }
+    ],
+    winddown: [
+      { id: 'dormir', q: 'Ya es tarde. ¿Dejamos lo de hoy hasta aquí?', r: [['Sí, a descansar', 'Dormir también es aprender. Buenas noches.'], ['Un poquito más', 'Ok, pero no te desveles mucho.']] }
+    ]
+  };
+  const asked = {};
+  let thinkTimer = 0, holdUntil = 0;
+  function showThought(text, replies) {
     const b = $('#h-bubble');
     if (!b) return;
-    if (!text) {
-      const tot = totals(), v = vitals(tot);
-      if (v.hp <= 25) text = pick(['Zzz… ¿seguimos mañana?', 'Tengo sueño… pero quiero aprender.', 'Un ratito nomás y despierto.']);
-      else { thoughtIdx = (thoughtIdx + 1 + Math.floor(Math.random() * 3)) % THOUGHTS.length; text = THOUGHTS[thoughtIdx]; }
-    }
     b.classList.add('fade');
-    setTimeout(() => { b.textContent = text; b.classList.remove('fade'); }, 260);
+    setTimeout(() => {
+      b.innerHTML = `<span class="tq">${esc(text)}</span>` + (replies ? `<span class="replies">${replies.map((r, i) => `<button data-reply="${i}">${esc(r[0])}</button>`).join('')}</span>` : '');
+      b.classList.toggle('asking', !!replies);
+      b.classList.remove('fade');
+      b._replies = replies || null;
+    }, 260);
+  }
+  function think(text) {
     clearTimeout(thinkTimer);
-    thinkTimer = setTimeout(() => think(), 14000);
+    const c = circadian();
+    const next = () => { thinkTimer = setTimeout(() => think(), c.sleeping ? 26000 : Math.round(20000 - 11000 * c.alert)); };
+    if (text) { showThought(text); holdUntil = Date.now() + 7000; next(); return; }
+    if (Date.now() < holdUntil) { next(); return; }
+    if (c.sleeping) { showThought(pick(BY_PHASE.sleep)); next(); return; }
+    // Preguntar: más probable cuando está despierto o con el maná alto.
+    const askP = 0.15 + 0.35 * c.alert + (c.curious ? 0.15 : 0);
+    const today = dayKey(Date.now());
+    const mine = (ASK[c.phase] || []).filter(x => !asked[today + x.id]);
+    const r = Math.random();
+    if (mine.length && r < askP * 0.45) {
+      const x = pick(mine); asked[today + x.id] = 1;
+      pets.home.pop('?');
+      showThought(x.q, x.r); holdUntil = Date.now() + 25000; next(); return;
+    }
+    if (r < askP) { pets.home.pop('?'); showThought(pick(WONDER)); next(); return; }
+    if (c.worn && Math.random() < 0.5) { showThought('Hoy trabajaste harto. Descansar también suma.'); next(); return; }
+    if (c.v.hp <= 25) { showThought(pick(['Tengo sueño… pero quiero aprender.', 'Un ratito nomás y despierto.', 'Te extrañé. ¿Seguimos?'])); next(); return; }
+    showThought(Math.random() < 0.4 ? pick(BY_PHASE[c.phase]) : pick(MUSE));
+    next();
+  }
+  function answer(i) {
+    const b = $('#h-bubble');
+    const rep = b && b._replies && b._replies[i];
+    if (!rep) return;
+    pets.home.feed(0.5);
+    if (rep[2]) { showThought(rep[1]); holdUntil = Date.now() + 2000; setTimeout(() => go(rep[2]), 1100); return; }
+    pets.home.pop('!');
+    holdUntil = 0; think(rep[1]);
+  }
+  // Toques: despierto responde; dormido abre un ojo y vuelve a dormir.
+  function poke() {
+    const c = circadian();
+    if (c.sleeping) {
+      pets.home.set({ sleepy: false, drowsy: true });
+      think(pick(['Mmm… ¿qué hora es? Es hora de dormir…', 'Shh… dormir también es aprender.', '*abre un ojo* …mañana, ¿ya?']));
+      setTimeout(() => renderPets(totals()), 5000);
+      return;
+    }
+    pets.home.feed(0.4);
+    holdUntil = 0; think();
   }
 
   let sayTimer = 0;
@@ -593,7 +698,9 @@
     const lv = levelOf(tot.xp), stg = stageOf(lv.L);
     const heat = tot.last ? Math.max(0.15, 1 - (Date.now() - tot.last) / (3 * DAY)) : 0.45;
     const famTop = Object.entries(tot.fam).sort((a, b) => b[1] - a[1])[0];
-    const opts = { stage: stg, heat, sleepy: vitals(tot).hp <= 25, tint: famTop[1] ? FAMILY_INFO[famTop[0]].color : '#ffd166', ground: 0.85, equip: Object.assign({}, state.profile.equipped) };
+    const cz = circadian(tot);
+    const room = $('.room'); if (room) { room.dataset.sky = cz.sky; room.dataset.phase = cz.phase; }
+    const opts = { stage: stg, heat, sleepy: cz.sleeping, drowsy: !cz.sleeping && cz.alert < 0.5, alert: cz.alert, tint: famTop[1] ? FAMILY_INFO[famTop[0]].color : '#ffd166', ground: 0.85, equip: Object.assign({}, state.profile.equipped) };
     Object.values(pets).forEach(f => f.set(opts));
   }
 
@@ -1011,7 +1118,8 @@
     document.body.addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('dragging'); });
     document.body.addEventListener('dragleave', e => { if (!e.relatedTarget) document.body.classList.remove('dragging'); });
     document.body.addEventListener('drop', e => { e.preventDefault(); document.body.classList.remove('dragging'); handleFiles(e.dataTransfer.files); });
-    $('#pet').onclick = () => { pets.home.feed(0.4); think(); };
+    $('#pet').onclick = poke;
+    $('#h-bubble').onclick = e => { const r = e.target.closest('[data-reply]'); if (r) answer(Number(r.dataset.reply)); };
 
     // Menú
     const nm = $('#menu-name');
@@ -1042,6 +1150,7 @@
         if (pp && pp.timerStart && inp) inp.value = Math.round(((pp.hours || 0) + (Date.now() - pp.timerStart) / 3600000) * 100) / 100;
       });
     }, 15000);
+    setInterval(() => { renderPets(totals()); }, 60000);
     connectCloud();
   }
 

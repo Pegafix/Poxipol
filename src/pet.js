@@ -8,6 +8,7 @@
     const fit = (opts && opts.fit) || 'card'; // scene: sobre el escritorio · card: vista previa · icon: barra
     const st = {
       stage: 0, heat: 1, tint: '#ff8fb1', equip: {}, ground: 0.8, happyUntil: 0, pulse: 0, sleepy: false,
+      alert: 1, drowsy: false, yawnAt: 0, yawnUntil: 0, symbol: null,
       blinkAt: 0, blinkEnd: 0, look: [0, 0], particles: [], t: 0
     };
     let w = 0, h = 0, dpr = 1, raf = 0, visible = true;
@@ -22,14 +23,17 @@
 
     function geometry() {
       const grow = 0.86 + st.stage * 0.035;
-      const bob = reduce ? 0 : Math.sin(st.t / 42) * (st.sleepy ? 0.03 : 0.08);
+      // Más despierto = flota más alto y más rápido; con sueño se mece lento y bajito.
+      const amp = st.sleepy ? 0.025 : 0.035 + 0.055 * st.alert;
+      const bob = reduce ? 0 : Math.sin(st.t / (st.sleepy ? 70 : 58 - 22 * st.alert)) * amp;
+      const droop = st.sleepy ? 0.1 : (1 - st.alert) * 0.06;
       let R, ground, cy;
       if (fit === 'icon') {
-        R = Math.min(w, h) * 0.34; ground = h; cy = h * 0.56 + bob * R;
+        R = Math.min(w, h) * 0.34; ground = h; cy = h * (0.56 + droop * 0.3) + bob * R;
       } else {
         R = (fit === 'scene' ? Math.min(w * 0.25, h * 0.15) : Math.min(w * 0.26, h * 0.2)) * grow;
         ground = fit === 'scene' ? h * st.ground : h * 0.88;
-        cy = ground - R * 1.45 + bob * R;
+        cy = ground - R * (1.45 - droop) + bob * R;
       }
       R *= 1 + st.pulse * 0.1;
       return { cx: w / 2, cy, R, ground, lift: bob };
@@ -207,27 +211,68 @@
       const ey = cy - R * 0.14, dx = R * 0.32, er = R * 0.075;
       const happy = now < st.happyUntil;
       const blinking = now > st.blinkAt && now < st.blinkEnd;
-      if (now > st.blinkEnd) { st.blinkAt = now + 2400 + Math.random() * 3600; st.blinkEnd = st.blinkAt + 140; }
-      const lx = st.look[0] * R * 0.04, ly = st.look[1] * R * 0.03;
+      if (now > st.blinkEnd) {
+        // con sueño parpadea más lento y más seguido
+        st.blinkAt = now + (st.drowsy ? 1400 : 2400) + Math.random() * (st.drowsy ? 2000 : 3600);
+        st.blinkEnd = st.blinkAt + (st.drowsy ? 420 : 140);
+      }
+      if (st.drowsy && !st.sleepy && !reduce && now > st.yawnAt) {
+        if (st.yawnAt) st.yawnUntil = now + 1600;
+        st.yawnAt = now + 9000 + Math.random() * 9000;
+      }
+      const yawning = now < st.yawnUntil && !st.sleepy;
+      const lx = st.look[0] * R * 0.04 * st.alert, ly = st.look[1] * R * 0.03 * st.alert;
       ctx.strokeStyle = INK; ctx.fillStyle = INK; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       ctx.lineWidth = Math.max(1.4, R * 0.055);
       [-1, 1].forEach(s => {
         const ex = cx + s * dx + lx, y = ey + ly;
-        if (happy) { ctx.beginPath(); ctx.arc(ex, y + er * 0.6, er * 1.2, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke(); }
+        if (happy && !st.sleepy) { ctx.beginPath(); ctx.arc(ex, y + er * 0.6, er * 1.2, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke(); }
+        else if (yawning) {
+          // ojos apretados "> <"
+          const tip = ex - s * er * 0.6, arm = ex + s * er;
+          ctx.beginPath(); ctx.moveTo(arm, y - er * 0.8); ctx.lineTo(tip, y); ctx.lineTo(arm, y + er * 0.8); ctx.stroke();
+        }
         else if (st.sleepy || blinking) { ctx.beginPath(); ctx.arc(ex, y - er * 0.4, er * 1.1, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke(); }
-        else {
-          ctx.beginPath(); ctx.arc(ex, y, er, 0, Math.PI * 2); ctx.fill();
+        else if (st.drowsy) {
+          // ojitos a media asta: solo la mitad de abajo y un párpado recto
+          ctx.beginPath(); ctx.arc(ex, y, er, 0, Math.PI); ctx.closePath(); ctx.fill();
+          ctx.lineWidth = Math.max(1.2, R * 0.04);
+          ctx.beginPath(); ctx.moveTo(ex - er * 1.4, y - er * 0.15); ctx.lineTo(ex + er * 1.4, y - er * 0.15); ctx.stroke();
+          ctx.lineWidth = Math.max(1.4, R * 0.055);
+        } else {
+          ctx.beginPath(); ctx.arc(ex, y, er * (1 + 0.15 * st.alert), 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex + er * 0.35, y - er * 0.35, er * 0.32, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = INK;
         }
       });
-      // boca ":3" (ω)
       const my = cy + R * 0.05 + ly, mw = R * 0.12;
       ctx.lineWidth = Math.max(1.1, R * 0.028);
+      if (yawning) {
+        // bostezo: boquita en "o"
+        const k = Math.sin(Math.min(1, (st.yawnUntil - now) / 1600) * Math.PI);
+        ctx.fillStyle = '#7a3448';
+        ctx.beginPath(); ctx.ellipse(cx, my + R * 0.04, R * 0.07, R * (0.04 + 0.08 * k), 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = INK;
+        return;
+      }
+      // boca ":3" (ω)
       ctx.beginPath();
       ctx.arc(cx - mw / 2 + lx, my, mw / 2, Math.PI, 0, true);
       ctx.arc(cx + mw / 2 + lx, my, mw / 2, Math.PI, 0, true);
       ctx.stroke();
+    }
+
+    function drawSymbol(g, now) {
+      const sy = st.symbol;
+      if (!sy || now > sy.until || fit === 'icon') return;
+      const k = 1 - (sy.until - now) / 1800;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (1 - k) * 2.5);
+      ctx.fillStyle = sy.ch === '!' ? '#ffb020' : '#7fb6ff';
+      ctx.font = `800 ${Math.round(g.R * 0.42)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(sy.ch, g.cx + g.R * 0.95, g.cy - g.R * (0.85 + k * 0.25));
+      ctx.restore();
     }
 
     function frame(now) {
@@ -248,6 +293,7 @@
       drawFace(g, now);
       drawEquip('faceOver', g);
       drawEquip('front', g);
+      drawSymbol(g, now);
       // corazones y destellos al comer tareas
       for (const p of st.particles) {
         p.life++; p.x += p.vx; p.y += p.vy; p.vy *= 0.985;
@@ -266,7 +312,7 @@
         ctx.fillText('z', g.cx + g.R * 0.85 + z * g.R * 0.3, g.cy - g.R * (0.9 + z * 0.6));
         ctx.globalAlpha = 1;
       }
-      if (!reduce || st.particles.length || now < st.happyUntil) raf = requestAnimationFrame(frame);
+      if (!reduce || st.particles.length || now < st.happyUntil || (st.symbol && now < st.symbol.until)) raf = requestAnimationFrame(frame);
     }
 
     function kick() { if (!raf) raf = requestAnimationFrame(frame); }
@@ -292,6 +338,7 @@
         if (fit !== 'icon') spawnHearts(geometry(), Math.round(3 + (strength || 0.6) * 4));
         kick();
       },
+      pop(ch) { st.symbol = { ch, until: performance.now() + 1800 }; kick(); },
       center() {
         const r = canvas.getBoundingClientRect(); const g = geometry();
         return [r.left + g.cx, r.top + g.cy + g.R * 0.5];

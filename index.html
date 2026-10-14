@@ -116,7 +116,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .scene .lf { fill: var(--leaf); } .scene .pt { fill: var(--pot); } .scene .lt { fill: var(--lamp); }
 .scene .ln { stroke: var(--prop-2); fill: none; stroke-linecap: round; }
 .scene .sh { fill: rgba(20,12,30,.18); }
-.win { top: 9%; left: 7%; width: clamp(120px, 17vw, 210px); }
+.win { top: 12%; left: 7%; width: clamp(120px, 17vw, 210px); }
 .shelf { top: 15%; right: 6%; width: clamp(150px, 22vw, 270px); }
 .desk { position: absolute; left: 0; right: 0; bottom: 0; height: 22%; }
 .desk-top { position: absolute; left: 0; right: 0; top: 0; height: 42%;
@@ -136,9 +136,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .twinkle { animation: twinkle 3s ease-in-out infinite; }
 .twinkle:nth-of-type(2n) { animation-delay: 1.4s; }
 @keyframes twinkle { 50% { opacity: calc(var(--star-op) * .3); } }
-#pet { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; z-index: 1; }
+#pet { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; z-index: 2; }
 
-.hud { position: absolute; z-index: 2; top: 14px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; pointer-events: none; }
+.hud { position: absolute; z-index: 3; top: 14px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; pointer-events: none; }
 .hud > * { pointer-events: auto; }
 .who { display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 6px; border-radius: 14px; background: color-mix(in srgb, var(--surface) 78%, transparent); border: 1px solid var(--line); backdrop-filter: blur(6px); }
 #h-level { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--ember); color: var(--ember-ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ember) 30%, transparent); }
@@ -157,7 +157,7 @@ button.chip { cursor: pointer; }
 .chip.ready { border-color: var(--ember); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ember) 25%, transparent); }
 
 /* Nube de pensamiento */
-.thought { position: absolute; z-index: 2; left: 50%; top: 30%; transform: translateX(-50%); width: min(340px, calc(100% - 48px)); display: flex; justify-content: center; pointer-events: none; }
+.thought { position: absolute; z-index: 3; left: 50%; top: 30%; transform: translateX(-50%); width: min(340px, calc(100% - 48px)); display: flex; justify-content: center; pointer-events: none; }
 .bubble { position: relative; background: var(--paper); color: #2b2530; border-radius: 26px; padding: 10px 18px; font-size: 14.5px; line-height: 1.35; text-align: center; box-shadow: 0 6px 18px rgba(20,12,30,.18); transition: opacity .25s ease; max-width: 100%; text-wrap: balance; }
 .bubble.fade { opacity: 0; }
 .bubble:empty { display: none; }
@@ -165,8 +165,27 @@ button.chip { cursor: pointer; }
 .bubble::before { width: 14px; height: 14px; left: 44%; bottom: -16px; }
 .bubble::after { width: 8px; height: 8px; left: 49%; bottom: -30px; }
 
+.bubble .tq { display: block; }
+.bubble.asking { pointer-events: auto; padding-bottom: 12px; }
+.replies { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 8px; }
+.replies button { border: 0; border-radius: 99px; padding: 6px 12px; font: 600 13px/1 var(--f-body); background: #f1e6ee; color: #5a2a43; }
+.replies button:first-child { background: var(--ember); color: var(--ember-ink); }
+.replies button:hover { filter: brightness(1.05); }
+
+/* El cielo de la ventana sigue la hora real; de noche la pieza se oscurece y la lámpara manda. */
+.room[data-sky="day"] { --sky-top: #8fc6f2; --sky-bot: #d8ecfa; --orb: #ffd76a; --star-op: 0; --hill: #9cc79a; }
+.room[data-sky="dawn"] { --sky-top: #9db7e8; --sky-bot: #ffd1b0; --orb: #ffe08a; --star-op: .25; --hill: #8a9fb8; }
+.room[data-sky="dusk"] { --sky-top: #5b5aa8; --sky-bot: #ff9f7a; --orb: #ffcf7a; --star-op: .3; --hill: #5a4f78; }
+.room[data-sky="night"] { --sky-top: #0e1630; --sky-bot: #2c3a66; --orb: #f4f1d8; --star-op: 1; --hill: #141b33; }
+.room::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: rgba(8,10,30,.0); transition: background 1.5s ease; }
+.room[data-phase="winddown"]::before { background: rgba(8,10,30,.14); }
+.room[data-phase="sleep"]::before { background: rgba(8,10,30,.34); }
+.room[data-phase="sleep"] .lampglow, .room[data-phase="winddown"] .lampglow { opacity: 1; filter: saturate(1.3); }
+.lampglow { opacity: .8; }
+.room[data-phase="peak"] .lampglow, .room[data-phase="peak2"] .lampglow { opacity: .45; }
+
 /* Barra de experiencia */
-.xpbar { position: absolute; z-index: 2; left: 50%; bottom: max(12px, calc(22% * .22)); transform: translateX(-50%); width: min(560px, calc(100% - 32px)); height: 24px; border-radius: 99px; background: color-mix(in srgb, #000 35%, var(--wood-2)); box-shadow: inset 0 2px 4px rgba(0,0,0,.35), 0 1px 0 color-mix(in srgb, var(--wood-hi) 50%, transparent); overflow: hidden; }
+.xpbar { position: absolute; z-index: 3; left: 50%; bottom: max(12px, calc(22% * .22)); transform: translateX(-50%); width: min(560px, calc(100% - 32px)); height: 24px; border-radius: 99px; background: color-mix(in srgb, #000 35%, var(--wood-2)); box-shadow: inset 0 2px 4px rgba(0,0,0,.35), 0 1px 0 color-mix(in srgb, var(--wood-hi) 50%, transparent); overflow: hidden; }
 #xp-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: linear-gradient(180deg, color-mix(in srgb, #fff 30%, var(--ember)), var(--ember)); box-shadow: inset 0 -2px 0 rgba(0,0,0,.12); transition: width .6s ease; }
 #xp-pct { position: absolute; inset: 0; display: grid; place-items: center; font: 800 12.5px/1 var(--f-display); letter-spacing: .04em; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.55); font-variant-numeric: tabular-nums; }
 
@@ -534,6 +553,13 @@ body.can-ask .ask { display: grid; gap: 6px; }
         <tr><td><b>STA</b> estamina: +20 por tarea de hoy</td><td>0–100</td></tr>
       </tbody></table>
       <p class="muted" style="font-size:13px;margin:10px 0 0">Cada nivel pide más que el anterior (60, 170, 312, 480…). Crece y cambia de título en los niveles 2, 4, 6, 9 y 12: Semilla, Bolita, Pompón, Nube, Luna y Estrella.</p>
+    </div>
+    <div class="panel">
+      <h3>Su día</h3>
+      <p class="muted" style="font-size:13.5px;margin:0">Mochi sigue un ritmo de sueño sano, con la hora de tu dispositivo:
+        duerme de 23:00 a 7:00, despierta lento y con bostezos, está más despierto y preguntón entre 9 y 13 y entre 15 y 19,
+        le baja el sueñito después de almuerzo y se va calmando de noche. Con poca vida (HP) o mucho trabajo en el día, se cansa antes;
+        con el maná (MP) alto, pregunta más.</p>
     </div>
     <div class="panel"><div class="row"><span>Guardado</span><span class="muted" data-sync>Guardado en este navegador</span></div></div>
     <div class="panel">

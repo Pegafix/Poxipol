@@ -5,6 +5,7 @@ Carga tus guías de desarrollo en PDF (formato "Hoja de ruta paso a paso & integ
 ## Pantallas
 
 - **Inicio**: el personaje en su escritorio (ventana con día o noche según el tema, repisa, lámpara, cuaderno, taza y planta). Piensa en voz alta cosas simples sobre aprender, curiosidades de la vida y ganas de mejorar. Arriba, el nivel con **HP** (baja si pasas días sin avanzar), **MP** (sube al aprender con Claude hoy) y **STA** (sube con cada tarea de hoy), más racha, energía, diarias y combo como símbolos. Abajo, la barra de experiencia con su porcentaje.
+  - **Su día**: sigue un ritmo de sueño sano según la hora. Duerme de 23:00 a 7:00 (ojos cerrados, "z", pieza a oscuras), despierta lento y bosteza, está más despierto y preguntón a media mañana y a media tarde, le da sueñito después de almuerzo y se calma de noche. La ventana muestra amanecer, día, atardecer o noche. Algunas preguntas son para ti y traen botones para responderle.
 - **Misiones**: tres misiones diarias que cambian cada día y se reclaman por energía, y la lista de misiones principales (una por PDF). Al abrir una ves todo lo de la guía: fases, campos, tareas, prompts, cronómetro y registro.
 - **Equipo**: 14 piezas en 5 ranuras (cabeza, cara, cuello, base, aura) que se desbloquean avanzando. Cada una se ve sobre el personaje y da un bono de energía mientras la llevas puesta. También muestra los atributos y los últimos 28 días.
 - **Menú**: nombre del compañero, tema, sonido, reglas de la energía y reinicio.
