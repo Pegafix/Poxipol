@@ -5,7 +5,7 @@ import type { Process } from '../domain/crafting.js';
 
 export interface ItemDef { id: string; kind: 'material' | 'food' | 'jewel' | 'cosmetic'; name: string; slot?: string; infinite?: boolean; effect?: Record<string, unknown> }
 export interface RecipeDef { ingredients: string[]; process: Process; kind: 'mat' | 'food' | 'exp' | 'jewel'; out?: string; name: string; fact: string }
-export interface SkillDef { slug: string; parent?: string; kind: 'branch' | 'skill'; title: string; description?: string; cost?: number; requires?: string[] }
+export interface SkillDef { slug: string; parent?: string; kind: 'branch' | 'skill'; title: string; description?: string; cost?: number; requires?: string[]; uses?: Record<string, number> }
 
 const mat = (id: string, name: string, extra: Partial<ItemDef> = {}): ItemDef => ({ id, kind: 'material', name, ...extra });
 export const ITEMS: ItemDef[] = [
@@ -78,27 +78,27 @@ export const RECIPES: RecipeDef[] = [
 // "Gran Árbol de Habilidades Humanas" (semilla). Crece agregando filas; el código no cambia.
 export const SKILLS: SkillDef[] = [
   { slug: 'ciencias', kind: 'branch', title: 'Ciencias' },
-  { slug: 'quimica_basica', parent: 'ciencias', kind: 'skill', title: 'Química básica', description: 'Ácidos, bases y mezclas.' },
-  { slug: 'metalurgia', parent: 'quimica_basica', kind: 'skill', title: 'Metalurgia', description: 'Fundir y alear metales.', cost: 2 },
-  { slug: 'orfebreria', parent: 'metalurgia', kind: 'skill', title: 'Orfebrería', description: 'Forjar joyas.', cost: 2 },
-  { slug: 'vidrieria', parent: 'metalurgia', kind: 'skill', title: 'Vidriería', description: 'Vidrio y cuentas.', cost: 2 },
+  { slug: 'quimica_basica', parent: 'ciencias', kind: 'skill', title: 'Química básica', description: 'Ácidos, bases y mezclas.', uses: { analisis_critico: 0.5, logica: 0.3, memoria_trabajo: 0.2 } },
+  { slug: 'metalurgia', parent: 'quimica_basica', kind: 'skill', title: 'Metalurgia', description: 'Fundir y alear metales.', cost: 2, uses: { agilidad_manual: 0.4, analisis_critico: 0.3, logica: 0.3 } },
+  { slug: 'orfebreria', parent: 'metalurgia', kind: 'skill', title: 'Orfebrería', description: 'Forjar joyas.', cost: 2, uses: { agilidad_manual: 0.7, analisis_critico: 0.3 } },
+  { slug: 'vidrieria', parent: 'metalurgia', kind: 'skill', title: 'Vidriería', description: 'Vidrio y cuentas.', cost: 2, uses: { agilidad_manual: 0.6, analisis_critico: 0.4 } },
   { slug: 'cocina', kind: 'branch', title: 'Cocina' },
-  { slug: 'coccion', parent: 'cocina', kind: 'skill', title: 'Cocción', description: 'Calentar con criterio.' },
-  { slug: 'horneado', parent: 'coccion', kind: 'skill', title: 'Horneado', description: 'Pan y cerámica.' },
-  { slug: 'fermentacion', parent: 'horneado', kind: 'skill', title: 'Fermentación', description: 'Levaduras y tiempos.', cost: 2, requires: ['quimica_basica'] },
+  { slug: 'coccion', parent: 'cocina', kind: 'skill', title: 'Cocción', description: 'Calentar con criterio.', uses: { agilidad_manual: 0.5, memoria_trabajo: 0.3, analisis_critico: 0.2 } },
+  { slug: 'horneado', parent: 'coccion', kind: 'skill', title: 'Horneado', description: 'Pan y cerámica.', uses: { agilidad_manual: 0.4, memoria_trabajo: 0.3, analisis_critico: 0.3 } },
+  { slug: 'fermentacion', parent: 'horneado', kind: 'skill', title: 'Fermentación', description: 'Levaduras y tiempos.', cost: 2, requires: ['quimica_basica'], uses: { analisis_critico: 0.5, logica: 0.3, memoria_trabajo: 0.2 } },
   { slug: 'comunicacion', kind: 'branch', title: 'Comunicación' },
-  { slug: 'escucha_activa', parent: 'comunicacion', kind: 'skill', title: 'Escucha activa' },
-  { slug: 'validar_emociones', parent: 'escucha_activa', kind: 'skill', title: 'Validar emociones' },
-  { slug: 'limites_con_carino', parent: 'validar_emociones', kind: 'skill', title: 'Límites con cariño', cost: 2 },
-  { slug: 'reparacion', parent: 'limites_con_carino', kind: 'skill', title: 'Reparar después de un roce', cost: 2 },
+  { slug: 'escucha_activa', parent: 'comunicacion', kind: 'skill', title: 'Escucha activa', uses: { empatia: 0.6, enfoque: 0.4 } },
+  { slug: 'validar_emociones', parent: 'escucha_activa', kind: 'skill', title: 'Validar emociones', uses: { empatia: 0.7, metacognicion: 0.3 } },
+  { slug: 'limites_con_carino', parent: 'validar_emociones', kind: 'skill', title: 'Límites con cariño', cost: 2, uses: { empatia: 0.5, metacognicion: 0.3, tolerancia_frustracion: 0.2 } },
+  { slug: 'reparacion', parent: 'limites_con_carino', kind: 'skill', title: 'Reparar después de un roce', cost: 2, uses: { empatia: 0.5, resiliencia: 0.3, metacognicion: 0.2 } },
   { slug: 'tecnologia', kind: 'branch', title: 'Tecnología' },
-  { slug: 'logica', parent: 'tecnologia', kind: 'skill', title: 'Lógica' },
-  { slug: 'programacion', parent: 'logica', kind: 'skill', title: 'Programación' },
-  { slug: 'game_dev', parent: 'programacion', kind: 'skill', title: 'Desarrollo de juegos', cost: 2 },
-  { slug: 'audio_juegos', parent: 'game_dev', kind: 'skill', title: 'Audio para juegos', cost: 2, requires: ['escucha_activa'] },
+  { slug: 'logica', parent: 'tecnologia', kind: 'skill', title: 'Lógica', uses: { logica: 0.7, memoria_trabajo: 0.3 } },
+  { slug: 'programacion', parent: 'logica', kind: 'skill', title: 'Programación', uses: { logica: 0.5, memoria_trabajo: 0.3, analisis_critico: 0.2 } },
+  { slug: 'game_dev', parent: 'programacion', kind: 'skill', title: 'Desarrollo de juegos', cost: 2, uses: { logica: 0.4, analisis_critico: 0.3, memoria_trabajo: 0.3 } },
+  { slug: 'audio_juegos', parent: 'game_dev', kind: 'skill', title: 'Audio para juegos', cost: 2, requires: ['escucha_activa'], uses: { analisis_critico: 0.4, enfoque: 0.3, agilidad_manual: 0.3 } },
   { slug: 'cuidado', kind: 'branch', title: 'Cuidado personal' },
-  { slug: 'sueno', parent: 'cuidado', kind: 'skill', title: 'Higiene del sueño' },
-  { slug: 'pausas', parent: 'cuidado', kind: 'skill', title: 'Pausas activas' }
+  { slug: 'sueno', parent: 'cuidado', kind: 'skill', title: 'Higiene del sueño', uses: { resiliencia: 0.6, metacognicion: 0.4 } },
+  { slug: 'pausas', parent: 'cuidado', kind: 'skill', title: 'Pausas activas', uses: { enfoque: 0.6, resiliencia: 0.4 } }
 ];
 
 // De qué familia salen materiales al completar tareas.
@@ -111,3 +111,8 @@ export const REWARD_POOLS: Record<'build' | 'claude' | 'create' | 'test' | 'phas
 };
 export const STARTER_KIT: Record<string, number> = { limon: 1, azucar: 2, harina: 2, levadura: 1, manzanilla: 1, leche: 1 };
 export const FAMILY_OF_TAG: Record<string, 'build' | 'claude' | 'test'> = { UNITY: 'build', CLAUDE: 'claude', PRUEBA: 'test' };
+
+// Qué habilidad se practica al completar una tarea de una misión, según su tipo.
+export const TASK_PRACTICE: Record<'build' | 'claude' | 'create' | 'test', string> = { build: 'programacion', claude: 'logica', create: 'game_dev', test: 'game_dev' };
+// Qué habilidad se practica al trabajar con cada proceso del taller.
+export const CRAFT_PRACTICE: Record<string, string> = { frio: 'quimica_basica', calentar: 'coccion', hornear: 'horneado', fundir: 'metalurgia', forjar: 'orfebreria' };

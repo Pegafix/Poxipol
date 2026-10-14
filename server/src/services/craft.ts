@@ -5,8 +5,10 @@ import { hasSkill } from '../repos/skills.js';
 import { bumpRev, type Change } from '../repos/sync.js';
 import { runCommand, type Deps } from './context.js';
 import type { PetService } from './pet.js';
+import type { LearningService } from './learning.js';
+import { CRAFT_PRACTICE } from '../catalog/catalog.js';
 
-export function craftService(deps: Deps, pet: PetService) {
+export function craftService(deps: Deps, pet: PetService, learning: LearningService) {
   return {
     // Mezclar: valida habilidad del proceso, bloquea y descuenta materiales, busca la receta por clave
     // y registra el intento. Todo en una transacción: o pasa completo o no pasa nada.
@@ -39,11 +41,15 @@ export function craftService(deps: Deps, pet: PetService) {
           if (isNew) changes.push({ entity: 'discovery', id: key, op: 'upsert' });
         }
         await inv.logCraft(c, userId, recipe?.id ?? null, key, !!recipe);
+        // Hacer es practicar: el proceso entrena su habilidad, salga o no la receta.
+        const practiced = await learning.recordPractice(c, userId, {
+          skill: CRAFT_PRACTICE[process]!, outcome: recipe ? 'success' : 'fail', difficulty: 2 + ingredients.length, durationMin: 15, reflected: false, source: 'craft'
+        }, changes);
         const rev = await bumpRev(c, userId, changes);
         // El dato real y el nombre solo viajan cuando la mezcla funciona: la API no revela recetas.
         const body = recipe
-          ? { success: true, isNew, kind: recipe.kind, name: recipe.outputName, output: recipe.outputItem, fact: recipe.fact, rev }
-          : { success: false, isNew: false, message: FAIL_TEXT[process], rev };
+          ? { success: true, isNew, kind: recipe.kind, name: recipe.outputName, output: recipe.outputItem, fact: recipe.fact, practice: practiced, rev }
+          : { success: false, isNew: false, message: FAIL_TEXT[process], practice: practiced, rev };
         return { status: 200, body };
       });
       await pet.published(userId, res.body.rev);

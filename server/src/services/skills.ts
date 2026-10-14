@@ -37,8 +37,7 @@ export function skillService(deps: Deps, pet: PetService) {
         await c.query('select 1 from pet_state where user_id = $1 for update', [userId]); // serializa desbloqueos del mismo usuario
         if (await skills.hasSkill(c, userId, slug)) return { status: 200, body: { slug, alreadyUnlocked: true, rev: null as number | null } };
         const missing = await skills.missingRequirements(c, userId, node.id);
-        if (missing.length) throw errors.rule('SKILL_LOCKED', 'Primero necesitas otras habilidades.', { missing });
-        if (!(await skills.spendSkillPoints(c, userId, node.cost))) throw errors.rule('NOT_ENOUGH_SKILL_POINTS', `Necesitas ${node.cost} punto(s) de habilidad. Se ganan subiendo de nivel.`, { cost: node.cost });
+        if (missing.length) throw errors.rule('SKILL_LOCKED', 'Todavía no: primero practica más las habilidades anteriores.', { missing });
         await skills.insertUserSkill(c, userId, node.id);
         const rev = await bumpRev(c, userId, [{ entity: 'skill', id: slug, op: 'upsert' }, { entity: 'pet', id: userId, op: 'upsert' }]);
         return { status: 201, body: { slug, alreadyUnlocked: false, rev } };

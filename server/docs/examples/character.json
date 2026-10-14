@@ -1,0 +1,165 @@
+{
+  "data": {
+    "attributes": {
+      "cognitive": [
+        {
+          "id": "logica",
+          "group": "cognitive",
+          "name": "Razonamiento lógico",
+          "level": 1,
+          "progress": 27.3,
+          "need": 30,
+          "consolidatedLevel": 1,
+          "reps": 12,
+          "basis": "Razonamiento fluido y solución de problemas. Mejora con práctica en un dominio concreto: el experto razona mejor en lo suyo.",
+          "caveat": "Los \"juegos de entrenamiento cerebral\" casi no transfieren a otros dominios (Sala y Gobet, 2017). Aquí solo sube practicando cosas reales."
+        },
+        {
+          "id": "memoria_trabajo",
+          "group": "cognitive",
+          "name": "Memoria de trabajo",
+          "level": 1,
+          "progress": 11.7,
+          "need": 30,
+          "consolidatedLevel": 1,
+          "reps": 12,
+          "basis": "La \"pizarra mental\" de pocos elementos (modelo de Baddeley y Hitch). Su capacidad bruta casi no cambia; lo que crece es cuánto cabe en cada elemento: los expertos agrupan información en bloques (chunking, Chase y Simon).",
+          "caveat": "Entrenarla aislada transfiere poco (Melby-Lervåg y Hulme, 2013). Por eso es el atributo que sube más lento."
+        },
+        {
+          "id": "agilidad_manual",
+          "group": "cognitive",
+          "name": "Agilidad manual",
+          "level": 1,
+          "progress": 0,
+          "need": 30,
+          "consolidatedLevel": 1,
+          "reps": 0,
+          "basis": "Aprendizaje motor: mejora rápido al principio y cada vez más lento (ley potencial de la práctica, Newell y Rosenbloom). Se consolida durmiendo (Walker y colaboradores)."
+        },
+        {
+          "id": "analisis_critico",
+          "group": "cognitive",
+          "name": "Análisis crítico",
+          "level": 1,
+          "progress": 0.2,
+          "need": 30,
+          "consolidatedLevel": 1,
+          "reps": 2,
+          "basis": "Evaluar evidencia y argumentos. Mejora con práctica explícita y retroalimentación (metaanálisis de Abrami y colaboradores, 2015)."
+        }
+      ],
+      "emotional": [
+        {
+          "id": "tolerancia_frustracion",
+          "group": "emotional",
+          "name": "Tolerancia a la frustración",
+          "level": 1,
+          "progress": 2,
+          "need": 30,
+          "consolidatedLevel": 1,
+          "reps": 1,
+          "basis": "Capacidad de seguir ante el error sin abandonar (tolerancia al malestar, Linehan). Se entrena justamente fallando y volviendo a intentar."
+        },
+        {
+          "id": "resiliencia",
+          "group": "emotional",
+          "name": "Resiliencia",
+          "level": 1,
+          "progress": 0,
+          "need": 30,
+          "consolidatedLevel": 1,
+          "reps": 0,
+          "basis": "Recuperarse después de un mal momento. Es común y se construye con recursos cotidianos: \"magia ordinaria\" (Masten). Aquí crece al volver después de una racha rota o de un agotamiento."
+        },
+        {
+          "id": "empatia",
+          "group": "emotional",
+          "name": "Empatía",
+          "level": 1,
+          "progress": 0,
+          "need": 30,
+          "consolidatedLevel": 1,
+          "reps": 0,
+          "basis": "Uno de los pilares de la inteligencia emocional (Goleman). Se refleja en cómo tratas a Mochi y a la comunidad."
+        },
+        {
+          "id": "enfoque",
+          "group": "emotional",
+          "name": "Enfoque / atención sostenida",
+          "level": 2,
+          "progress": 15.4,
+          "need": 76,
+          "consolidatedLevel": 2,
+          "reps": 10,
+          "basis": "La atención sostenida decae con el tiempo (decremento de vigilancia, Mackworth). Pausas breves ayudan a mantenerla (Ariga y Lleras, 2011). Sube con sesiones enfocadas de 25 a 50 minutos."
+        },
+        {
+          "id": "metacognicion",
+          "group": "emotional",
+          "name": "Metacognición",
+          "level": 1,
+          "progress": 2,
+          "need": 30,
+          "consolidatedLevel": 1,
+          "reps": 1,
+          "basis": "Pensar sobre cómo aprendes y saber cuánto sabes (Flavell, 1979; aprendizaje autorregulado, Zimmerman). Sube al reflexionar y al calibrar: predecir la dificultad y comparar con lo que pasó."
+        }
+      ]
+    },
+    "skills": [
+      {
+        "slug": "quimica_basica",
+        "name": "Química básica",
+        "level": 1,
+        "progress": 0.8,
+        "need": 20,
+        "consolidatedLevel": 1,
+        "reps": 2,
+        "practiceDays": 1,
+        "stabilityDays": 2,
+        "lastPracticedAt": "2026-10-17T13:00:00.000Z",
+        "fading": null
+      },
+      {
+        "slug": "logica",
+        "name": "Lógica",
+        "level": 3,
+        "progress": 12,
+        "need": 129,
+        "consolidatedLevel": 2,
+        "reps": 10,
+        "practiceDays": 4,
+        "stabilityDays": 5.23,
+        "lastPracticedAt": "2026-10-17T13:00:00.000Z",
+        "fading": null
+      }
+    ],
+    "emotion": {
+      "frustration": 23,
+      "stamina": 58,
+      "staminaCap": 100,
+      "burnout": false,
+      "efficiency": 1,
+      "reasons": []
+    },
+    "persona": {
+      "traits": [
+        "distraído",
+        "sensible al error"
+      ]
+    },
+    "mochi": null,
+    "science": {
+      "practicaDeliberada": "Ericsson (1993): la práctica deliberada, con metas concretas, retroalimentación y en el borde de lo que puedes, es lo que más mejora el desempeño. Un metaanálisis (Macnamara, 2014) muestra que la práctica explica una parte importante, pero no toda, de las diferencias entre personas.",
+      "menteCrecimiento": "Dweck: creer que la habilidad se desarrolla favorece persistir. Los efectos medidos son reales pero modestos (Sisk, 2018; Yeager, 2019). Aquí no se \"premia creer\": se premia volver a intentar.",
+      "olvido": "Ebbinghaus (1885): lo aprendido se olvida rápido al principio y más lento después. Repasar espaciado aumenta la estabilidad del recuerdo (Cepeda, 2006).",
+      "dificultadDeseable": "Bjork: cierta dificultad (recordar, equivocarse, espaciar) hace más lento el avance de hoy pero más durable el aprendizaje. Los errores trabajados también enseñan (fracaso productivo, Kapur).",
+      "sueno": "El sueño consolida lo practicado en el día, tanto memoria como habilidades motoras (Diekelmann y Born, 2010). Dormir mal reduce esa consolidación.",
+      "agotamiento": "Maslach: el agotamiento (burnout) aparece con esfuerzo sostenido sin recuperación. En ese estado aprender rinde muy poco, y lo sensato es descansar."
+    }
+  },
+  "meta": {
+    "serverTime": "2026-10-14T16:45:48.203Z"
+  }
+}

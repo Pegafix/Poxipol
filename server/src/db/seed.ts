@@ -36,11 +36,11 @@ export async function seed(databaseUrl: string): Promise<void> {
       const p = s.parent ? `${pathOf.get(s.parent)}.${s.slug}` : s.slug;
       pathOf.set(s.slug, p);
       await c.query(
-        `insert into skill_nodes (slug, parent_id, path, kind, title, description, cost)
-         values ($1, (select id from skill_nodes where slug = $2), $3::ltree, $4, $5, $6, $7)
+        `insert into skill_nodes (slug, parent_id, path, kind, title, description, cost, attr_weights)
+         values ($1, (select id from skill_nodes where slug = $2), $3::ltree, $4, $5, $6, $7, $8)
          on conflict (slug) do update set parent_id = excluded.parent_id, path = excluded.path, kind = excluded.kind,
-           title = excluded.title, description = excluded.description, cost = excluded.cost`,
-        [s.slug, s.parent ?? null, p, s.kind, s.title, s.description ?? '', s.cost ?? (s.kind === 'branch' ? 0 : 1)]
+           title = excluded.title, description = excluded.description, cost = excluded.cost, attr_weights = excluded.attr_weights`,
+        [s.slug, s.parent ?? null, p, s.kind, s.title, s.description ?? '', s.cost ?? (s.kind === 'branch' ? 0 : 1), JSON.stringify(s.uses ?? {})]
       );
     }
     for (const s of SKILLS) {

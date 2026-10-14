@@ -52,7 +52,7 @@ El tipo de tarea que más haces da color a los destellos que salen al tachar (az
 
 ## Backend
 
-La carpeta `server/` tiene la API multiplataforma (escritorio, móvil y web): PostgreSQL con árbol de habilidades en `ltree`, estado del compañero calculado por marcas de tiempo, sincronización por revisiones, comandos idempotentes y errores con códigos estables. Ver `server/README.md`.
+La carpeta `server/` tiene la API multiplataforma (escritorio, móvil y web): PostgreSQL con árbol de habilidades en `ltree`, estado del compañero calculado por marcas de tiempo, sincronización por revisiones, comandos idempotentes y errores con códigos estables. Ver `server/README.md`. El sistema de aprendizaje (atributos cognitivos y emocionales, progreso por uso estilo Final Fantasy II, curva del olvido y burnout) está en `server/docs/LEARNING.md`.
 
 ## Archivos
 

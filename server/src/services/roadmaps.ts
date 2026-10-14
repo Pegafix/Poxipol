@@ -1,6 +1,6 @@
 import { errors } from '../http/errors.js';
 import { levelOf, localTime, nextStreak, taskXp, type Effect } from '../domain/pet.js';
-import { FAMILY_OF_TAG, REWARD_POOLS } from '../catalog/catalog.js';
+import { FAMILY_OF_TAG, REWARD_POOLS, TASK_PRACTICE } from '../catalog/catalog.js';
 import * as rm from '../repos/roadmaps.js';
 import * as petRepo from '../repos/pet.js';
 import * as inv from '../repos/inventory.js';
@@ -10,12 +10,14 @@ import { bumpRev, type Change } from '../repos/sync.js';
 import { parseRoadmapPdf } from '../infra/pdf.js';
 import { runCommand, sha256, type Deps } from './context.js';
 import type { PetService } from './pet.js';
+import type { LearningService } from './learning.js';
+import { hasSkill } from '../repos/skills.js';
 
 export const familyOf = (tag: string) => FAMILY_OF_TAG[tag] ?? 'create';
 
 function hashInt(s: string) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 
-export function roadmapService(deps: Deps, pet: PetService) {
+export function roadmapService(deps: Deps, pet: PetService, learning: LearningService) {
   return {
     list: (userId: string) => rm.listRoadmaps(deps.db.pool, userId),
     async get(userId: string, id: string) {
@@ -31,7 +33,7 @@ export function roadmapService(deps: Deps, pet: PetService) {
         const task = await rm.taskForUser(c, userId, taskId);
         if (!task) throw errors.notFound('esa tarea');
         const p = (await petRepo.getPet(c, userId, true))!;
-        if (task.done_at) return { status: 200, body: { taskId, alreadyDone: true, xp: 0, multiplier: 1, reward: null as string | null, levelUp: false, skillPointsGained: 0, rev: null as number | null } };
+        if (task.done_at) return { status: 200, body: { taskId, alreadyDone: true, xp: 0, multiplier: 1, reward: null as string | null, levelUp: false, practice: null as unknown, rev: null as number | null } };
         const user = (await findUser(c, userId))!;
         const now = deps.now();
         const day = localTime(now, user.timezone).day;
@@ -59,10 +61,15 @@ export function roadmapService(deps: Deps, pet: PetService) {
           changes.push({ entity: 'inventory', id: reward, op: 'upsert' });
         }
         const before = levelOf(p.xpTotal).level, after = levelOf(p.xpTotal + xp).level;
-        await petRepo.applyProgress(c, userId, { xp, skillPoints: Math.max(0, after - before), activityAt: now, streakDays: streak, streakDay: day });
+        await petRepo.applyProgress(c, userId, { xp, skillPoints: 0, activityAt: now, streakDays: streak, streakDay: day });
         await petRepo.bumpDaily(c, userId, day, { tasks: 1, learn: task.family === 'claude' ? 1 : 0 });
+        // Learning by doing: la tarea entrena la habilidad de su tipo (si ya está a su alcance en el árbol).
+        const practiceSkill = TASK_PRACTICE[task.family as keyof typeof TASK_PRACTICE];
+        const practice = practiceSkill && (await hasSkill(c, userId, practiceSkill))
+          ? await learning.recordPractice(c, userId, { skill: practiceSkill, outcome: 'success', difficulty: 3, durationMin: 25, reflected: false, source: 'task' }, changes)
+          : null;
         const rev = await bumpRev(c, userId, changes);
-        return { status: 200, body: { taskId, alreadyDone: false, xp, multiplier, reward, levelUp: after > before, skillPointsGained: Math.max(0, after - before), rev } };
+        return { status: 200, body: { taskId, alreadyDone: false, xp, multiplier, reward, levelUp: after > before, practice, rev } };
       });
       if (res.body.rev) await pet.published(userId, res.body.rev);
       return { ...res, body: { ...res.body, pet: await pet.snapshot(userId) } };

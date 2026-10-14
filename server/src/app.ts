@@ -12,6 +12,8 @@ import { skillService } from './services/skills.js';
 import { craftService } from './services/craft.js';
 import { roadmapService } from './services/roadmaps.js';
 import { syncService } from './services/sync.js';
+import { learningService } from './services/learning.js';
+import { learningRoutes } from './http/routes/learning.js';
 import type { Deps } from './services/context.js';
 
 declare module 'fastify' {
@@ -21,9 +23,10 @@ declare module 'fastify' {
 
 export function buildServices(deps: Deps) {
   const pet = petService(deps);
+  const learning = learningService(deps, pet);
   return {
-    auth: authService(deps), pet, skills: skillService(deps, pet), craft: craftService(deps, pet),
-    roadmaps: roadmapService(deps, pet), sync: syncService(deps, pet)
+    auth: authService(deps), pet, learning, skills: skillService(deps, pet), craft: craftService(deps, pet, learning),
+    roadmaps: roadmapService(deps, pet, learning), sync: syncService(deps, pet)
   };
 }
 export interface App { app: FastifyInstance; services: ReturnType<typeof buildServices> }
@@ -61,5 +64,6 @@ export async function buildApp(opts: { config: Config; db: Db; cache: Cache; now
   });
   await app.register(authRoutes, { s: services });
   await app.register(gameRoutes, { s: services });
+  await app.register(learningRoutes, { s: services });
   return { app, services };
 }

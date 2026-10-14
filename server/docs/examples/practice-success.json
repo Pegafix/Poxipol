@@ -1,0 +1,63 @@
+{
+  "data": {
+    "skill": {
+      "slug": "logica",
+      "name": "Lógica",
+      "level": 3,
+      "progress": 12,
+      "need": 129,
+      "consolidatedLevel": 2,
+      "levelsUp": 1,
+      "repsToday": 1
+    },
+    "gain": {
+      "points": 12.74,
+      "factors": {
+        "outcome": 1,
+        "challenge": 0.97,
+        "spacing": 1,
+        "retrieval": 1.2,
+        "time": 1.1,
+        "efficiency": 1
+      },
+      "consolidatedOvernight": 2.9,
+      "forgotten": 0
+    },
+    "attributes": {
+      "logica": {
+        "gained": 3.57,
+        "level": 1
+      },
+      "memoria_trabajo": {
+        "gained": 1.53,
+        "level": 1
+      },
+      "enfoque": {
+        "gained": 4,
+        "level": 2
+      },
+      "metacognicion": {
+        "gained": 2,
+        "level": 1
+      }
+    },
+    "emotion": {
+      "frustration": 0,
+      "stamina": 89,
+      "burnout": false,
+      "enteredBurnout": false,
+      "efficiency": 1,
+      "reasons": []
+    },
+    "mochi": {
+      "key": "level_up",
+      "expression": "love",
+      "text": "¡Lógica subió a nivel 3! Llevamos 10 intentos en 4 días. Así se construye: de a poquito y sin parar."
+    },
+    "rev": 20
+  },
+  "meta": {
+    "serverTime": "2026-10-14T16:45:48.174Z",
+    "rev": 20
+  }
+}

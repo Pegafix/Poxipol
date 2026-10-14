@@ -188,18 +188,21 @@ test('paciencia de día: tierno, límite y pausa (422 con Retry-After)', async (
   assert.equal(reactions.at(-1), 'blocked');
 });
 
-test('árbol de habilidades: rama en una consulta, requisitos y puntos validados en el servidor', async () => {
+test('árbol de habilidades: rama en una consulta; se desbloquea por dominio practicado, no por nivel general', async () => {
   const t = await call('GET', '/v1/skills/tree?root=ciencias&depth=3', { token: desktop });
   assert.equal(t.status, 200);
   const slugs = t.body.data.nodes.map((n: { slug: string }) => n.slug);
   assert.deepEqual(slugs, ['ciencias', 'quimica_basica', 'metalurgia', 'orfebreria', 'vidrieria']);
   const locked = await call('POST', '/v1/skills/metalurgia/unlock', { token: desktop });
-  assert.equal(locked.status, 422); assert.equal(locked.body.error.code, 'SKILL_LOCKED'); assert.deepEqual(locked.body.error.details.missing, ['quimica_basica']);
-  await db.pool.query("update pet_state set skill_points = 0 where user_id = (select id from users where email = 'ana@example.com')");
-  const poor = await call('POST', '/v1/skills/coccion/unlock', { token: desktop });
-  assert.equal(poor.status, 422); assert.equal(poor.body.error.code, 'NOT_ENOUGH_SKILL_POINTS');
-  await db.pool.query("update pet_state set skill_points = 5 where user_id = (select id from users where email = 'ana@example.com')");
-  assert.equal((await call('POST', '/v1/skills/coccion/unlock', { token: desktop })).status, 201);
+  assert.equal(locked.status, 422); assert.equal(locked.body.error.code, 'SKILL_LOCKED');
+  assert.deepEqual(locked.body.error.details.missing, [{ skill: 'quimica_basica', needLevel: 3, level: 0 }]);
+  // Las habilidades de primera fila están abiertas desde el inicio: se pueden practicar sin desbloquear.
+  const p = await call('POST', '/v1/practice', { token: desktop, body: { skill: 'coccion', outcome: 'success', difficulty: 2, durationMin: 25 } });
+  assert.equal(p.status, 200);
+  const notYet = await call('POST', '/v1/skills/horneado/unlock', { token: desktop });
+  assert.equal(notYet.status, 422, 'un intento no alcanza para abrir la siguiente');
+  // Atajo de prueba: simular días de práctica de cocción hasta nivel 3.
+  await db.pool.query("update user_skill_progress set level = 3 where skill_id = (select id from skill_nodes where slug = 'coccion')");
   assert.equal((await call('POST', '/v1/skills/horneado/unlock', { token: mobile })).status, 201);
   const again = await call('POST', '/v1/skills/horneado/unlock', { token: desktop });
   assert.equal(again.status, 200); assert.equal(again.body.data.alreadyUnlocked, true);
@@ -239,4 +242,49 @@ test('mantenimiento: crea la partición del mes siguiente y es seguro repetirlo'
   await runMaintenance(db, new Date('2026-10-14T00:00:00Z'));
   const { rows } = await db.pool.query("select 1 from pg_tables where tablename = 'craft_log_2026_11'");
   assert.equal(rows.length, 1);
+});
+
+test('práctica estilo Final Fantasy II: rinde menos repetir lo mismo el mismo día, y fallar también suma', async () => {
+  const body = { skill: 'logica', outcome: 'success', difficulty: 2, durationMin: 25 };
+  const repsBefore = ((await call('GET', '/v1/character', { token: desktop })).body.data.skills.find((s: { slug: string }) => s.slug === 'logica')?.reps) ?? 0;
+  if (taskIds.length) assert.ok(repsBefore >= 1, 'completar una tarea de tipo CLAUDE ya practicó lógica');
+  const gains: number[] = [];
+  for (let i = 0; i < 5; i++) gains.push((await call('POST', '/v1/practice', { token: mobile, body })).body.data.gain.points);
+  for (let i = 1; i < gains.length; i++) assert.ok(gains[i]! < gains[i - 1]!, `rendimientos decrecientes: ${gains.join(' > ')}`);
+  const fail = await call('POST', '/v1/practice', { token: mobile, body: { ...body, outcome: 'fail', reflection: 'Me confundí con el orden de las condiciones' } });
+  assert.ok(fail.body.data.gain.points > 0, 'el error trabajado deja aprendizaje');
+  assert.ok(fail.body.data.attributes.metacognicion, 'reflexionar entrena la metacognición');
+  const ch = await call('GET', '/v1/character', { token: desktop });
+  const logica = ch.body.data.skills.find((s: { slug: string }) => s.slug === 'logica');
+  assert.equal(logica.reps, repsBefore + 6);
+  assert.ok(ch.body.data.attributes.cognitive.find((a: { id: string }) => a.id === 'logica').reps > 0, 'el atributo creció por usar la habilidad');
+});
+
+test('abandonar por frustración: Mochi valida, normaliza y propone una estrategia; tres abandonos llevan a agotamiento', async () => {
+  const hard = { skill: 'quimica_basica', outcome: 'abandon', difficulty: 9, durationMin: 20 };
+  const a1 = await call('POST', '/v1/practice', { token: desktop, body: hard });
+  assert.equal(a1.status, 200);
+  assert.ok(a1.body.data.mochi.strategy, `respuesta con estrategia: ${a1.body.data.mochi.key}`);
+  assert.doesNotMatch(a1.body.data.mochi.text, /culpa|flojo|no sirves/i);
+  await call('POST', '/v1/practice', { token: desktop, body: hard });
+  const a3 = await call('POST', '/v1/practice', { token: desktop, body: hard });
+  assert.equal(a3.body.data.emotion.burnout, true);
+  assert.equal(a3.body.data.mochi.key, 'burnout');
+  const tired = await call('POST', '/v1/practice', { token: desktop, body: { skill: 'logica', outcome: 'success', difficulty: 2, durationMin: 25 } });
+  assert.equal(tired.body.data.emotion.efficiency, 0.25, 'agotado, la práctica técnica rinde un cuarto');
+  const r = await call('POST', '/v1/rest', { token: desktop, body: { minutes: 30 } });
+  assert.equal(r.status, 200);
+  assert.ok(r.body.data.emotion.stamina > tired.body.data.emotion.stamina, 'descansar devuelve energía');
+});
+
+test('curva del olvido: semanas sin practicar bajan un poco la barra, nunca los niveles consolidados', async () => {
+  const before = (await call('GET', '/v1/character', { token: desktop })).body.data.skills.find((s: { slug: string }) => s.slug === 'logica');
+  await travel(new Date(clock.getTime() + 21 * 86_400_000).toISOString());
+  const ch = (await call('GET', '/v1/character', { token: desktop })).body.data;
+  const after = ch.skills.find((s: { slug: string }) => s.slug === 'logica');
+  assert.ok(after.level >= before.consolidatedLevel);
+  assert.ok(after.consolidatedLevel >= before.level, 'la noche consolidó el nivel alcanzado');
+  assert.ok(after.fading && after.fading.pointsLost > 0, 'se olvidó un poco');
+  assert.equal(ch.mochi.key, 'forgetting');
+  assert.equal(ch.emotion.burnout, false, 'con días de descanso salió del agotamiento');
 });

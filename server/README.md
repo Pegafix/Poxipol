@@ -8,7 +8,7 @@ Backend único para los clientes de escritorio, móvil y web de Mochi Roadmap. T
 cp .env.example .env          # ajusta DATABASE_URL, REDIS_URL y JWT_SECRET
 npm install
 npm start                     # migra, carga el catálogo, levanta la API y el worker de PDFs
-npm test                      # 23 pruebas: dominio + integración contra Postgres y Redis reales
+npm test                      # 36 pruebas: dominio, aprendizaje + integración contra Postgres y Redis reales
 ```
 
 Las pruebas de integración usan `TEST_PG_ADMIN` (por defecto `postgres://postgres@127.0.0.1:5433/postgres`) y `TEST_REDIS`. Cada corrida crea y borra su propia base. Con `TEST_PDF=/ruta/guia.pdf` también prueban la importación real de un PDF.
@@ -41,7 +41,7 @@ El lector de PDF es **el mismo archivo** que usa el cliente (`../src/parser.js`)
 
 ## 2. Base de datos
 
-El esquema está en `db/migrations/001_init.sql` y tiene seis grupos separados:
+El esquema está en `db/migrations/001_init.sql` (más `002_learning.sql` para el aprendizaje) y tiene seis grupos separados:
 
 | Grupo | Tablas | Naturaleza |
 | --- | --- | --- |
@@ -73,7 +73,7 @@ Nested Loop Left Join
 Execution Time: 4.9 ms
 ```
 
-Desbloquear una habilidad es una transacción que hace todo esto: bloquea la fila del usuario, valida los requisitos, descuenta los puntos con un `UPDATE … WHERE skill_points >= cost` e inserta en `user_skills`.
+Desbloquear una habilidad **no cuesta puntos**: se gana practicando (estilo Final Fantasy II). La habilidad padre tiene que estar en nivel 3 y cada prerrequisito cruzado en nivel 2; la primera fila de cada rama está abierta desde el comienzo. La transacción bloquea la fila del usuario, valida la competencia con `missingRequirements` (que devuelve `[{skill, needLevel, level}]`) e inserta en `user_skills`.
 
 ## 3. Sincronización entre dispositivos
 
@@ -129,7 +129,7 @@ Todo error tiene la misma forma:
 | 409 | `VERSION_CONFLICT`, `ALREADY_EXISTS` | Usar `details.current` y volver a intentar |
 | 410 | `SYNC_CURSOR_EXPIRED` | Pedir `/v1/me/state` |
 | 413 / 415 | `PAYLOAD_TOO_LARGE`, `UNSUPPORTED_MEDIA` | — |
-| 422 | `PET_ASLEEP`, `PET_ON_PAUSE`, `INSUFFICIENT_MATERIALS`, `SKILL_REQUIRED`, `SKILL_LOCKED`, `NOT_ENOUGH_SKILL_POINTS`, `TIMEZONE_COOLDOWN`, `IDEMPOTENCY_MISMATCH` | Regla de negocio: mostrar el mensaje |
+| 422 | `PET_ASLEEP`, `PET_ON_PAUSE`, `INSUFFICIENT_MATERIALS`, `SKILL_REQUIRED`, `SKILL_LOCKED`, `TIMEZONE_COOLDOWN`, `IDEMPOTENCY_MISMATCH` | Regla de negocio: mostrar el mensaje |
 | 429 | `RATE_LIMITED` | Esperar lo que indica `Retry-After` |
 | 503 | `DEPENDENCY_UNAVAILABLE` | Reintentar con espera (`Retry-After`) |
 | 500 | `INTERNAL` | Reportar el `requestId` |
@@ -152,12 +152,19 @@ Todo error tiene la misma forma:
 | POST | `/v1/pet/poke`, `/feed`, `/interactions` | El servidor decide la reacción |
 | PUT | `/v1/pet/equipment/:slot` | — |
 | GET | `/v1/skills/tree?root=&depth=` | Rama plana ordenada por camino |
-| POST | `/v1/skills/:slug/unlock` | Valida requisitos y puntos |
+| POST | `/v1/skills/:slug/unlock` | Valida la competencia en el padre y los prerrequisitos |
 | POST | `/v1/craft` | Ingredientes + proceso; nunca revela recetas no descubiertas |
 | GET | `/v1/discoveries` | Solo lo descubierto, más el total |
 | POST | `/v1/imports` | `Content-Type: application/pdf` → 202; el mismo archivo no se procesa dos veces |
 | GET | `/v1/imports/:id`, `/v1/roadmaps`, `/v1/roadmaps/:id` | — |
-| PUT / DELETE | `/v1/tasks/:id/completion` | Idempotentes por naturaleza |
+| PUT / DELETE | `/v1/tasks/:id/completion` | Idempotentes por naturaleza; completar registra práctica |
+| GET | `/v1/character` | Atributos cognitivos y emocionales, habilidades con olvido aplicado, estado emocional y frase de Mochi |
+| POST | `/v1/practice` | Un intento (`success`, `fail`, `abandon`) con dificultad, minutos y reflexión opcional → puntos, factores y reacción de Mochi |
+| POST | `/v1/rest` | Pausa de 5 a 120 min; baja la frustración y recupera estamina (máx. 6 por día → 429) |
+
+## 6b. Aprendizaje por uso
+
+Las habilidades y los atributos (Razonamiento Lógico, Memoria de Trabajo, Agilidad Manual, Análisis Crítico, Tolerancia a la Frustración, Resiliencia, Empatía, Enfoque, Metacognición) solo suben practicando: cada intento da micro-puntos aunque falle, con retornos decrecientes, bonus por práctica espaciada, curva del olvido de Ebbinghaus que nunca baja del nivel consolidado y la inteligencia emocional como multiplicador de eficiencia (con burnout). Las tareas del roadmap y el taller también cuentan como práctica. Diseño completo, fórmulas, base científica y simulación en [`docs/LEARNING.md`](docs/LEARNING.md); ejemplos reales de respuesta en `docs/examples/`.
 
 ## 7. Escalar
 

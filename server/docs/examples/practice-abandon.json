@@ -1,0 +1,60 @@
+{
+  "data": {
+    "skill": {
+      "slug": "quimica_basica",
+      "name": "Química básica",
+      "level": 1,
+      "progress": 0.84,
+      "need": 20,
+      "consolidatedLevel": 1,
+      "levelsUp": 0,
+      "repsToday": 2
+    },
+    "gain": {
+      "points": 0.1,
+      "factors": {
+        "outcome": 0.1,
+        "challenge": 0.15,
+        "spacing": 0.87,
+        "retrieval": 1,
+        "time": 0.77,
+        "efficiency": 1
+      },
+      "consolidatedOvernight": 0,
+      "forgotten": 0
+    },
+    "attributes": {
+      "logica": {
+        "gained": 0.01,
+        "level": 1
+      },
+      "memoria_trabajo": {
+        "gained": 0.01,
+        "level": 1
+      },
+      "analisis_critico": {
+        "gained": 0.02,
+        "level": 1
+      }
+    },
+    "emotion": {
+      "frustration": 23,
+      "stamina": 58,
+      "burnout": false,
+      "enteredBurnout": false,
+      "efficiency": 1,
+      "reasons": []
+    },
+    "mochi": {
+      "key": "abandon_validate",
+      "expression": "shy",
+      "strategy": "smaller_step",
+      "text": "Frustrarse con Química básica es normal; le pasa a cualquiera que aprende algo difícil. Nadie nace sabiendo esto. Descansemos un rato y volvemos con un pedacito más chico."
+    },
+    "rev": 24
+  },
+  "meta": {
+    "serverTime": "2026-10-14T16:45:48.197Z",
+    "rev": 24
+  }
+}
