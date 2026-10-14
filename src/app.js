@@ -1,9 +1,9 @@
-// Brasa Roadmap: carga una guía en PDF y convierte su hoja de ruta en un checklist que alimenta a Brasa.
+// Brasa Roadmap: cada guía en PDF es una misión principal; cada tarea que tachas alimenta a Brasa.
 (function () {
   'use strict';
 
   const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
-  const LS_PROJECTS = 'brasa.v1.projects', LS_ACTIVE = 'brasa.v1.active', LS_SOUND = 'brasa.v1.sound';
+  const LS_PROJECTS = 'brasa.v1.projects', LS_ACTIVE = 'brasa.v1.active', LS_SOUND = 'brasa.v1.sound', LS_PROFILE = 'brasa.v1.profile';
   const DAY = 86400000;
 
   const FAMILY = { UNITY: 'build', CLAUDE: 'claude', PRUEBA: 'test' };
@@ -19,8 +19,53 @@
   ];
   const familyOf = tag => FAMILY[tag] || 'create';
 
+  const SLOTS = { head: 'Cabeza', face: 'Cara', neck: 'Cuello', base: 'Fogón', aura: 'Aura' };
+  const ITEMS = [
+    { id: 'gorro', slot: 'head', name: 'Gorro de lana', perk: { fam: 'create', xp: 2 }, req: { type: 'level', n: 2 },
+      svg: '<path d="M8 26a12 12 0 0 1 24 0z" fill="#c8423b"/><rect x="6" y="24" width="28" height="7" rx="3.5" fill="#efe6d2"/><circle cx="20" cy="10" r="4" fill="#efe6d2"/>' },
+    { id: 'casco', slot: 'head', name: 'Casco minero', perk: { fam: 'build', xp: 2 }, req: { type: 'fam', fam: 'build', n: 10 },
+      svg: '<path d="M8 27a12 11 0 0 1 24 0z" fill="#f2b630"/><ellipse cx="20" cy="27" rx="15" ry="3" fill="#f2b630"/><circle cx="20" cy="19" r="4" fill="#fff6c0" stroke="#5a4a2a" stroke-width="2"/>' },
+    { id: 'mago', slot: 'head', name: 'Sombrero de mago', perk: { fam: 'claude', xp: 2 }, req: { type: 'fam', fam: 'claude', n: 10 },
+      svg: '<path d="M9 30Q18 17 27 4L31 30z" fill="#5b3fa8"/><ellipse cx="20" cy="30" rx="16" ry="3.5" fill="#5b3fa8"/><circle cx="20" cy="21" r="2.4" fill="#ffd95a"/><circle cx="25" cy="13" r="1.6" fill="#ffd95a"/>' },
+    { id: 'corona', slot: 'head', name: 'Corona de brasas', perk: { all: 2 }, req: { type: 'missions', n: 1 },
+      svg: '<path d="M8 31L7 13l7 7 6-12 6 12 7-7-1 18z" fill="#f5c542"/><circle cx="20" cy="24" r="2.8" fill="#e0465b"/><circle cx="12.5" cy="26" r="1.8" fill="#3fb3e0"/><circle cx="27.5" cy="26" r="1.8" fill="#3fb3e0"/>' },
+    { id: 'lentes', slot: 'face', name: 'Lentes redondos', perk: { fam: 'claude', xp: 1 }, req: { type: 'prompts', n: 3 },
+      svg: '<g fill="none" stroke="#2a1206" stroke-width="2.6"><circle cx="12" cy="21" r="6.5"/><circle cx="28" cy="21" r="6.5"/><path d="M18 20q2-2.5 4 0"/></g>' },
+    { id: 'antifaz', slot: 'face', name: 'Antifaz de prueba', perk: { fam: 'test', xp: 3 }, req: { type: 'fam', fam: 'test', n: 5 },
+      svg: '<path d="M3 19q17-11 34 0q-4 9-11 7l-6-3-6 3q-7 2-11-7z" fill="#20232b"/><ellipse cx="13" cy="20" rx="3.5" ry="2.5" fill="#fffaf0"/><ellipse cx="27" cy="20" rx="3.5" ry="2.5" fill="#fffaf0"/>' },
+    { id: 'monoculo', slot: 'face', name: 'Monóculo', perk: { phase: 10 }, req: { type: 'phases', n: 3 },
+      svg: '<circle cx="18" cy="16" r="8.5" fill="none" stroke="#c9a23a" stroke-width="2.8"/><path d="M24 22q7 6 3 14" stroke="#c9a23a" stroke-width="1.6" fill="none"/>' },
+    { id: 'bufanda', slot: 'neck', name: 'Bufanda a rayas', perk: { daily: 5 }, req: { type: 'streak', n: 3 },
+      svg: '<rect x="5" y="13" width="30" height="9" rx="4.5" fill="#d7463c"/><rect x="24" y="18" width="7" height="16" rx="2" fill="#d7463c"/><path d="M11 13v9M17 13v9M23 13v9M24 29h7" stroke="#f3ead8" stroke-width="2.6"/>' },
+    { id: 'corbatin', slot: 'neck', name: 'Corbatín', perk: { phase: 10 }, req: { type: 'phases', n: 1 },
+      svg: '<path d="M20 20L6 11v18zM20 20l14-9v18z" fill="#3b6fd8"/><circle cx="20" cy="20" r="4" fill="#2a54b0"/>' },
+    { id: 'piedras', slot: 'base', name: 'Fogón de piedras', perk: { all: 1 }, req: { type: 'tasks', n: 25 },
+      svg: '<g fill="#8d9298"><ellipse cx="8" cy="26" rx="5" ry="4"/><ellipse cx="20" cy="28" rx="6" ry="4.5"/><ellipse cx="32" cy="26" rx="5" ry="4"/></g><g fill="#6f747a"><ellipse cx="14" cy="21" rx="4.5" ry="3.5"/><ellipse cx="26" cy="21" rx="4.5" ry="3.5"/></g>' },
+    { id: 'brasero', slot: 'base', name: 'Brasero de hierro', perk: { all: 1 }, req: { type: 'level', n: 8 },
+      svg: '<path d="M5 17h30a15 10 0 0 1-30 0z" fill="#3c3f44"/><ellipse cx="20" cy="17" rx="15" ry="3" fill="#5b6068"/><path d="M11 25l-3 10M29 25l3 10" stroke="#3c3f44" stroke-width="3"/>' },
+    { id: 'luciernagas', slot: 'aura', name: 'Luciérnagas', perk: { quest: 5 }, req: { type: 'days', n: 7 },
+      svg: '<g fill="#e6ff8c"><circle cx="10" cy="12" r="3"/><circle cx="29" cy="9" r="2.4"/><circle cx="21" cy="24" r="3.2"/><circle cx="8" cy="30" r="2"/><circle cx="32" cy="28" r="2.6"/></g>' },
+    { id: 'chispas', slot: 'aura', name: 'Chispas azules', perk: { fam: 'build', xp: 1 }, req: { type: 'hours', n: 10 },
+      svg: '<g fill="#7fc4ff"><path d="M12 6l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/><path d="M28 18l1.5 4.5 4.5 1.5-4.5 1.5-1.5 4.5-1.5-4.5-4.5-1.5 4.5-1.5z"/></g>' },
+    { id: 'estrellas', slot: 'aura', name: 'Polvo de estrellas', perk: { all: 2 }, req: { type: 'level', n: 15 },
+      svg: '<g fill="#ffe9a8"><path d="M20 4l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/><path d="M32 26l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z"/><path d="M8 26l1.2 3 3 1.2-3 1.2L8 34.6l-1.2-3-3-1.2 3-1.2z"/></g>' }
+  ];
+  const ITEM = Object.fromEntries(ITEMS.map(i => [i.id, i]));
+
+  const DAILY = [
+    { id: 't3', text: 'Tacha 3 tareas', goal: 3, xp: 15, prog: d => d.tasks },
+    { id: 't5', text: 'Tacha 5 tareas', goal: 5, xp: 25, prog: d => d.tasks },
+    { id: 'test', text: 'Completa una tarea de prueba', goal: 1, xp: 15, prog: d => d.fam.test },
+    { id: 'claude', text: 'Delega una tarea a Claude', goal: 1, xp: 10, prog: d => d.fam.claude },
+    { id: 'build', text: 'Construye: 2 tareas en el editor', goal: 2, xp: 15, prog: d => d.fam.build },
+    { id: 'create', text: 'Crea: 1 tarea de diseño, audio o arte', goal: 1, xp: 10, prog: d => d.fam.create },
+    { id: 'prompt', text: 'Copia un prompt para Claude', goal: 1, xp: 10, prog: d => d.prompts },
+    { id: 'combo', text: 'Logra un combo: 3 tareas en 20 minutos', goal: 1, xp: 20, prog: d => d.combo }
+  ];
+
   // ---------- utilidades ----------
   const $ = (s, el) => (el || document).querySelector(s);
+  const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const dayKey = t => { const d = new Date(t); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
   const fmtDate = t => t ? new Date(t).toLocaleDateString('es', { day: '2-digit', month: 'short' }) : '—';
@@ -28,11 +73,14 @@
   const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } };
   const pick = a => a[Math.floor(Math.random() * a.length)];
+  const hashStr = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
 
   // ---------- estado ----------
   const state = {
-    projects: {},   // id -> doc
+    projects: {},   // id -> misión principal (una por PDF)
+    profile: null,  // nombre, equipo, recompensas diarias
     activeId: null,
+    screen: 'home',
     open: new Set(),
     db: null, uid: null, sample: null,
     sound: lsGet(LS_SOUND) !== 'off'
@@ -45,40 +93,53 @@
       roadmap, vars: {}, progress: { tasks: {}, phases: {}, prompts: {} }
     };
   }
-
-  function active() { return state.projects[state.activeId] || null; }
+  function newProfile() {
+    return { name: 'Brasa', equipped: {}, unlocked: {}, claims: {}, claimedXp: 0, theme: 'system', updatedAt: 0 };
+  }
+  const active = () => state.projects[state.activeId] || null;
+  const missionTitle = p => (p.roadmap.subtitle || p.roadmap.title).replace(/^Proyecto:\s*/i, '').split('·')[0].trim() || p.roadmap.title;
 
   // ---------- persistencia ----------
-  let saveTimers = {}, saving = {};
+  const saveTimers = {}, saving = {};
   function persistLocal() {
     lsSet(LS_PROJECTS, JSON.stringify(state.projects));
+    lsSet(LS_PROFILE, JSON.stringify(state.profile));
     lsSet(LS_ACTIVE, state.activeId || '');
+  }
+  function queueRemote(id) {
+    if (!state.db || !state.uid) return;
+    clearTimeout(saveTimers[id]);
+    saveTimers[id] = setTimeout(() => saveRemote(id), 700);
   }
   function touch(p) {
     p.updatedAt = Date.now();
     p.untouched = false;
     persistLocal();
-    if (!state.db || !state.uid) return;
-    clearTimeout(saveTimers[p.id]);
-    saveTimers[p.id] = setTimeout(() => saveRemote(p.id), 700);
+    queueRemote(p.id);
+  }
+  function touchProfile() {
+    state.profile.updatedAt = Date.now();
+    persistLocal();
+    queueRemote('profile');
   }
   async function saveRemote(id) {
     if (saving[id]) { saveTimers[id] = setTimeout(() => saveRemote(id), 400); return; }
-    const p = state.projects[id];
+    const body = id === 'profile' ? state.profile : state.projects[id];
     saving[id] = true;
     try {
       const ref = state.db.collection('data/users/' + state.uid).doc(id);
-      if (!p) await ref.delete();
-      else await ref.set(JSON.parse(JSON.stringify(p)));
+      if (!body) await ref.delete();
+      else await ref.set(JSON.parse(JSON.stringify(body)));
       setSync('Guardado en tu cuenta');
     } catch (e) {
       setSync(e && e.code === 'quota_exceeded' ? 'Sin espacio en la nube: queda guardado en este navegador' : 'Guardado solo en este navegador');
     } finally { saving[id] = false; }
   }
-  function setSync(t) { const el = $('#sync'); if (el) el.textContent = t; }
+  function setSync(t) { $$('[data-sync]').forEach(el => (el.textContent = t)); }
 
   function loadLocal() {
     try { state.projects = JSON.parse(lsGet(LS_PROJECTS) || '{}') || {}; } catch (e) { state.projects = {}; }
+    try { state.profile = Object.assign(newProfile(), JSON.parse(lsGet(LS_PROFILE) || '{}') || {}); } catch (e) { state.profile = newProfile(); }
     state.activeId = lsGet(LS_ACTIVE) || null;
   }
 
@@ -91,27 +152,32 @@
       state.db = db; state.uid = uid;
       const snap = await db.collection('data/users/' + uid).get();
       let changed = false;
+      const remoteAt = {};
       snap.docs.forEach(d => {
-        if (!d.exists || !d.id.startsWith('p_')) return;
+        if (!d.exists) return;
         const remote = d.data();
+        remoteAt[d.id] = remote.updatedAt || 0;
+        if (d.id === 'profile') {
+          if ((remote.updatedAt || 0) > (state.profile.updatedAt || 0)) { state.profile = Object.assign(newProfile(), JSON.parse(JSON.stringify(remote))); changed = true; }
+          return;
+        }
+        if (!d.id.startsWith('p_')) return;
         const local = state.projects[d.id];
         if (!local || local.untouched || (remote.updatedAt || 0) > (local.updatedAt || 0)) {
           state.projects[d.id] = JSON.parse(JSON.stringify(remote)); changed = true;
         }
       });
-      // Sube lo que solo existe en este navegador (si el usuario ya lo usó).
-      Object.values(state.projects).forEach(p => {
-        const remote = snap.docs.find(d => d.id === p.id);
-        if (!p.untouched && (!remote || (remote.data().updatedAt || 0) < p.updatedAt)) saveRemote(p.id);
-      });
+      // Sube lo que solo existe (o es más nuevo) en este navegador.
+      Object.values(state.projects).forEach(p => { if (!p.untouched && (remoteAt[p.id] || 0) < p.updatedAt) saveRemote(p.id); });
+      if (state.profile.updatedAt && (remoteAt.profile || 0) < state.profile.updatedAt) saveRemote('profile');
       setSync('Guardado en tu cuenta');
-      if (changed) { persistLocal(); if (!active()) state.activeId = Object.keys(state.projects)[0] || null; renderAll(); }
+      if (changed) { persistLocal(); if (!active()) state.activeId = Object.keys(state.projects)[0] || null; applyTheme(); renderAll(); }
     } catch (e) { setSync('Guardado en este navegador'); }
     try { state.sample = await window.claude.use('sample'); } catch (e) { state.sample = null; }
     if (state.sample) document.body.classList.add('can-ask');
   }
 
-  // ---------- puntos ----------
+  // ---------- puntos y logros ----------
   function allTaskEvents() {
     const ev = [];
     Object.values(state.projects).forEach(p => {
@@ -121,17 +187,23 @@
     });
     return ev;
   }
+  function missionDone(p) { return p.roadmap.phases.length > 0 && p.roadmap.phases.every(ph => (p.progress.phases[ph.n] || {}).doneAt); }
   function totals() {
-    let xp = 0;
+    let xp = state.profile.claimedXp || 0, phases = 0, prompts = 0, hours = 0, missions = 0, last = 0;
+    Object.values(state.profile.claims).forEach(day => Object.values(day).forEach(v => (xp += v)));
     const fam = { build: 0, claude: 0, create: 0, test: 0 };
     const days = new Set();
-    let last = 0;
     Object.values(state.projects).forEach(p => {
-      Object.values(p.progress.phases).forEach(v => { xp += v.xp || 0; if (v.doneAt) last = Math.max(last, v.doneAt); });
-      Object.keys(p.progress.prompts).forEach(() => (xp += 3));
+      Object.values(p.progress.phases).forEach(v => {
+        xp += v.xp || 0; hours += v.hours || 0;
+        if (v.doneAt) { phases++; last = Math.max(last, v.doneAt); }
+      });
+      Object.keys(p.progress.prompts).forEach(() => { xp += 3; prompts++; });
+      if (missionDone(p)) missions++;
     });
-    allTaskEvents().forEach(e => { xp += e.xp; fam[familyOf(e.tag)]++; days.add(dayKey(e.at)); last = Math.max(last, e.at); });
-    return { xp, fam, days, last };
+    const events = allTaskEvents();
+    events.forEach(e => { xp += e.xp; fam[familyOf(e.tag)]++; days.add(dayKey(e.at)); last = Math.max(last, e.at); });
+    return { xp, fam, days, last, phases, prompts, hours, missions, tasks: events.length, events };
   }
   function levelOf(xp) {
     let L = 1, need = 40, rest = xp;
@@ -149,11 +221,114 @@
     const now = Date.now();
     return allTaskEvents().filter(e => now - e.at < 20 * 60000).length;
   }
+  function reqProgress(req, tot) {
+    const lv = levelOf(tot.xp).L;
+    const have = {
+      level: lv, fam: tot.fam[req.fam] || 0, missions: tot.missions, prompts: tot.prompts, phases: tot.phases,
+      streak: streakOf(tot.days), tasks: tot.tasks, days: tot.days.size, hours: Math.floor(tot.hours)
+    }[req.type] || 0;
+    return { have: Math.min(have, req.n), need: req.n };
+  }
+  function reqText(req) {
+    return {
+      level: `Llega al nivel ${req.n}`,
+      fam: `Completa ${req.n} tareas de ${FAMILY_INFO[req.fam] ? FAMILY_INFO[req.fam].label.toLowerCase() : ''}`,
+      missions: req.n === 1 ? 'Termina una misión principal' : `Termina ${req.n} misiones principales`,
+      prompts: `Copia ${req.n} prompts para Claude`,
+      phases: req.n === 1 ? 'Supera una fase' : `Supera ${req.n} fases`,
+      streak: `Racha de ${req.n} días`,
+      tasks: `Completa ${req.n} tareas`,
+      days: `Avanza en ${req.n} días distintos`,
+      hours: `Registra ${req.n} horas reales`
+    }[req.type];
+  }
+  function perkText(perk) {
+    if (perk.all) return `+${perk.all} de calor por cada tarea`;
+    if (perk.fam) return `+${perk.xp} por tarea de ${FAMILY_INFO[perk.fam].label.toLowerCase()}`;
+    if (perk.phase) return `+${perk.phase} al superar una fase`;
+    if (perk.daily) return `+${perk.daily} con la primera tarea del día`;
+    if (perk.quest) return `+${perk.quest} por misión diaria`;
+    return '';
+  }
+  function perkBonus(kind, fam) {
+    let b = 0;
+    Object.values(state.profile.equipped).forEach(id => {
+      const it = ITEM[id]; if (!it) return;
+      const k = it.perk;
+      if (kind === 'task') { if (k.all) b += k.all; if (k.fam && k.fam === fam) b += k.xp; }
+      if (kind === 'phase' && k.phase) b += k.phase;
+      if (kind === 'daily' && k.daily) b += k.daily;
+      if (kind === 'quest' && k.quest) b += k.quest;
+    });
+    return b;
+  }
+  // Desbloquea el equipo cuyo requisito ya se cumple. Lo ganado se queda aunque luego se desmarque algo.
+  function checkUnlocks(silent) {
+    const tot = totals();
+    const fresh = ITEMS.filter(it => !state.profile.unlocked[it.id] && reqProgress(it.req, tot).have >= it.req.n);
+    if (!fresh.length) return;
+    fresh.forEach(it => (state.profile.unlocked[it.id] = Date.now()));
+    state.profile.newItems = (state.profile.newItems || []).concat(fresh.map(i => i.id));
+    touchProfile();
+    if (!silent) say(`¡Encontré ${fresh.length > 1 ? fresh.length + ' cosas' : '«' + fresh[0].name + '»'}! Míralo en Equipo.`, true);
+  }
 
-  // ---------- acciones ----------
+  // ---------- misiones diarias ----------
+  function todaysQuests() {
+    const k = dayKey(Date.now());
+    let seed = hashStr(k);
+    const rnd = () => (seed = Math.imul(seed ^ (seed >>> 15), 2246822519) >>> 0, seed / 4294967296);
+    const main = rnd() < 0.5 ? DAILY[0] : DAILY[1];
+    const rest = DAILY.slice(2).map(q => [rnd(), q]).sort((a, b) => a[0] - b[0]).slice(0, 2).map(x => x[1]);
+    return [main, ...rest];
+  }
+  function todayStats() {
+    const k = dayKey(Date.now());
+    const ev = allTaskEvents().filter(e => dayKey(e.at) === k).sort((a, b) => a.at - b.at);
+    const fam = { build: 0, claude: 0, create: 0, test: 0 };
+    ev.forEach(e => fam[familyOf(e.tag)]++);
+    let combo = 0;
+    for (let i = 2; i < ev.length; i++) if (ev[i].at - ev[i - 2].at <= 20 * 60000) combo = 1;
+    let prompts = 0;
+    Object.values(state.projects).forEach(p => Object.values(p.progress.prompts).forEach(v => { if (typeof v === 'number' && dayKey(v) === k) prompts++; }));
+    return { tasks: ev.length, fam, combo, prompts };
+  }
+  function questState() {
+    const k = dayKey(Date.now()), d = todayStats(), claims = state.profile.claims[k] || {};
+    return todaysQuests().map(q => {
+      const have = Math.min(q.goal, q.prog(d));
+      return { q, have, ready: have >= q.goal && !claims[q.id], claimed: !!claims[q.id] };
+    });
+  }
+  function claimQuest(id, el) {
+    const k = dayKey(Date.now());
+    const qs = questState().find(x => x.q.id === id);
+    if (!qs || !qs.ready) return;
+    const xp = qs.q.xp + perkBonus('quest');
+    const before = levelOf(totals().xp).L;
+    // Guarda solo la última semana día a día; lo anterior queda sumado.
+    const claims = state.profile.claims;
+    Object.keys(claims).forEach(day => {
+      const [y, m, dd] = day.split('-').map(Number);
+      if (Date.now() - new Date(y, m - 1, dd).getTime() > 8 * DAY) {
+        Object.values(claims[day]).forEach(v => (state.profile.claimedXp += v)); delete claims[day];
+      }
+    });
+    (claims[k] || (claims[k] = {}))[id] = xp;
+    touchProfile();
+    sparkFrom(el, 'create', () => { feedAll(0.8); crackle(1.5); });
+    floatXP(el, '+' + xp);
+    const after = levelOf(totals().xp).L;
+    checkUnlocks(true);
+    renderAll();
+    say(after > before ? `Misión diaria cumplida. ¡Nivel ${after}!` : `Misión diaria cumplida: +${xp}.`, after > before);
+  }
+
+  // ---------- acciones sobre tareas ----------
   function toggleTask(p, ph, t, fromEl) {
     const prog = p.progress;
     const pp = prog.phases[ph.n] || (prog.phases[ph.n] = {});
+    state.activeId = p.id;
     if (prog.tasks[t.id]) {
       delete prog.tasks[t.id];
       if (pp.doneAt) { delete pp.doneAt; pp.xp = 0; }
@@ -161,34 +336,38 @@
       say('Lo dejé pendiente otra vez. Sin drama.');
       return;
     }
-    const before = levelOf(totals().xp).L;
     const tot = totals();
+    const before = levelOf(tot.xp).L;
     const firstToday = !tot.days.has(dayKey(Date.now()));
     const combo = comboNow();
     const mult = combo >= 4 ? 2 : combo >= 2 ? 1.5 : 1;
-    let xp = Math.round((t.tag === 'PRUEBA' ? 12 : 10) * mult);
-    if (firstToday) xp += 5 + 2 * Math.min(10, streakOf(tot.days));
+    let xp = Math.round(((t.tag === 'PRUEBA' ? 12 : 10) + perkBonus('task', familyOf(t.tag))) * mult);
+    if (firstToday) xp += 5 + 2 * Math.min(10, streakOf(tot.days)) + perkBonus('daily');
     prog.tasks[t.id] = { at: Date.now(), xp };
     if (!pp.startAt) pp.startAt = Date.now();
     touch(p);
-    sparkFrom(fromEl, familyOf(t.tag), () => {
-      flame.feed(mult > 1 ? 1 : 0.6);
-      crackle(mult);
-    });
-    const after = levelOf(totals().xp).L;
+    sparkFrom(fromEl, familyOf(t.tag), () => { feedAll(mult > 1 ? 1 : 0.6); crackle(mult); });
     floatXP(fromEl, '+' + xp + (mult > 1 ? ' ×' + mult : ''));
+    const after = levelOf(totals().xp).L;
+    checkUnlocks(true);
     renderAll();
+    const ready = questState().filter(x => x.ready).length;
     if (after > before) {
       const s = STAGES[stageOf(after)].name;
       say(stageOf(after) > stageOf(before) ? `¡Evolucioné! Ahora soy ${s}. Nivel ${after}.` : `¡Nivel ${after}! Me siento más caliente.`, true);
+    } else if ((state.profile.newItems || []).length) {
+      say('¡Encontré equipo nuevo! Pruébamelo en Equipo.', true);
+    } else if (ready) {
+      say(`Tienes ${ready === 1 ? 'una misión diaria' : ready + ' misiones diarias'} para reclamar.`);
     } else if (firstToday) {
-      say(`Primera leña del día: +${xp}. ${streakOf(totals().days) > 1 ? 'Racha de ' + streakOf(totals().days) + ' días.' : ''}`);
+      const st = streakOf(totals().days);
+      say(`Primera leña del día: +${xp}.${st > 1 ? ' Racha de ' + st + ' días.' : ''}`);
     } else if (mult > 1) {
       say(pick([`Combo ×${mult}. No pares ahora.`, `¡Eso crujió rico! Combo ×${mult}.`]));
     } else {
       const left = ph.tasks.filter(x => !prog.tasks[x.id]).length;
       say(left ? pick([`+${xp}. Quedan ${left} en «${ph.title}».`, `Rico. ${left} más y la fase está.`, `+${xp} de calor.`]) :
-        `Todas las tareas de «${ph.title}» listas. Ahora confirma: ${ph.fields.find(f => /^Listo/i.test(f.k))?.v || 'la fase está terminada'}.`);
+        `Todas las tareas de «${ph.title}» listas. Confirma: ${(ph.fields.find(f => /^Listo/i.test(f.k)) || {}).v || 'la fase está terminada'}.`);
     }
   }
 
@@ -196,19 +375,21 @@
     const pp = p.progress.phases[ph.n] || (p.progress.phases[ph.n] = {});
     if (pp.doneAt) return;
     const before = levelOf(totals().xp).L;
-    let xp = 40 + 5 * ph.tasks.length;
+    let xp = 40 + 5 * ph.tasks.length + perkBonus('phase');
     if (pp.hours > 0 && ph.hours > 0 && pp.hours <= ph.hours) xp = Math.round(xp * 1.2);
-    pp.doneAt = Date.now(); pp.xp = xp;
     if (pp.timerStart) stopTimer(p, ph, true);
+    pp.doneAt = Date.now(); pp.xp = xp;
     touch(p);
-    sparkFrom(fromEl, 'create', () => { flame.feed(1.4); crackle(2); });
+    sparkFrom(fromEl, 'create', () => { feedAll(1.4); crackle(2); });
+    floatXP(fromEl, '+' + xp);
     const after = levelOf(totals().xp).L;
     state.open.delete(ph.n);
     const next = p.roadmap.phases.find(x => !(p.progress.phases[x.n] || {}).doneAt);
     if (next) state.open.add(next.n);
-    floatXP(fromEl, '+' + xp);
+    checkUnlocks(true);
     renderAll();
-    say(`¡Fase ${ph.n} superada! +${xp}.` + (after > before ? ` Nivel ${after}.` : '') + (next ? ` Sigue «${next.title}».` : ' Terminaste toda la hoja de ruta.'), true);
+    say(next ? `¡Fase ${ph.n} superada! +${xp}.${after > before ? ' Nivel ' + after + '.' : ''} Sigue «${next.title}».`
+      : `¡Misión principal cumplida! «${missionTitle(p)}» está completa. +${xp}.`, true);
   }
 
   function reopenPhase(p, ph) {
@@ -220,10 +401,10 @@
 
   function startTimer(p, ph) {
     const pp = p.progress.phases[ph.n] || (p.progress.phases[ph.n] = {});
-    // Solo un cronómetro a la vez: cierra el que esté andando en otra fase.
-    Object.values(p.progress.phases).forEach(o => {
-      if (o.timerStart && o !== pp) { o.hours = (o.hours || 0) + (Date.now() - o.timerStart) / 3600000; delete o.timerStart; }
-    });
+    // Solo un cronómetro a la vez: cierra el que esté andando en otra fase o misión.
+    Object.values(state.projects).forEach(q => Object.values(q.progress.phases).forEach(o => {
+      if (o.timerStart && o !== pp) { o.hours = (o.hours || 0) + (Date.now() - o.timerStart) / 3600000; delete o.timerStart; if (q !== p) touch(q); }
+    }));
     pp.timerStart = Date.now();
     if (!pp.startAt) pp.startAt = Date.now();
     touch(p); renderAll();
@@ -235,23 +416,24 @@
     const add = (Date.now() - pp.timerStart) / 3600000;
     pp.hours = (pp.hours || 0) + add;
     delete pp.timerStart;
-    if (!silent) { touch(p); renderAll(); say(`Sumé ${fmtH(add)} h a la fase ${ph.n}.`); }
+    if (!silent) { touch(p); checkUnlocks(true); renderAll(); say(`Sumé ${fmtH(add)} h a la fase ${ph.n}.`); }
   }
 
-  function fillVars(p, text) {
-    return text.replace(/\[([A-ZÁÉÍÓÚÑ_ ]{2,20})\]/g, (m, k) => (p.vars[k] || '').trim() || m);
+  const VAR_RE = /\[([A-ZÁÉÍÓÚÑ_ ]{2,20})\]/g;
+  function fillVars(p, text) { return text.replace(VAR_RE, (m, k) => (p.vars[k] || '').trim() || m); }
+  function promptHTML(p, text) {
+    return esc(text).replace(VAR_RE, (m, k) => p.vars[k] ? `<mark>${esc(p.vars[k])}</mark>` : `<mark class="hole">[${k}]</mark>`);
   }
   function contextPrompt(p, ph) {
     const pending = ph.tasks.filter(t => !p.progress.tasks[t.id]);
-    const lines = [
+    return [
       `Estoy trabajando en: ${p.roadmap.subtitle || p.roadmap.title}.`,
       `Fase ${ph.n}: ${ph.title}. Meta: ${ph.meta}`,
       ...ph.fields.map(f => `${f.k}: ${f.v}`),
       pending.length ? 'Tareas que me faltan:\n' + pending.map(t => `- [${t.tag}] ${t.text}`).join('\n') : 'Ya terminé todas las tareas de esta fase.',
       '',
       fillVars(p, ph.prompt)
-    ];
-    return lines.join('\n');
+    ].join('\n');
   }
   async function copyText(text, btn) {
     let ok = false;
@@ -281,12 +463,15 @@
       src.buffer = buf; src.connect(f).connect(g).connect(audioCtx.destination); src.start();
     } catch (e) { /* sin audio */ }
   }
+  // La chispa vuela hacia la Brasa visible: la grande en inicio, la del menú en las demás pantallas.
+  function targetFlame() { return state.screen === 'home' ? flames.home : flames.tab; }
+  function feedAll(k) { Object.values(flames).forEach(f => f.feed(k)); }
   function sparkFrom(el, fam, done) {
     if (!el || !el.getBoundingClientRect || matchMedia('(prefers-reduced-motion: reduce)').matches) { done(); return; }
     const r = el.getBoundingClientRect();
-    const [tx, ty] = flame.center();
+    const [tx, ty] = targetFlame().center();
     const s = document.createElement('span');
-    s.className = 'spark'; s.style.background = FAMILY_INFO[fam].color;
+    s.className = 'spark'; s.style.background = FAMILY_INFO[fam].color; s.style.color = FAMILY_INFO[fam].color;
     s.style.left = r.left + r.width / 2 + 'px'; s.style.top = r.top + r.height / 2 + 'px';
     document.body.appendChild(s);
     const dx = tx - (r.left + r.width / 2), dy = ty - (r.top + r.height / 2);
@@ -302,123 +487,194 @@
     const r = el.getBoundingClientRect();
     const f = document.createElement('span');
     f.className = 'floatxp'; f.textContent = text;
-    f.style.left = r.right + 6 + 'px'; f.style.top = r.top + 'px';
+    f.style.left = Math.min(window.innerWidth - 60, r.right + 6) + 'px'; f.style.top = r.top + 'px';
     document.body.appendChild(f);
     setTimeout(() => f.remove(), 1100);
   }
   let sayTimer = 0;
   function say(text, big) {
-    const b = $('#bubble');
-    b.textContent = text;
-    b.classList.toggle('big', !!big);
-    b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+    $$('[data-bubble]').forEach(b => {
+      b.textContent = text;
+      b.classList.toggle('big', !!big);
+      b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+    });
+    const toast = $('#toast');
+    if (state.screen !== 'home') {
+      toast.textContent = text; toast.hidden = false;
+      clearTimeout(toast._t); toast._t = setTimeout(() => (toast.hidden = true), 3800);
+    }
     clearTimeout(sayTimer);
-    sayTimer = setTimeout(() => { b.textContent = idleLine(); b.classList.remove('big'); }, 9000);
+    sayTimer = setTimeout(() => { $$('[data-bubble]').forEach(b => { b.textContent = idleLine(); b.classList.remove('big'); }); }, 9000);
   }
 
   // ---------- siguiente tarea ----------
-  function nextStep(p) {
+  function nextIn(p) {
     if (!p) return null;
     for (const ph of p.roadmap.phases) {
       const pp = p.progress.phases[ph.n] || {};
       if (pp.doneAt) continue;
-      const t = ph.tasks.find(x => !p.progress.tasks[x.id]);
-      if (t) return { ph, t };
-      return { ph, t: null };
+      return { p, ph, t: ph.tasks.find(x => !p.progress.tasks[x.id]) || null };
     }
     return null;
   }
+  function nextStep() {
+    const a = nextIn(active());
+    if (a) return a;
+    for (const p of Object.values(state.projects).sort((x, y) => y.updatedAt - x.updatedAt)) { const n = nextIn(p); if (n) return n; }
+    return null;
+  }
   function idleLine() {
-    const p = active();
+    const name = state.profile.name || 'Brasa';
+    const count = Object.keys(state.projects).length;
+    if (!count) return `Soy ${name}. Dame una misión: carga tu guía en PDF en Misiones.`;
     const tot = totals();
+    const ns = nextStep();
+    if (!ns) return 'Todas tus misiones están cumplidas. Carga la próxima guía y sigo ardiendo.';
     const cold = tot.last && Date.now() - tot.last > 2 * DAY;
-    const ns = nextStep(p);
-    if (!ns) return p ? 'Hoja de ruta completa. Carga la próxima guía y sigo ardiendo.' : 'Carga una guía en PDF y empiezo a arder.';
     if (cold) return `Me estoy apagando… una tarea chica y vuelvo: «${ns.t ? ns.t.text : ns.ph.title}».`;
+    const ready = questState().filter(x => x.ready).length;
+    if (ready) return `Tienes ${ready === 1 ? 'una misión diaria lista' : ready + ' misiones diarias listas'} para reclamar.`;
     if (!ns.t) return `Fase ${ns.ph.n} lista para confirmar. ¿Se cumple «${(ns.ph.fields.find(f => /^Listo/i.test(f.k)) || {}).v || 'el criterio'}»?`;
     if (ns.t.tag === 'CLAUDE') return `Esta se delega: «${ns.t.text}». Copia el prompt de la fase ${ns.ph.n}.`;
     if (ns.t.tag === 'PRUEBA') return `Toca probar: «${ns.t.text}». Las pruebas dan más calor.`;
     return pick([`Tengo hambre de leña. ¿Le damos a «${ns.t.text}»?`, `Siguiente: «${ns.t.text}».`]);
   }
 
-  // ---------- render ----------
-  let flame;
-  function renderAll() {
-    renderCompanion();
-    renderProject();
+  // ---------- navegación ----------
+  const SCREENS = ['home', 'misiones', 'mision', 'equipo', 'menu'];
+  function go(screen, opts) {
+    if (!SCREENS.includes(screen)) screen = 'home';
+    if (screen === 'mision' && !(opts && opts.id ? state.projects[opts.id] : active())) screen = 'misiones';
+    if (opts && opts.id) {
+      state.activeId = opts.id; persistLocal();
+      state.open = new Set(); const n = nextIn(active()); if (n) state.open.add(n.ph.n);
+    }
+    state.screen = screen;
+    SCREENS.forEach(s => ($('#scr-' + s).hidden = s !== screen));
+    $$('.tab').forEach(t => t.setAttribute('aria-current', t.dataset.go === (screen === 'mision' ? 'misiones' : screen) ? 'page' : 'false'));
+    $('#toast').hidden = true;
+    try { history.replaceState(null, '', '#' + (screen === 'home' ? 'brasa' : screen)); } catch (e) { /* sin historial */ }
+    if (screen === 'equipo' && (state.profile.newItems || []).length) { renderAll(); state.profile.newItems = []; touchProfile(); renderTabs(); }
+    else renderAll();
+    window.scrollTo(0, 0);
   }
 
-  function renderCompanion() {
+  // ---------- render ----------
+  const flames = {};
+  function renderAll() {
     const tot = totals();
-    const lv = levelOf(tot.xp);
-    const stg = stageOf(lv.L);
-    const streak = streakOf(tot.days);
-    const sinceLast = tot.last ? Date.now() - tot.last : Infinity;
-    const heat = tot.last ? Math.max(0.15, 1 - sinceLast / (3 * DAY)) : 0.45;
+    renderFlames(tot);
+    renderTabs(tot);
+    if (state.screen === 'home') renderHome(tot);
+    if (state.screen === 'misiones') renderMissions(tot);
+    if (state.screen === 'mision') renderMission();
+    if (state.screen === 'equipo') renderEquip(tot);
+    if (state.screen === 'menu') renderMenu();
+  }
+
+  function renderFlames(tot) {
+    const lv = levelOf(tot.xp), stg = stageOf(lv.L);
+    const heat = tot.last ? Math.max(0.15, 1 - (Date.now() - tot.last) / (3 * DAY)) : 0.45;
     const famTop = Object.entries(tot.fam).sort((a, b) => b[1] - a[1])[0];
-    flame.set({ stage: stg, heat, sleepy: heat < 0.3, tint: famTop[1] ? FAMILY_INFO[famTop[0]].color : '#ff7a1a' });
+    const opts = { stage: stg, heat, sleepy: heat < 0.3, tint: famTop[1] ? FAMILY_INFO[famTop[0]].color : '#ff7a1a', equip: Object.assign({}, state.profile.equipped) };
+    Object.values(flames).forEach(f => f.set(opts));
+  }
 
-    $('#stage').textContent = STAGES[stg].name;
-    $('#level').textContent = 'Nivel ' + lv.L;
-    $('#xpbar').style.width = (lv.into / lv.need * 100).toFixed(1) + '%';
-    $('#xptext').textContent = `${lv.into} / ${lv.need} de calor`;
-    $('#xptotal').textContent = tot.xp.toLocaleString('es');
-    $('#streak').textContent = streak;
-    $('#combo').textContent = comboNow() >= 2 ? '×' + (comboNow() >= 4 ? 2 : 1.5) : '—';
-    const nextStage = STAGES[stg + 1];
-    $('#nextstage').textContent = nextStage ? `${nextStage.name} en nivel ${nextStage.min}` : 'Forma final';
-
-    const max = Math.max(1, ...Object.values(tot.fam));
-    $('#stats').innerHTML = Object.entries(FAMILY_INFO).map(([k, f]) => `
-      <div class="stat"><span class="stat-l">${f.label}</span>
-        <span class="stat-bar"><i style="width:${(tot.fam[k] / max * 100).toFixed(0)}%;background:${f.color}"></i></span>
-        <span class="stat-n">${tot.fam[k]}</span></div>`).join('');
-
-    // 28 días de leña
-    const counts = {};
-    allTaskEvents().forEach(e => { const k = dayKey(e.at); counts[k] = (counts[k] || 0) + 1; });
-    let cells = '';
-    for (let i = 27; i >= 0; i--) {
-      const t = Date.now() - i * DAY, c = counts[dayKey(t)] || 0;
-      const lvl = c === 0 ? 0 : c < 2 ? 1 : c < 4 ? 2 : c < 7 ? 3 : 4;
-      cells += `<i class="h${lvl}" title="${fmtDate(t)}: ${c} tarea${c === 1 ? '' : 's'}"></i>`;
-    }
-    $('#heat').innerHTML = cells;
-
-    const p = active();
-    const ns = nextStep(p);
-    const nx = $('#next');
-    if (!ns) { nx.innerHTML = `<p class="muted">${p ? 'No queda nada pendiente.' : 'Sin guía cargada.'}</p>`; }
-    else if (ns.t) {
-      nx.innerHTML = `<div class="next-meta">Fase ${ns.ph.n} · ${esc(ns.ph.title)}</div>
-        <div class="next-row"><button class="check" id="nextcheck" aria-label="Marcar como hecha"></button>
-        <span>${esc(ns.t.text)}</span>${tagChip(ns.t.tag)}</div>`;
-      $('#nextcheck').onclick = e => toggleTask(p, ns.ph, ns.t, e.currentTarget);
-    } else {
-      nx.innerHTML = `<div class="next-meta">Fase ${ns.ph.n} · ${esc(ns.ph.title)}</div>
-        <div class="next-row"><span>Todas las tareas hechas. Falta confirmar el criterio de la fase.</span></div>
-        <button class="btn primary" id="nextdone">Fase superada</button>`;
-      $('#nextdone').onclick = e => completePhase(p, ns.ph, e.currentTarget);
-    }
-    if (!$('#bubble').textContent) $('#bubble').textContent = idleLine();
+  function renderTabs(tot) {
+    tot = tot || totals();
+    const lv = levelOf(tot.xp);
+    $('#tab-level').textContent = 'Nv ' + lv.L;
+    const ready = questState().filter(x => x.ready).length;
+    const b1 = $('#badge-misiones'); b1.hidden = !ready; b1.textContent = ready;
+    const fresh = (state.profile.newItems || []).length;
+    const b2 = $('#badge-equipo'); b2.hidden = !fresh; b2.textContent = fresh;
   }
 
   function tagChip(tag) {
-    const f = familyOf(tag);
-    return `<span class="tag" style="--tc:${FAMILY_INFO[f].color}">${esc(tag)}</span>`;
+    return `<span class="tag" style="--tc:${FAMILY_INFO[familyOf(tag)].color}">${esc(tag)}</span>`;
   }
 
-  function renderProject() {
-    const p = active();
-    const sel = $('#projsel');
-    const ids = Object.keys(state.projects).sort((a, b) => state.projects[b].updatedAt - state.projects[a].updatedAt);
-    sel.innerHTML = ids.map(id => `<option value="${id}" ${id === state.activeId ? 'selected' : ''}>${esc(state.projects[id].roadmap.subtitle ? state.projects[id].roadmap.subtitle.replace(/^Proyecto:\s*/i, '').split('·')[0] : state.projects[id].roadmap.title)}</option>`).join('');
-    sel.parentElement.hidden = ids.length < 2;
-    const main = $('#main');
-    if (!p) {
-      main.innerHTML = `<div class="empty"><h2>Carga tu guía</h2><p>Arrastra aquí un PDF con una sección «Hoja de ruta paso a paso» y sus fases («Fase 0: …»).</p></div>`;
-      return;
+  function renderHome(tot) {
+    const lv = levelOf(tot.xp), stg = stageOf(lv.L), streak = streakOf(tot.days);
+    $('#h-name').textContent = state.profile.name || 'Brasa';
+    $('#h-stage').textContent = STAGES[stg].name;
+    $('#h-level').textContent = 'Nivel ' + lv.L;
+    $('#h-xpbar').style.width = (lv.into / lv.need * 100).toFixed(1) + '%';
+    $('#h-xptext').textContent = `${lv.into} / ${lv.need} de calor`;
+    const nextStage = STAGES[stg + 1];
+    $('#h-nextstage').textContent = nextStage ? `${nextStage.name} en nivel ${nextStage.min}` : 'Forma final';
+    $('#h-xp').textContent = tot.xp.toLocaleString('es');
+    $('#h-streak').textContent = streak;
+    const c = comboNow();
+    $('#h-combo').textContent = c >= 2 ? '×' + (c >= 4 ? 2 : 1.5) : '—';
+    const bubble = $('#h-bubble');
+    if (!bubble.textContent) bubble.textContent = idleLine();
+
+    const ns = nextStep();
+    const nx = $('#h-next');
+    if (!Object.keys(state.projects).length) {
+      nx.innerHTML = `<button class="quest-cta" data-go="misiones"><span class="qc-k">Sin misión</span><b>Carga tu primera guía en PDF</b><span class="qc-go">Ir a Misiones</span></button>`;
+    } else if (!ns) {
+      nx.innerHTML = `<div class="quest-cta is-static"><span class="qc-k">Todo cumplido</span><b>No queda nada pendiente</b></div>`;
+    } else {
+      nx.innerHTML = `
+        <div class="quest-cta is-static">
+          <span class="qc-k">Misión: ${esc(missionTitle(ns.p))} · Fase ${ns.ph.n}</span>
+          ${ns.t
+            ? `<div class="qc-row"><button class="check" id="h-check" aria-label="Marcar como hecha: ${esc(ns.t.text)}"></button><b>${esc(ns.t.text)}</b>${tagChip(ns.t.tag)}</div>`
+            : `<b>Todas las tareas de «${esc(ns.ph.title)}» están hechas</b>`}
+          <div class="qc-actions">
+            ${ns.t ? '' : '<button class="btn primary small" id="h-done">Fase superada</button>'}
+            <button class="btn small ghost" data-open-mission="${ns.p.id}">Ver misión</button>
+          </div>
+        </div>`;
+      if (ns.t) $('#h-check').onclick = e => toggleTask(ns.p, ns.ph, ns.t, e.currentTarget);
+      else $('#h-done').onclick = e => completePhase(ns.p, ns.ph, e.currentTarget);
     }
+    const qs = questState();
+    $('#h-quests').innerHTML = qs.map(x => `
+      <button class="qpill ${x.claimed ? 'claimed' : x.ready ? 'ready' : ''}" data-go="misiones" title="${esc(x.q.text)}">
+        <span class="qp-ring" style="--k:${x.have / x.q.goal}"></span><span class="qp-t">${esc(x.q.text)}</span>
+      </button>`).join('');
+  }
+
+  function renderMissions(tot) {
+    const qs = questState();
+    $('#m-daily').innerHTML = qs.map(x => `
+      <li class="daily ${x.claimed ? 'claimed' : x.ready ? 'ready' : ''}">
+        <span class="d-ring" style="--k:${x.have / x.q.goal}"><span>${x.have}/${x.q.goal}</span></span>
+        <span class="d-text"><b>${esc(x.q.text)}</b><small>+${x.q.xp + perkBonus('quest')} de calor</small></span>
+        ${x.claimed ? '<span class="d-done">Cobrada</span>' : `<button class="btn small ${x.ready ? 'primary' : 'ghost'}" data-claim="${x.q.id}" ${x.ready ? '' : 'disabled'}>Reclamar</button>`}
+      </li>`).join('');
+    const ids = Object.keys(state.projects).sort((a, b) => state.projects[b].updatedAt - state.projects[a].updatedAt);
+    $('#m-main').innerHTML = ids.map(id => {
+      const p = state.projects[id], rm = p.roadmap;
+      let done = 0, total = 0, est = 0, real = 0, phDone = 0;
+      rm.phases.forEach(ph => {
+        const pp = p.progress.phases[ph.n] || {};
+        total += ph.tasks.length; done += ph.tasks.filter(t => p.progress.tasks[t.id]).length;
+        est += ph.hours; real += pp.hours || 0; if (pp.doneAt) phDone++;
+      });
+      const pct = total ? Math.round(done / total * 100) : 0;
+      const fin = missionDone(p);
+      const n = nextIn(p);
+      return `
+      <li><button class="mcard ${fin ? 'fin' : ''} ${id === state.activeId ? 'current' : ''}" data-open-mission="${id}">
+        <span class="mc-k">${fin ? 'Cumplida' : id === state.activeId ? 'Misión principal · en curso' : 'Misión principal'}</span>
+        <b class="mc-t">${esc(missionTitle(p))}</b>
+        <span class="mc-s">${esc(rm.title)}</span>
+        <span class="mc-bar"><i style="width:${pct}%"></i></span>
+        <span class="mc-meta"><span>${pct}% · ${done}/${total} tareas</span><span>${phDone}/${rm.phases.length} fases</span><span>${fmtH(real)} / ${fmtH(est)} h</span></span>
+        ${n ? `<span class="mc-next">Ahora: Fase ${n.ph.n} · ${esc(n.ph.title)}</span>` : ''}
+      </button></li>`;
+    }).join('') || '';
+    $('#m-empty').hidden = ids.length > 0;
+  }
+
+  function renderMission() {
+    const p = active();
+    const box = $('#scr-mision');
+    if (!p) { go('misiones'); return; }
     const rm = p.roadmap;
     let done = 0, total = 0, est = 0, real = 0, phasesDone = 0;
     rm.phases.forEach(ph => {
@@ -427,13 +683,13 @@
       est += ph.hours; real += pp.hours || 0; if (pp.doneAt) phasesDone++;
     });
     const pct = total ? Math.round(done / total * 100) : 0;
-    const vars = Array.from(new Set(rm.phases.flatMap(ph => (ph.prompt.match(/\[([A-ZÁÉÍÓÚÑ_ ]{2,20})\]/g) || []).map(m => m.slice(1, -1)))));
+    const vars = Array.from(new Set(rm.phases.flatMap(ph => (ph.prompt.match(VAR_RE) || []).map(m => m.slice(1, -1)))));
     const shared = vars.filter(v => rm.phases.filter(ph => ph.prompt.includes('[' + v + ']')).length > 1);
-
-    main.innerHTML = `
+    box.innerHTML = `
+      <button class="back" data-go="misiones">← Misiones</button>
       <header class="proj">
-        <div class="proj-eyebrow">${esc(rm.title)}</div>
-        <h1>${esc((rm.subtitle || rm.title).replace(/^Proyecto:\s*/i, '').split('·')[0].trim())}</h1>
+        <div class="proj-eyebrow">Misión principal · ${esc(rm.title)}</div>
+        <h1>${esc(missionTitle(p))}</h1>
         <p class="proj-sub">${esc((rm.subtitle || '').split('·').slice(1).join('·').trim())}</p>
         <div class="kpis">
           <div class="kpi"><b>${pct}%</b><span>${done} de ${total} tareas</span></div>
@@ -442,22 +698,22 @@
         </div>
         <div class="progress" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>
       </header>
+      ${rm.intro ? `<p class="intro">${esc(rm.intro)}</p>` : ''}
       ${shared.length ? `<div class="vars"><span class="vars-l">Para los prompts</span>${shared.map(v => `
         <label class="var"><span>[${esc(v)}]</span><input id="var-${esc(v)}" data-var="${esc(v)}" value="${esc(p.vars[v] || '')}" placeholder="${v === 'VERSION' ? 'ej. 6000.0 LTS' : 'valor'}"></label>`).join('')}</div>` : ''}
       <nav class="track" aria-label="Fases">${rm.phases.map(ph => {
         const pp = p.progress.phases[ph.n] || {};
         const d = ph.tasks.filter(t => p.progress.tasks[t.id]).length;
         const k = ph.tasks.length ? d / ph.tasks.length : 0;
-        return `<button class="node ${pp.doneAt ? 'is-done' : d ? 'is-going' : ''}" data-jump="${ph.n}" title="Fase ${ph.n}: ${esc(ph.title)}" style="--k:${k}">
-          <span>${ph.n}</span></button>`;
+        return `<button class="node ${pp.doneAt ? 'is-done' : ''}" data-jump="${ph.n}" title="Fase ${ph.n}: ${esc(ph.title)}" style="--k:${k}"><span>${ph.n}</span></button>`;
       }).join('')}</nav>
       ${rm.legend && rm.legend.length ? `<div class="legend">${rm.legend.map(g => `<span>${g.tags.map(tagChip).join('')} ${esc(g.desc)}</span>`).join('')}</div>` : ''}
       <div class="phases">${rm.phases.map(ph => phaseHTML(p, ph)).join('')}</div>
       <footer class="proj-foot">
         <span>${esc(p.fileName || 'Guía precargada')} · ${rm.phases.length} fases</span>
-        <span class="danger-zone" id="dz"><button class="link" id="reset">Reiniciar progreso</button></span>
+        <span class="danger-zone" id="dz"><button class="link" id="reset">Reiniciar progreso</button><button class="link" id="remove">Quitar misión</button></span>
       </footer>`;
-    bindProject(p);
+    bindMission(p);
   }
 
   function phaseHTML(p, ph) {
@@ -468,8 +724,7 @@
     const running = pp.timerStart ? (Date.now() - pp.timerStart) / 3600000 : 0;
     const hours = (pp.hours || 0) + running;
     const diff = hours - ph.hours;
-    const vars = Array.from(new Set((ph.prompt.match(/\[([A-ZÁÉÍÓÚÑ_ ]{2,20})\]/g) || []).map(m => m.slice(1, -1))));
-    const promptShown = esc(ph.prompt).replace(/\[([A-ZÁÉÍÓÚÑ_ ]{2,20})\]/g, (m, k) => p.vars[k] ? `<mark>${esc(p.vars[k])}</mark>` : `<mark class="hole">[${k}]</mark>`);
+    const vars = Array.from(new Set((ph.prompt.match(VAR_RE) || []).map(m => m.slice(1, -1))));
     return `
     <section class="phase ${pp.doneAt ? 'done' : ''} ${open ? 'open' : ''}" id="ph-${ph.n}" data-n="${ph.n}">
       <button class="ph-head" data-toggle="${ph.n}" aria-expanded="${open}">
@@ -497,12 +752,12 @@
           <div class="prompt-head"><span>Prompt para Claude</span>
             <span class="prompt-actions"><button class="btn small" data-copy="${ph.n}">Copiar prompt</button><button class="btn small ghost" data-copyctx="${ph.n}">Copiar con contexto</button></span></div>
           ${vars.filter(v => !p.vars[v]).length ? `<div class="prompt-vars">${vars.map(v => `<label class="var"><span>[${esc(v)}]</span><input id="pv-${ph.n}-${esc(v)}" data-var="${esc(v)}" value="${esc(p.vars[v] || '')}" placeholder="completa antes de copiar"></label>`).join('')}</div>` : ''}
-          <pre>${promptShown}</pre>
+          <pre>${promptHTML(p, ph.prompt)}</pre>
           ${p.progress.prompts[ph.n] ? '' : '<div class="prompt-hint">Copiarlo por primera vez da +3 de calor.</div>'}
         </div>` : ''}
         <div class="ask">
           <label for="ask-${ph.n}">Preguntarle a Claude sobre esta fase</label>
-          <div class="ask-row"><textarea id="ask-${ph.n}" rows="2" placeholder="Ej.: Me trabé con el AudioMixer, ¿por dónde parto?"></textarea>
+          <div class="ask-row"><textarea id="ask-${ph.n}" rows="2" placeholder="Ej.: Me trabé con esto, ¿por dónde parto?"></textarea>
           <button class="btn" data-ask="${ph.n}">Preguntar</button></div>
           <div class="ask-out" id="askout-${ph.n}" hidden></div>
         </div>
@@ -518,10 +773,10 @@
     </section>`;
   }
 
-  function bindProject(p) {
-    const main = $('#main');
+  function bindMission(p) {
+    const box = $('#scr-mision');
     const phaseByN = n => p.roadmap.phases.find(x => String(x.n) === String(n));
-    main.onclick = e => {
+    box.onclick = e => {
       const b = e.target.closest('button');
       if (!b) return;
       if (b.dataset.toggle != null) {
@@ -531,7 +786,7 @@
         b.setAttribute('aria-expanded', state.open.has(n));
       } else if (b.dataset.jump != null) {
         const n = Number(b.dataset.jump);
-        if (!state.open.has(n)) { state.open.add(n); renderProject(); }
+        if (!state.open.has(n)) { state.open.add(n); renderMission(); }
         $('#ph-' + n).scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else if (b.dataset.task) {
         const ph = phaseByN(b.closest('.phase').dataset.n);
@@ -546,42 +801,46 @@
         const text = b.dataset.copy != null ? fillVars(p, ph.prompt) : contextPrompt(p, ph);
         copyText(text, b).then(ok => {
           if (ok && !p.progress.prompts[ph.n]) {
-            p.progress.prompts[ph.n] = true; touch(p);
-            flame.feed(0.3); renderCompanion();
-            say('Prompt copiado: +3. Pégalo en Claude y vuelve con el código.');
+            p.progress.prompts[ph.n] = Date.now(); touch(p);
+            feedAll(0.3); checkUnlocks(true); renderTabs();
+            say('Prompt copiado: +3. Pégalo en Claude y vuelve con el resultado.');
             const hint = b.closest('.prompt').querySelector('.prompt-hint'); if (hint) hint.remove();
           }
         });
       } else if (b.dataset.ask != null) ask(p, phaseByN(b.dataset.ask), b);
       else if (b.id === 'reset') {
-        $('#dz').innerHTML = `<span>¿Borrar todo el progreso de esta guía?</span><button class="link danger" id="reset-yes">Sí, reiniciar</button><button class="link" id="reset-no">Cancelar</button>`;
+        $('#dz').innerHTML = `<span>¿Borrar todo el progreso de esta misión?</span><button class="link danger" id="reset-yes">Sí, reiniciar</button><button class="link" id="dz-no">Cancelar</button>`;
+      } else if (b.id === 'remove') {
+        $('#dz').innerHTML = `<span>¿Quitar esta misión y su progreso?</span><button class="link danger" id="remove-yes">Sí, quitar</button><button class="link" id="dz-no">Cancelar</button>`;
       } else if (b.id === 'reset-yes') {
         p.progress = { tasks: {}, phases: {}, prompts: {} }; touch(p); renderAll(); say('Empezamos de cero. Yo sigo aquí.');
-      } else if (b.id === 'reset-no') renderProject();
+      } else if (b.id === 'remove-yes') {
+        delete state.projects[p.id];
+        if (window.SAMPLE_ROADMAP && p.key === window.SAMPLE_ROADMAP.key) { state.profile.sampleRemoved = true; touchProfile(); }
+        state.activeId = Object.keys(state.projects)[0] || null;
+        persistLocal();
+        if (state.db && state.uid) saveRemote(p.id);
+        go('misiones'); say('Misión quitada. El calor que ganaste con ella se fue con ella.');
+      } else if (b.id === 'dz-no') renderMission();
     };
-    main.oninput = e => {
+    box.oninput = e => {
       const el = e.target;
-      if (el.dataset.var) {
-        p.vars[el.dataset.var] = el.value;
-        document.querySelectorAll(`[data-var="${CSS.escape(el.dataset.var)}"]`).forEach(o => { if (o !== el) o.value = el.value; });
-        clearTimeout(main._vt); main._vt = setTimeout(() => {
-          touch(p);
-          p.roadmap.phases.forEach(ph => {
-            const pre = $('#ph-' + ph.n + ' pre'); if (!pre) return;
-            pre.innerHTML = esc(ph.prompt).replace(/\[([A-ZÁÉÍÓÚÑ_ ]{2,20})\]/g, (m, k) => p.vars[k] ? `<mark>${esc(p.vars[k])}</mark>` : `<mark class="hole">[${k}]</mark>`);
-          });
-        }, 350);
-      }
+      if (!el.dataset.var) return;
+      p.vars[el.dataset.var] = el.value;
+      $$(`[data-var="${CSS.escape(el.dataset.var)}"]`, box).forEach(o => { if (o !== el) o.value = el.value; });
+      clearTimeout(box._vt); box._vt = setTimeout(() => {
+        touch(p);
+        p.roadmap.phases.forEach(ph => { const pre = $('#ph-' + ph.n + ' pre'); if (pre) pre.innerHTML = promptHTML(p, ph.prompt); });
+      }, 350);
     };
-    main.onchange = e => {
+    box.onchange = e => {
       const el = e.target;
-      if (el.dataset.hours != null) {
-        const ph = phaseByN(el.dataset.hours);
-        const pp = p.progress.phases[ph.n] || (p.progress.phases[ph.n] = {});
-        pp.hours = Math.max(0, parseFloat(String(el.value).replace(',', '.')) || 0);
-        if (pp.hours && !pp.startAt) pp.startAt = Date.now();
-        touch(p); renderAll();
-      }
+      if (el.dataset.hours == null) return;
+      const ph = phaseByN(el.dataset.hours);
+      const pp = p.progress.phases[ph.n] || (p.progress.phases[ph.n] = {});
+      pp.hours = Math.max(0, parseFloat(String(el.value).replace(',', '.')) || 0);
+      if (pp.hours && !pp.startAt) pp.startAt = Date.now();
+      touch(p); checkUnlocks(); renderAll();
     };
   }
 
@@ -601,6 +860,63 @@
     } finally { btn.disabled = false; }
   }
 
+  function renderEquip(tot) {
+    const fresh = new Set(state.profile.newItems || []);
+    const eq = state.profile.equipped;
+    $('#e-name').textContent = state.profile.name || 'Brasa';
+    $('#e-slots').innerHTML = Object.entries(SLOTS).map(([k, label]) => {
+      const it = ITEM[eq[k]];
+      return `<li class="slot ${it ? 'full' : ''}"><span class="slot-ico">${it ? `<svg viewBox="0 0 40 40" aria-hidden="true">${it.svg}</svg>` : ''}</span><span><small>${label}</small><b>${it ? esc(it.name) : 'Vacío'}</b></span></li>`;
+    }).join('');
+    const perks = Object.values(eq).map(id => ITEM[id]).filter(Boolean).map(it => perkText(it.perk));
+    $('#e-perks').textContent = perks.length ? 'Bonos activos: ' + perks.join(' · ') : 'Sin bonos activos. Equipa algo para ganar calor extra.';
+    const owned = ITEMS.filter(it => state.profile.unlocked[it.id]).length;
+    $('#e-count').textContent = `${owned} de ${ITEMS.length}`;
+    $('#e-items').innerHTML = Object.keys(SLOTS).map(slot => ITEMS.filter(i => i.slot === slot).map(it => {
+      const has = !!state.profile.unlocked[it.id];
+      const on = eq[slot] === it.id;
+      const pr = reqProgress(it.req, tot);
+      return `<li class="item ${has ? '' : 'locked'} ${on ? 'on' : ''}">
+        ${fresh.has(it.id) ? '<span class="new">Nuevo</span>' : ''}
+        <span class="item-ico"><svg viewBox="0 0 40 40" aria-hidden="true">${it.svg}</svg></span>
+        <span class="item-txt"><small>${SLOTS[slot]}</small><b>${esc(it.name)}</b><span>${esc(perkText(it.perk))}</span>
+          ${has ? '' : `<span class="req">${esc(reqText(it.req))} · ${pr.have}/${pr.need}</span>`}</span>
+        ${has ? `<button class="btn small ${on ? '' : 'primary'}" data-equip="${it.id}">${on ? 'Quitar' : 'Equipar'}</button>` : '<span class="lock" aria-label="Bloqueado">Bloqueado</span>'}
+      </li>`;
+    }).join('')).join('');
+
+    const max = Math.max(1, ...Object.values(tot.fam));
+    $('#e-stats').innerHTML = Object.entries(FAMILY_INFO).map(([k, f]) => `
+      <div class="stat"><span class="stat-l">${f.label}</span>
+        <span class="stat-bar"><i style="width:${(tot.fam[k] / max * 100).toFixed(0)}%;background:${f.color}"></i></span>
+        <span class="stat-n">${tot.fam[k]}</span></div>`).join('');
+    const counts = {};
+    tot.events.forEach(e => { const k = dayKey(e.at); counts[k] = (counts[k] || 0) + 1; });
+    let cells = '';
+    for (let i = 27; i >= 0; i--) {
+      const t = Date.now() - i * DAY, c = counts[dayKey(t)] || 0;
+      const lvl = c === 0 ? 0 : c < 2 ? 1 : c < 4 ? 2 : c < 7 ? 3 : 4;
+      cells += `<i class="h${lvl}" title="${fmtDate(t)}: ${c} tarea${c === 1 ? '' : 's'}"></i>`;
+    }
+    $('#e-heat').innerHTML = cells;
+    $('#e-facts').innerHTML = `
+      <div><b>${tot.tasks}</b><span>tareas</span></div><div><b>${tot.phases}</b><span>fases</span></div>
+      <div><b>${tot.missions}</b><span>misiones</span></div><div><b>${fmtH(tot.hours)}</b><span>horas</span></div>`;
+  }
+
+  function renderMenu() {
+    const pr = state.profile;
+    const nm = $('#menu-name'); if (document.activeElement !== nm) nm.value = pr.name || 'Brasa';
+    $$('[name="theme"]').forEach(r => (r.checked = r.value === (pr.theme || 'system')));
+    const snd = $('#menu-sound'); snd.checked = state.sound;
+  }
+
+  function applyTheme() {
+    const t = state.profile.theme;
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    else document.documentElement.removeAttribute('data-theme');
+  }
+
   // ---------- carga de PDF ----------
   function loadScript(src) {
     return new Promise((res, rej) => {
@@ -615,77 +931,112 @@
     window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js';
     return window.pdfjsLib;
   }
-  async function handleFile(file) {
-    if (!file) return;
+  async function handleFiles(files) {
+    files = Array.from(files || []).filter(Boolean);
+    if (!files.length) return;
     const st = $('#loadstate');
-    if (!/pdf$/i.test(file.type) && !/\.pdf$/i.test(file.name)) { st.textContent = 'Ese archivo no es un PDF.'; return; }
-    st.textContent = 'Leyendo ' + file.name + '…';
-    try {
-      const lib = await ensurePdfjs();
-      const rm = await window.RoadmapParser.parsePdf(lib, new Uint8Array(await file.arrayBuffer()));
-      if (!rm || !rm.phases.length) { st.textContent = 'No encontré fases («Fase 0: …») en este PDF.'; return; }
-      const id = 'p_' + rm.key;
-      const existing = state.projects[id];
-      if (existing) {
-        existing.roadmap = rm; existing.fileName = file.name;
-        const ids = new Set(rm.phases.flatMap(ph => ph.tasks.map(t => t.id)));
-        Object.keys(existing.progress.tasks).forEach(k => { if (!ids.has(k)) delete existing.progress.tasks[k]; });
-        st.textContent = 'Guía actualizada. Conservé tu progreso.';
-      } else {
-        state.projects[id] = newProject(rm, file.name);
-        st.textContent = `Listo: ${rm.phases.length} fases, ${rm.phases.reduce((a, ph) => a + ph.tasks.length, 0)} tareas.`;
+    const added = [], updated = [], failed = [];
+    for (const file of files) {
+      if (!/pdf$/i.test(file.type) && !/\.pdf$/i.test(file.name)) { failed.push(file.name + ' (no es PDF)'); continue; }
+      st.textContent = 'Leyendo ' + file.name + '…';
+      try {
+        const lib = await ensurePdfjs();
+        const rm = await window.RoadmapParser.parsePdf(lib, new Uint8Array(await file.arrayBuffer()));
+        if (!rm || !rm.phases.length) { failed.push(file.name + ' (sin fases «Fase 0: …»)'); continue; }
+        const id = 'p_' + rm.key;
+        const existing = state.projects[id];
+        if (existing) {
+          existing.roadmap = rm; existing.fileName = file.name;
+          const ids = new Set(rm.phases.flatMap(ph => ph.tasks.map(t => t.id)));
+          Object.keys(existing.progress.tasks).forEach(k => { if (!ids.has(k)) delete existing.progress.tasks[k]; });
+          updated.push(existing);
+        } else {
+          state.projects[id] = newProject(rm, file.name);
+          added.push(state.projects[id]);
+        }
+        state.activeId = id;
+        touch(state.projects[id]);
+      } catch (e) {
+        failed.push(file.name + (e && e.message === 'script' ? ' (no cargó el lector de PDF; revisa tu conexión)' : ' (no se pudo leer; ¿protegido o escaneado?)'));
       }
-      state.activeId = id;
-      state.open = new Set();
-      const ns = nextStep(state.projects[id]); if (ns) state.open.add(ns.ph.n);
-      touch(state.projects[id]);
-      renderAll();
-      say(existing ? 'Misma guía, nueva versión. No perdí nada.' : `Leña nueva: ${rm.phases.length} fases. ¡A arder!`, true);
-    } catch (e) {
-      st.textContent = e && e.message === 'script' ? 'No pude cargar el lector de PDF. Revisa tu conexión.' : 'No pude leer ese PDF. ¿Está protegido o es una imagen escaneada?';
+    }
+    const parts = [];
+    if (added.length) parts.push(added.length === 1 ? `Nueva misión: «${missionTitle(added[0])}».` : `${added.length} misiones nuevas.`);
+    if (updated.length) parts.push(updated.length === 1 ? 'Misión actualizada, progreso conservado.' : `${updated.length} misiones actualizadas.`);
+    if (failed.length) parts.push('No pude con: ' + failed.join(', ') + '.');
+    st.textContent = parts.join(' ');
+    if (added.length || updated.length) {
+      if (state.screen === 'misiones') renderAll(); else go('misiones');
+      say(added.length ? `¡Misión nueva! ${added.length === 1 ? added[0].roadmap.phases.length + ' fases por delante.' : 'Tengo leña para rato.'}` : 'Misma guía, nueva versión. No perdí nada.', true);
     }
   }
 
   // ---------- inicio ----------
   function boot() {
-    flame = window.BrasaFlame($('#flame'));
+    flames.home = window.BrasaFlame($('#flame'));
+    flames.tab = window.BrasaFlame($('#tab-flame'));
+    flames.equip = window.BrasaFlame($('#equip-flame'));
     loadLocal();
-    if (!Object.keys(state.projects).length && window.SAMPLE_ROADMAP) {
+    applyTheme();
+    if (!Object.keys(state.projects).length && window.SAMPLE_ROADMAP && !state.profile.sampleRemoved) {
       const p = newProject(window.SAMPLE_ROADMAP, '');
       p.untouched = true;
       state.projects[p.id] = p;
     }
     if (!state.projects[state.activeId]) state.activeId = Object.keys(state.projects)[0] || null;
-    const ns = nextStep(active()); if (ns) state.open.add(ns.ph.n);
-    renderAll();
-    $('#bubble').textContent = idleLine();
+    checkUnlocks(true);
 
-    $('#file').onchange = e => { handleFile(e.target.files[0]); e.target.value = ''; };
-    const drop = document.body;
-    drop.addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('dragging'); });
-    drop.addEventListener('dragleave', e => { if (e.target === document.body || !e.relatedTarget) document.body.classList.remove('dragging'); });
-    drop.addEventListener('drop', e => { e.preventDefault(); document.body.classList.remove('dragging'); handleFile(e.dataTransfer.files[0]); });
-    $('#projsel').onchange = e => {
-      state.activeId = e.target.value; state.open = new Set();
-      const n = nextStep(active()); if (n) state.open.add(n.ph.n);
-      persistLocal(); renderAll(); $('#bubble').textContent = idleLine();
-    };
-    const snd = $('#sound');
-    const syncSound = () => { snd.setAttribute('aria-pressed', state.sound); snd.textContent = state.sound ? 'Sonido: sí' : 'Sonido: no'; };
-    syncSound();
-    snd.onclick = () => { state.sound = !state.sound; lsSet(LS_SOUND, state.sound ? 'on' : 'off'); syncSound(); if (state.sound) crackle(1); };
-    $('#flame').onclick = () => { flame.feed(0.25); say(idleLine()); };
-
-    // refresca cronómetros y el ánimo de Brasa
-    setInterval(() => {
-      const p = active();
-      if (p && Object.values(p.progress.phases).some(x => x.timerStart)) {
-        p.roadmap.phases.forEach(ph => {
-          const pp = p.progress.phases[ph.n];
-          const inp = $('#hrs-' + ph.n);
-          if (pp && pp.timerStart && inp) inp.value = Math.round(((pp.hours || 0) + (Date.now() - pp.timerStart) / 3600000) * 100) / 100;
-        });
+    document.addEventListener('click', e => {
+      const g = e.target.closest('[data-go]');
+      if (g) { go(g.dataset.go); return; }
+      const m = e.target.closest('[data-open-mission]');
+      if (m) { go('mision', { id: m.dataset.openMission }); return; }
+      const c = e.target.closest('[data-claim]');
+      if (c) { claimQuest(c.dataset.claim, c); return; }
+      const q = e.target.closest('[data-equip]');
+      if (q) {
+        const it = ITEM[q.dataset.equip];
+        const eq = state.profile.equipped;
+        if (eq[it.slot] === it.id) delete eq[it.slot]; else eq[it.slot] = it.id;
+        touchProfile(); feedAll(0.5); renderAll();
+        say(eq[it.slot] === it.id ? `¿Cómo me queda ${it.name.toLowerCase()}? ${perkText(it.perk)}.` : 'Me lo saqué. Igual sigo ardiendo.');
       }
+    });
+    $('#file').onchange = e => { handleFiles(e.target.files); e.target.value = ''; };
+    document.body.addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('dragging'); });
+    document.body.addEventListener('dragleave', e => { if (!e.relatedTarget) document.body.classList.remove('dragging'); });
+    document.body.addEventListener('drop', e => { e.preventDefault(); document.body.classList.remove('dragging'); handleFiles(e.dataTransfer.files); });
+    $('#flame').onclick = () => { flames.home.feed(0.25); say(idleLine()); };
+
+    // Menú
+    const nm = $('#menu-name');
+    nm.oninput = () => { clearTimeout(nm._t); nm._t = setTimeout(() => { state.profile.name = nm.value.trim().slice(0, 24) || 'Brasa'; touchProfile(); }, 400); };
+    $$('[name="theme"]').forEach(r => (r.onchange = () => { state.profile.theme = r.value; touchProfile(); applyTheme(); }));
+    $('#menu-sound').onchange = e => { state.sound = e.target.checked; lsSet(LS_SOUND, state.sound ? 'on' : 'off'); if (state.sound) crackle(1); };
+    $('#menu-reset').onclick = () => { $('#menu-reset-confirm').hidden = false; };
+    $('#menu-reset-no').onclick = () => { $('#menu-reset-confirm').hidden = true; };
+    $('#menu-reset-yes').onclick = () => {
+      Object.values(state.projects).forEach(p => { p.progress = { tasks: {}, phases: {}, prompts: {} }; touch(p); });
+      const keep = { name: state.profile.name, theme: state.profile.theme };
+      state.profile = Object.assign(newProfile(), keep); touchProfile();
+      $('#menu-reset-confirm').hidden = true;
+      go('home'); say('Volví a ser una chispa. Empecemos otra vez.', true);
+    };
+
+    const fromHash = (location.hash || '').replace('#', '');
+    go(fromHash === 'brasa' ? 'home' : fromHash || 'home');
+    $('#h-bubble').textContent = idleLine();
+
+    // Refresca los cronómetros y el ánimo de Brasa.
+    setInterval(() => {
+      if (state.screen !== 'mision') return;
+      const p = active();
+      if (!p) return;
+      p.roadmap.phases.forEach(ph => {
+        const pp = p.progress.phases[ph.n];
+        const inp = $('#hrs-' + ph.n);
+        if (pp && pp.timerStart && inp) inp.value = Math.round(((pp.hours || 0) + (Date.now() - pp.timerStart) / 3600000) * 100) / 100;
+      });
     }, 15000);
     connectCloud();
   }

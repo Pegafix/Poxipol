@@ -201,7 +201,7 @@
       p.fields.forEach(f => (f.v = norm(f.v)));
       const seen = {};
       p.tasks.forEach(t => {
-        t.text = norm(t.text);
+        t.text = norm(t.text).replace(/^[☐☑☒✓✔□■▢•·-]\s*/, '');
         let id = 't' + hash(p.n + '|' + t.text.toLowerCase());
         while (seen[id]) id += 'x';
         seen[id] = 1; t.id = id;

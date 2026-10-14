@@ -1,10 +1,17 @@
 # Brasa Roadmap
 
-Carga una guía de desarrollo en PDF (formato "Hoja de ruta paso a paso & integración con Claude") y convierte cada fase en un checklist interactivo. Cada tarea que tachas alimenta a **Brasa**, una llama con cara que crece de nivel y evoluciona: Chispa → Brasa → Llama → Fogata → Hoguera → Faro.
+Carga tus guías de desarrollo en PDF (formato "Hoja de ruta paso a paso & integración con Claude") y cada una se convierte en una **misión principal** con sus fases y tareas para tachar. Cada tarea alimenta a **Brasa**, una llama con cara que sube de nivel y evoluciona: Chispa → Brasa → Llama → Fogata → Hoguera → Faro.
+
+## Pantallas
+
+- **Brasa** (inicio): solo el personaje, su nivel, su calor, la siguiente tarea y las misiones del día.
+- **Misiones**: tres misiones diarias que cambian cada día y se reclaman por calor, y la lista de misiones principales (una por PDF). Al abrir una ves todo lo de la guía: fases, campos, tareas, prompts, cronómetro y registro.
+- **Equipo**: 14 piezas en 5 ranuras (cabeza, cara, cuello, fogón, aura) que se desbloquean avanzando. Cada una se ve sobre el personaje y da un bono de calor mientras la llevas puesta. También muestra los atributos y los últimos 28 días.
+- **Menú**: nombre del compañero, tema, sonido, reglas del calor y reinicio.
 
 ## Uso
 
-Abre `index.html` en el navegador (o sírvelo con `python3 -m http.server`) y pulsa **Cargar PDF**, o arrastra el PDF a la página. Viene precargada la *Guía de Desarrollo v2 – Juego de Terror y Paranoia Sonora*.
+Abre `index.html` en el navegador (o sírvelo con `python3 -m http.server`) y entra a **Misiones → Cargar PDF** (puedes elegir varios a la vez) o arrastra los PDF a la página. Viene precargada la *Guía de Desarrollo v2 – Juego de Terror y Paranoia Sonora*.
 
 ## Qué lee del PDF
 
@@ -26,6 +33,8 @@ Si vuelves a cargar una versión nueva de la misma guía, el progreso se conserv
 | Primera tarea del día | +5 y +2 por día de racha (máx. +20) |
 | Fase superada | 40 + 5 por tarea, +20 % si terminaste dentro de las horas estimadas |
 | Copiar el prompt de una fase por primera vez | +3 |
+| Misión diaria | 10 a 25 |
+| Equipo puesto | bono según la pieza |
 
 El tipo de tarea que más haces tiñe el corazón de la llama (azul construir, verde delegar, ámbar crear, rojo probar). Si pasan días sin avanzar, Brasa se apaga y se duerme, pero nunca muere.
 
@@ -39,8 +48,8 @@ El tipo de tarea que más haces tiñe el corazón de la llama (azul construir, v
 
 - `index.html`: la interfaz y los estilos
 - `src/parser.js`: lee el PDF con pdf.js y arma las fases
-- `src/flame.js`: dibuja a Brasa en un canvas
-- `src/app.js`: estado, puntos, guardado y render
+- `src/flame.js`: dibuja a Brasa y su equipo en un canvas
+- `src/app.js`: pantallas, misiones, equipo, puntos y guardado
 - `src/sample.js`: la guía v2 ya leída
 
 El progreso se guarda en el navegador (`localStorage`). Publicada en claude.ai, también se guarda en tu cuenta.

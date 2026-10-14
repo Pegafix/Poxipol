@@ -12,7 +12,7 @@
   function Flame(canvas) {
     const ctx = canvas.getContext('2d');
     const st = {
-      stage: 0, heat: 1, tint: '#ff7a1a', happyUntil: 0, pulse: 0, sleepy: false,
+      stage: 0, heat: 1, equip: {}, tint: '#ff7a1a', happyUntil: 0, pulse: 0, sleepy: false,
       blinkAt: 0, blinkEnd: 0, look: [0, 0], particles: [], t: 0
     };
     let w = 0, h = 0, dpr = 1, raf = 0, visible = true;
@@ -107,6 +107,121 @@
       ctx.stroke();
     }
 
+
+    // ---------- equipo ----------
+    function star(x, y, r, rot) {
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = rot + i * Math.PI / 4, rr = i % 2 ? r * 0.38 : r;
+        ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+      }
+      ctx.closePath(); ctx.fill();
+    }
+    function drawEquip(layer, g) {
+      const E = st.equip || {}, R = g.R, cx = g.cx, cy = g.cy, t = st.t;
+      ctx.save();
+      if (layer === 'back') {
+        if (E.aura === 'luciernagas') {
+          for (let i = 0; i < 6; i++) {
+            const a = t / 70 + i * 1.05, x = cx + Math.cos(a) * R * (1.7 + 0.2 * Math.sin(t / 30 + i)), y = cy - R * 0.6 + Math.sin(a * 1.3) * R * 1.1;
+            const gl = ctx.createRadialGradient(x, y, 0, x, y, R * 0.25);
+            gl.addColorStop(0, 'rgba(230,255,140,.95)'); gl.addColorStop(1, 'rgba(230,255,140,0)');
+            ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(x, y, R * 0.25, 0, Math.PI * 2); ctx.fill();
+          }
+        } else if (E.aura === 'estrellas') {
+          ctx.fillStyle = '#ffe9a8';
+          for (let i = 0; i < 7; i++) {
+            const a = i * 0.9 + 0.4, x = cx + Math.cos(a * 2.3) * R * 1.9, y = cy - R * 0.9 + Math.sin(a * 3.1) * R * 1.3;
+            ctx.globalAlpha = 0.35 + 0.65 * Math.abs(Math.sin(t / 25 + i));
+            star(x, y, R * 0.13, t / 60);
+          }
+        } else if (E.aura === 'chispas') {
+          ctx.fillStyle = '#7fc4ff';
+          for (let i = 0; i < 8; i++) {
+            const k = ((t / 90) + i / 8) % 1, x = cx + Math.sin(i * 2.1 + t / 40) * R * 1.4, y = cy + R * 0.5 - k * R * 3.2;
+            ctx.globalAlpha = 1 - k; star(x, y, R * 0.09, i);
+          }
+        }
+        ctx.globalAlpha = 1;
+        if (E.base === 'brasero') {
+          ctx.fillStyle = '#3c3f44';
+          ctx.fillRect(cx - R * 0.9, cy + R * 1.1, R * 0.12, R * 0.6); ctx.fillRect(cx + R * 0.78, cy + R * 1.1, R * 0.12, R * 0.6);
+          ctx.beginPath(); ctx.ellipse(cx, cy + R * 0.85, R * 1.35, R * 0.45, 0, 0, Math.PI); ctx.fill();
+          ctx.fillStyle = '#5b6068'; ctx.beginPath(); ctx.ellipse(cx, cy + R * 0.85, R * 1.35, R * 0.14, 0, 0, Math.PI * 2); ctx.fill();
+        }
+      } else if (layer === 'front') {
+        if (E.base === 'piedras') {
+          for (let i = 0; i < 7; i++) {
+            const x = cx + (i - 3) * R * 0.42, y = cy + R * 1.05 + Math.abs(i - 3) * -R * 0.06;
+            ctx.fillStyle = i % 2 ? '#7d8288' : '#9aa0a6';
+            ctx.beginPath(); ctx.ellipse(x, y, R * 0.24, R * 0.17, 0, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        if (E.neck === 'bufanda') {
+          const y = cy + R * 0.42, wdt = R * 1.85, hh = R * 0.3;
+          ctx.fillStyle = '#d7463c';
+          ctx.beginPath(); ctx.roundRect(cx - wdt / 2, y, wdt, hh, hh / 2); ctx.fill();
+          ctx.beginPath(); ctx.roundRect(cx + R * 0.35, y + hh * 0.5, R * 0.3, R * 0.75, R * 0.08); ctx.fill();
+          ctx.fillStyle = '#f3ead8';
+          for (let i = -3; i <= 3; i += 2) ctx.fillRect(cx + i * R * 0.22, y + 1, R * 0.12, hh - 2);
+          ctx.fillRect(cx + R * 0.35, y + hh * 0.5 + R * 0.45, R * 0.3, R * 0.1);
+        } else if (E.neck === 'corbatin') {
+          const y = cy + R * 0.62;
+          ctx.fillStyle = '#3b6fd8';
+          ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx - R * 0.42, y - R * 0.22); ctx.lineTo(cx - R * 0.42, y + R * 0.22); ctx.closePath(); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx + R * 0.42, y - R * 0.22); ctx.lineTo(cx + R * 0.42, y + R * 0.22); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = '#2a54b0'; ctx.beginPath(); ctx.arc(cx, y, R * 0.1, 0, Math.PI * 2); ctx.fill();
+        }
+        const hy = cy - R * 0.62;
+        if (E.head === 'gorro') {
+          ctx.fillStyle = '#c8423b';
+          ctx.beginPath(); ctx.ellipse(cx, hy, R * 0.82, R * 0.78, 0, Math.PI, 0); ctx.fill();
+          ctx.fillStyle = '#efe6d2'; ctx.beginPath(); ctx.roundRect(cx - R * 0.9, hy - R * 0.08, R * 1.8, R * 0.26, R * 0.1); ctx.fill();
+          ctx.beginPath(); ctx.arc(cx, hy - R * 0.82, R * 0.2, 0, Math.PI * 2); ctx.fill();
+        } else if (E.head === 'casco') {
+          ctx.fillStyle = '#f2b630';
+          ctx.beginPath(); ctx.ellipse(cx, hy, R * 0.85, R * 0.72, 0, Math.PI, 0); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(cx, hy, R * 1.05, R * 0.14, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#5a4a2a'; ctx.beginPath(); ctx.roundRect(cx - R * 0.2, hy - R * 0.55, R * 0.4, R * 0.3, R * 0.06); ctx.fill();
+          const gl = ctx.createRadialGradient(cx, hy - R * 0.4, 0, cx, hy - R * 0.4, R * 0.5);
+          gl.addColorStop(0, 'rgba(255,250,200,1)'); gl.addColorStop(0.3, 'rgba(255,250,200,.6)'); gl.addColorStop(1, 'rgba(255,250,200,0)');
+          ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(cx, hy - R * 0.4, R * 0.5, 0, Math.PI * 2); ctx.fill();
+        } else if (E.head === 'mago') {
+          ctx.fillStyle = '#5b3fa8';
+          ctx.beginPath(); ctx.moveTo(cx - R * 0.75, hy); ctx.quadraticCurveTo(cx - R * 0.1, hy - R * 1.2, cx + R * 0.45, hy - R * 1.85); ctx.lineTo(cx + R * 0.75, hy); ctx.closePath(); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(cx, hy, R * 1.1, R * 0.17, -0.05, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ffd95a'; star(cx - R * 0.05, hy - R * 0.55, R * 0.14, 0.3); star(cx + R * 0.3, hy - R * 1.05, R * 0.1, 0.8);
+        } else if (E.head === 'corona') {
+          ctx.fillStyle = '#f5c542';
+          ctx.beginPath();
+          ctx.moveTo(cx - R * 0.7, hy + R * 0.05); ctx.lineTo(cx - R * 0.78, hy - R * 0.6); ctx.lineTo(cx - R * 0.38, hy - R * 0.25);
+          ctx.lineTo(cx, hy - R * 0.78); ctx.lineTo(cx + R * 0.38, hy - R * 0.25); ctx.lineTo(cx + R * 0.78, hy - R * 0.6); ctx.lineTo(cx + R * 0.7, hy + R * 0.05);
+          ctx.closePath(); ctx.fill();
+          ctx.fillStyle = '#e0465b'; ctx.beginPath(); ctx.arc(cx, hy - R * 0.15, R * 0.11, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#3fb3e0'; ctx.beginPath(); ctx.arc(cx - R * 0.4, hy - R * 0.08, R * 0.08, 0, Math.PI * 2); ctx.arc(cx + R * 0.4, hy - R * 0.08, R * 0.08, 0, Math.PI * 2); ctx.fill();
+        }
+      } else if (layer === 'faceUnder' && E.face === 'antifaz') {
+        const ey = cy - R * 0.15;
+        ctx.fillStyle = '#20232b';
+        ctx.beginPath(); ctx.ellipse(cx, ey, R * 0.78, R * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillRect(cx - R * 0.98, ey - R * 0.05, R * 0.3, R * 0.1); ctx.fillRect(cx + R * 0.68, ey - R * 0.05, R * 0.3, R * 0.1);
+      } else if (layer === 'faceOver') {
+        const ey = cy - R * 0.15, dx = R * 0.36;
+        ctx.strokeStyle = '#2a1206'; ctx.lineWidth = Math.max(1.5, R * 0.06);
+        if (E.face === 'lentes') {
+          ctx.beginPath(); ctx.arc(cx - dx, ey, R * 0.27, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.arc(cx + dx, ey, R * 0.27, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(cx - dx + R * 0.27, ey); ctx.quadraticCurveTo(cx, ey - R * 0.1, cx + dx - R * 0.27, ey); ctx.stroke();
+        } else if (E.face === 'monoculo') {
+          ctx.strokeStyle = '#c9a23a';
+          ctx.beginPath(); ctx.arc(cx + dx, ey, R * 0.28, 0, Math.PI * 2); ctx.stroke();
+          ctx.lineWidth = Math.max(1, R * 0.025);
+          ctx.beginPath(); ctx.moveTo(cx + dx + R * 0.2, ey + R * 0.2); ctx.quadraticCurveTo(cx + R * 0.8, cy + R * 0.5, cx + R * 0.55, cy + R * 0.8); ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
     function frame(now) {
       raf = 0;
       if (!visible) return;
@@ -117,7 +232,7 @@
       const tint = hexToRgb(st.tint);
       // La llama siempre es fuego; el tipo de tarea que más haces tiñe su corazón.
       const ember = [255, 122, 26];
-      const core = mix([255, 240, 200], tint, 0.4);
+      const core = mix([255, 240, 200], tint, 0.25);
       const flare = [255, 196, 90];
 
       // halo
@@ -126,7 +241,8 @@
       halo.addColorStop(1, rgba(ember, 0));
       ctx.fillStyle = halo; ctx.fillRect(0, 0, w, h);
 
-      if (st.stage >= 3) drawLogs(g);
+      drawEquip('back', g);
+      if (st.stage >= 3 && !(st.equip && st.equip.base === 'brasero')) drawLogs(g);
 
       // partículas
       spawn(g, ember, core);
@@ -157,7 +273,10 @@
         ctx.strokeStyle = rgba(core, 0.5 + 0.2 * Math.sin(st.t / 15)); ctx.lineWidth = 2;
         ctx.beginPath(); ctx.ellipse(g.cx, g.cy - g.R * 2.7, g.R * 0.7, g.R * 0.18, 0, 0, Math.PI * 2); ctx.stroke();
       }
+      drawEquip('faceUnder', g);
       drawFace(g, now, rgba(flare, 1));
+      drawEquip('faceOver', g);
+      drawEquip('front', g);
       if (st.sleepy && !reduce) {
         ctx.fillStyle = rgba(core, 0.7);
         ctx.font = `600 ${Math.round(g.R * 0.45)}px system-ui, sans-serif`;
