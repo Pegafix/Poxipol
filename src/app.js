@@ -1332,6 +1332,137 @@
     agotado: ['Me despertaste seis veces. Hoy no estoy bien.', 'Dormí fatal. No me pidas mucho hoy, por favor.'],
     lento: ['Hoy voy en cámara lenta…', 'Mis orejitas no despiertan todavía.']
   };
+  // ---------- de buen humor ----------
+  // Cuando durmió bien (Descansado) o anda sin malestares y con vida alta, piensa distinto:
+  // datos curiosos con una vuelta de tuerca, preguntas más ingeniosas y propuestas concretas según tu avance.
+  // Descansado: 60 % de sus pensamientos salen de aquí. Bien a secas: 30 %. Con malestares, nada.
+  function glow() {
+    if (isDrained() || badFx() > 0 || hasFx('malhumor')) return 0;
+    if (hasFx('descansado')) return 2;
+    return circadian().v.hp >= 75 ? 1 : 0;
+  }
+  // Datos reales, cada uno con una pregunta que deja pensando.
+  const BRIGHT_FACTS = [
+    'Los pulpos tienen tres corazones y dos tercios de sus neuronas están en los brazos. ¿Un brazo de pulpo piensa solo?',
+    'Hay más formas de ordenar una baraja de 52 cartas que átomos en la Tierra. Cada vez que barajas, probablemente creas un orden que nunca existió.',
+    'Cleopatra vivió más cerca de la llegada a la Luna que de la construcción de la Gran Pirámide. El tiempo es más largo de lo que parece.',
+    'Los tiburones existían antes que los árboles. ¿Qué otras cosas "de siempre" son en realidad nuevas?',
+    'En Venus un día dura más que un año. Ahí cumplirías años antes de que se haga de noche.',
+    'La luz del sol que te toca ahora salió hace unos ocho minutos. Siempre vemos el sol un poquito en el pasado.',
+    'El cerebro es cerca del 2 % del peso del cuerpo y usa como el 20 % de la energía. Pensar es caro, por eso cansa.',
+    'Los flamencos son rosados por lo que comen. Si comieran otra cosa, serían blancos. ¿Qué color tendrías tú por lo que consumes?',
+    'Las abejas bailan para decirle a las otras dónde están las flores. Un idioma hecho de movimiento.',
+    'El ADN de una sola célula tuya, estirado, mide unos dos metros. Y lo tienes doblado en algo invisible.',
+    'Botánicamente, el plátano es una baya y la frutilla no. Las palabras y la ciencia no siempre se ponen de acuerdo.',
+    'El corazón de un colibrí puede latir más de mil veces por minuto. El mío late a ritmo de bolita.',
+    'Mientras duermes, el cerebro repasa lo que aprendiste y lo guarda mejor. Hoy me desperté con todo ordenado.',
+    'Repasar algo en días separados se recuerda mucho mejor que repasarlo diez veces seguidas. Se llama efecto de espaciado.',
+    'Explicarle algo a otra persona es de las mejores formas de aprenderlo. Por eso te pregunto tanto, jiji.',
+    'Los wombats hacen caca en forma de cubito. La naturaleza tiene sentido del humor.',
+    'Las nutrias marinas se toman de las manos para no separarse mientras duermen. Qué buena idea.',
+    'Un rayo está varias veces más caliente que la superficie del sol, pero dura menos que un parpadeo.'
+  ];
+  // Pensamientos con energía, según la hora.
+  const BRIGHT_LINES = {
+    waking: ['Abrí los ojos y ya tenía ideas. ¿Esto es estar descansado?', 'Hoy me desperté con las orejitas listas para aprender.', 'Buenos días. Hoy siento que puedo con algo difícil.'],
+    peak: ['Mi cerebro está como recién lavado. Aprovechémoslo.', 'Es la mejor hora para lo difícil, y yo ando a mil.', 'Hoy entiendo las cosas a la primera. Bueno, a la segunda.'],
+    dip: ['Después de almuerzo baja la energía… pero hoy dormí bien, así que aguanto.', 'Truco: algo fácil y corto ahora, lo difícil más tarde.', 'Un vaso de agua y una tarea chica. Fórmula de siesta evitada.'],
+    peak2: ['¡Segundo aire! La tarde también es buena para pensar.', 'Hoy alcanzamos a hacer una cosa más, lo presiento.', 'Me volvieron las ganas, y con intereses.'],
+    calm: ['Qué buen día fue. ¿Notaste lo que aprendimos?', 'El atardecer es buen momento para repasar en la cabeza.', 'Hoy me sentí con pila todo el día. Gracias por dejarme dormir.'],
+    winddown: ['Hoy fue un buen día. Ahora a guardarlo durmiendo.', 'Si repasas una cosa antes de dormir, mañana la recuerdas mejor.', 'Mañana quiero amanecer igual de bien. ¿Me ayudas a dormir temprano?']
+  };
+  // Preguntas más ingeniosas, con consecuencias. [texto, reacción, tono, destino, lección]
+  const BRIGHT_ASK = {
+    any: [
+      { id: 'b-animal', q: 'Pregunta rara: si tu proyecto fuera un animal, ¿cuál sería?', r: [['Un gato', 'Independiente y medio misterioso. Le tengo respeto.', 'warm'], ['Una tortuga', 'Lento pero llega. Como las mejores cosas.', 'warm'], ['Un pulpo', '¡Ocho cosas a la vez! Ojo con la memoria de trabajo: una a la vez.', 'warm']] },
+      { id: 'b-empezar', q: '¿Qué te cuesta más: empezar o terminar?', r: [['Empezar', 'Truco: comprométete solo a 5 minutos. Arrancar es lo difícil; seguir sale solo.', 'warm', null, 'feelings'], ['Terminar', 'Entonces miremos qué falta para cerrar una fase. Lo que está cerca se termina.', 'warm', 'mision'], ['Las dos', 'Honesto. Hoy hagamos solo una cosa chica de principio a fin.', 'ok']] },
+      { id: 'b-frase', q: 'Desafío: ¿puedes explicar en una frase qué estás construyendo?', r: [['Sí', 'Si cabe en una frase, lo entiendes de verdad. Eso es metacognición.', 'warm'], ['Me cuesta', '¡Buen dato! Lo que cuesta explicar es lo que aún no está claro. Ahí hay que mirar.', 'warm', null, 'feelings']] },
+      { id: 'b-sinfallar', q: '¿Qué harías si supieras que no puedes fallar?', r: [['Algo grande', 'Entonces el miedo era lo único en el camino. Un pedacito de eso, hoy.', 'warm'], ['Lo mismo', 'Eso significa que haces lo que te gusta. Qué lindo.', 'warm'], ['No sé', 'Pregunta para pensar en la ducha. Me la cuentas mañana.', 'ok']] },
+      { id: 'b-futuro', q: '¿Qué de lo que hagas hoy te va a agradecer el tú de mañana?', r: [['Una tarea', '¡Vamos por ella! El tú de mañana ya está aplaudiendo.', 'warm', 'misiones'], ['Descansar', 'También cuenta. Dormir bien es un regalo al tú de mañana.', 'warm'], ['Nada', 'Todavía hay tiempo de darle una sorpresa.', 'ok']] },
+      { id: 'b-superpoder', q: 'Si pudieras aprender una cosa en un día, sin esfuerzo, ¿qué sería?', r: [['Un idioma', 'Buena. Y la buena noticia: con 10 minutos diarios, en un año también se puede.', 'warm'], ['Un instrumento', 'La música es práctica espaciada pura. Igual que tus tareas.', 'warm'], ['Programar', 'Ya lo estás haciendo, solo que sin el "sin esfuerzo", jiji.', 'warm', 'misiones']] },
+      { id: 'b-error', q: '¿Cuál fue tu último error que te enseñó algo?', r: [['Tengo uno', 'Los errores que enseñan son los mejores. Cuéntalo en la Plaza, a alguien le sirve.', 'warm', null, 'learn'], ['No me acuerdo', 'Quizás porque ya lo superaste. Eso también es aprender.', 'ok']] },
+      { id: 'b-ensenar', q: 'Si tuvieras que enseñarme una cosa que sabes, ¿qué sería?', r: [['Algo de mi trabajo', '¡Me encantaría! Enseñar es aprender dos veces.', 'warm', null, 'teach'], ['Algo de la vida', 'Esas son las mejores clases. Te escucho cuando quieras.', 'warm', null, 'teach']] }
+    ],
+    waking: [
+      { id: 'b-plan', q: 'Dormí increíble. ¿Planificamos el día en tres cosas chicas?', r: [['Dale', '¡Eso! Tres cosas chicas valen más que una gigante sin empezar.', 'warm', 'misiones'], ['Improviso', 'También vale. Hoy confío en tu instinto.', 'ok']] },
+      { id: 'b-sueno', q: '¿Te acuerdas de lo que soñaste?', r: [['Sí', 'Los sueños mezclan lo que vivimos. ¿Era algo del proyecto? Jiji.', 'warm'], ['No', 'Casi nadie se acuerda. Igual el cerebro trabajó toda la noche.', 'ok']] }
+    ],
+    peak: [
+      { id: 'b-sapo', q: 'Tengo la mente afilada. ¿Atacamos la tarea más difícil primero?', r: [['Sí, la difícil', 'Valiente. Lo difícil con la cabeza fresca sale mejor.', 'warm', 'mision'], ['Mejor una fácil', 'Calentar motores también vale. Después la difícil.', 'ok', 'mision']] },
+      { id: 'b-modo', q: '¿Hoy quieres modo valiente o modo constante?', r: [['Valiente', 'Algo nuevo, algo que asuste un poquito. ¡Vamos!', 'warm', 'misiones'], ['Constante', 'Paso a paso. La constancia le gana al talento casi siempre.', 'warm', 'misiones']] }
+    ],
+    dip: [
+      { id: 'b-siesta', q: 'Truco anti-sueñito: diez minutos de algo fácil. ¿Probamos?', r: [['Probemos', 'Lo fácil ahora, lo difícil después del bajón.', 'warm', 'mision'], ['Prefiero pausa', 'Una pausa corta también funciona. Te espero.', 'ok']] }
+    ],
+    peak2: [
+      { id: 'b-repaso', q: '¿Me cuentas en voz alta una cosa que aprendiste hoy? Decirlo ayuda a recordarlo.', r: [['Ya, te cuento', 'Listo: ahora tu cerebro lo tiene dos veces.', 'warm', null, 'teach'], ['Hoy no aprendí', 'Todavía queda tarde. Una tarea y ya tienes qué contar.', 'ok', 'misiones']] }
+    ],
+    calm: [
+      { id: 'b-titulo', q: 'Si hoy fuera un capítulo de un libro, ¿qué título le pondrías?', r: [['Épico', '"El día que todo avanzó". Me gusta.', 'warm'], ['Tranquilo', '"Un día en paz". Esos también hacen falta.', 'warm'], ['Raro', '"Lo inesperado". Los capítulos raros son los que más se recuerdan.', 'warm']] }
+    ],
+    winddown: [
+      { id: 'b-noche', q: 'Si repasas una cosa justo antes de dormir, se guarda mejor. ¿Repasamos una de hoy?', r: [['Sí', 'Piénsala una vez más… listo. Ahora el sueño hace el resto.', 'warm'], ['Mañana', 'Ok. Igual, dormir bien ya es estudiar.', 'ok']] }
+    ]
+  };
+  // Propuestas concretas según cómo va tu avance. Cada una devuelve [texto, respuestas?] o null.
+  const PROACTIVE = [
+    () => { const n = nextIn(active()); return n && n.t ? [`Hoy tengo la cabeza clarita. ¿Y si hacemos "${n.t.text.slice(0, 70)}${n.t.text.length > 70 ? '…' : ''}"? Creo que sale.`, [['Vamos', '¡Eso! Te espero allá.', 'warm', 'mision'], ['Después', 'Ok, la dejo anotada en mi cabecita.', 'ok']]] : null; },
+    () => { const r = questState().filter(x => x.ready).length; return r ? [`Tienes ${r === 1 ? 'una misión diaria lista' : r + ' misiones diarias listas'}. ¡No dejes XP en la mesa!`, [['A reclamar', '¡Ñam, XP!', 'warm', 'misiones'], ['Luego', 'Ok, no se van a ir a ninguna parte.', 'ok']]] : null; },
+    () => { const a = attrs()._avail; return a ? [`Tengo ${a === 1 ? 'un punto' : a + ' puntos'} de stat sin usar. ¿Me ayudas a elegir en qué crecer?`, [['Vamos a ver', '¡Qué emoción!', 'warm', 'stats'], ['Después', 'Me los guardo para un buen momento.', 'ok']]] : null; },
+    () => {
+      const a = attrs(), x = ATTRS.map(t => [t, a[t.id].into / a[t.id].need]).filter(([, f]) => f >= 0.7).sort((p, q) => q[1] - p[1])[0];
+      return x ? [`Me falta poquito para subir ${x[0].name.toLowerCase()}. ${x[0].how.replace(/\.$/, '')} y lo logro.`] : null;
+    },
+    () => { const s = streakOf(totals().days); return s >= 2 ? [pick([`Llevamos ${s} días seguidos. Mañana serían ${s + 1}… solo digo.`, `${s} días seguidos. La constancia se nota en las orejitas.`])] : null; },
+    () => { const n = Object.values(workshop().mats || {}).reduce((x, y) => x + y, 0); return n >= 4 ? [`Tenemos ${n} materiales guardados en el Taller. ¿Qué haría alguien de verdad con ellos? Yo tengo una sospecha.`, [['Probemos', '¡Al Taller! Piensa en la vida real.', 'warm', 'taller'], ['Otro día', 'Ok, los cuido mientras.', 'ok']]] : null; },
+    () => { const n = nextIn(active()); const pp = n && n.p.progress.phases[n.ph.n]; return pp && pp.startAt && !pp.hours && n.ph.hours ? [`¿Cuántas horas llevas en «${n.ph.title}»? Si las anotas, aprendemos a estimar mejor. La guía decía ${n.ph.hours} h.`] : null; },
+    () => tierOf(bond().emp) >= 2 ? [pick(['¿Y si hoy le preguntas algo a alguien en la Plaza? Preguntar no es debilidad: es el atajo.', 'Alguien en la Plaza puede saber justo lo que te falta. O tú lo que le falta a otro.']), [['Vamos', '¡A conversar!', 'warm', 'plaza'], ['Hoy no', 'Está bien. La Plaza no se va.', 'ok']]] : null
+  ];
+  // Con mal dormir (sin llegar a agotado): frases según el malestar, cansadas pero con cariño.
+  const LOW_LINES = {
+    ojeras: ['Me pesan los párpados… pero aquí sigo.', 'Mis ojeras tienen ojeras.', 'Hoy veo todo un poquito borroso.', 'Si cierro los ojos un segundo, ¿cuenta como siesta?'],
+    nublado: ['Leí la misma frase tres veces y no la entendí.', 'Hoy las ideas llegan con neblina.', 'Tengo la cabeza como algodón mojado.', '¿Qué estaba pensando? Se me fue.'],
+    malhumor: ['Hoy me molesta hasta el zumbido de la lámpara.', 'Ando sensible. No es contigo, es el sueño.', 'Respiro hondo y sigo. Despacito.', 'Hmph. Bueno, igual estoy contento de verte.'],
+    lento: ['Hoy pienso en cámara lenta…', 'Voy a mi ritmo hoy: ritmo caracol.', 'Mis orejitas todavía no despiertan.', 'Un paso a la vez. Hoy, medio paso.']
+  };
+  function lowThought() {
+    const fx = todayEffects().filter(id => LOW_LINES[id]);
+    if (!fx.length) return false;
+    const id = pick(fx);
+    if (pets.home) pets.home.express(pick(id === 'malhumor' ? ['grumpy', 'sad'] : ['drowsy', 'yawn', 'squint']), 3000);
+    showThought(draw('low' + id, LOW_LINES[id]));
+    return true;
+  }
+  const proSeen = {};
+  // Devuelve true si mostró algo.
+  function brightThought(c, tier, today) {
+    const face = n => pets.home && pets.home.express(n, 3000);
+    const roll = Math.random(), g = glow();
+    // Propuestas (más con confianza)
+    if (roll < 0.28 + 0.03 * tier) {
+      // Cada propuesta descansa 90 min antes de repetirse.
+      const now = Date.now(), opts = PROACTIVE.map((f, i) => (now - (proSeen[i] || 0) > 90 * 60000 ? [i, f()] : null)).filter(x => x && x[1]);
+      if (opts.length) {
+        const [i, [t, r]] = pick(opts);
+        proSeen[i] = now;
+        if (r) { pending = 'proactive'; holdUntil = Date.now() + 22000; pets.home.pop('!'); } else holdUntil = Date.now() + Math.max(7000, t.length * 80);
+        face(pick(['sparkle', 'happy', 'wink'])); showThought(t, r); return true;
+      }
+    }
+    // Preguntas ingeniosas
+    if (roll < 0.55) {
+      const pool = (BRIGHT_ASK[c.phase] || []).concat(BRIGHT_ASK.any).filter(x => !asked[today + x.id]);
+      if (pool.length && Math.random() < ASK_MULT[tier]) {
+        const x = pick(pool); asked[today + x.id] = 1;
+        pets.home.pop('?'); face(pick(['thinking', 'sparkle']));
+        showThought(x.q, x.r); pending = x.id; holdUntil = Date.now() + 25000; return true;
+      }
+    }
+    // Datos curiosos
+    if (roll < 0.8) { const t = draw('bfact', BRIGHT_FACTS); face(pick(['sparkle', 'surprised', 'thinking'])); showThought(t); holdUntil = Date.now() + Math.max(8000, t.length * 85); return true; }
+    const ls = BRIGHT_LINES[c.phase]; if (!ls) return false;
+    face(pick(g === 2 ? ['happy', 'sparkle', 'wink', 'love'] : ['happy', 'wink'])); showThought(draw('bl' + c.phase, ls)); return true;
+  }
   const asked = {};
   let thinkTimer = 0, holdUntil = 0, pending = null;
   function showThought(text, replies) {
@@ -1348,7 +1479,9 @@
   // Una pregunta que se queda sin respuesta es una invitación ignorada (resta poquito, máx. 3 al día).
   function expirePending() {
     if (!pending) return;
+    const wasProposal = pending === 'proactive';
     pending = null;
+    if (wasProposal) return; // una propuesta ignorada no es una invitación ignorada
     const bd = bond(), k = dayKey(Date.now());
     if ((bd.ignored[k] || 0) < 3) { bd.ignored[k] = (bd.ignored[k] || 0) + 1; bondChange(-1); }
   }
@@ -1387,6 +1520,10 @@
       face(main === 'descansado' ? 'happy' : isDrained() ? 'grumpy' : nb >= 2 ? 'sad' : 'yawn', 4000);
       holdUntil = Date.now() + 9000; next(); return;
     }
+    // De buen humor piensa distinto: datos curiosos, preguntas ingeniosas y propuestas concretas.
+    const gl = glow();
+    if (gl && Math.random() < (gl === 2 ? 0.6 : 0.3) && brightThought(c, tier, dayKey(Date.now()))) { next(); return; }
+    if (!gl && badFx() > 0 && Math.random() < 0.35 && lowThought()) { next(); return; }
     // Preguntar: más probable cuando está despierto, con el maná alto y con más confianza.
     const askP = (0.15 + 0.35 * c.alert + (c.curious ? 0.15 : 0)) * ASK_MULT[tier];
     const today = dayKey(Date.now());
