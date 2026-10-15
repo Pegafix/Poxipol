@@ -320,6 +320,23 @@ button.chip { cursor: pointer; }
 .play-acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 
 /* ---------- Stats ---------- */
+.gstats { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+@media (max-width: 400px) { .gstats { grid-template-columns: minmax(0, 1fr); } }
+.gstat { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+.g-ab { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: color-mix(in srgb, var(--ac) 18%, var(--surface-2)); color: color-mix(in srgb, var(--ac) 70%, var(--ink)); font: 800 13px/1 var(--f-mono); letter-spacing: .04em; }
+.g-main { display: grid; gap: 4px; min-width: 0; }
+.g-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.g-head b { font-size: 14px; }
+.g-val { font: 800 20px/1 var(--f-display); color: color-mix(in srgb, var(--ac) 75%, var(--ink)); font-variant-numeric: tabular-nums; }
+.g-bar { height: 5px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+.g-bar i { display: block; height: 100%; background: var(--ac); border-radius: 99px; transition: width .4s ease; }
+.g-what { margin: 0; font-size: 12.5px; color: var(--muted); }
+.g-meta { margin: 0; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.g-meta b { color: var(--ink); }
+.g-aff { margin: 0; font-size: 11.5px; color: var(--muted); font-style: italic; }
+.gstat [data-stat] { min-width: 48px; }
+.st-learn-p { margin: -4px 0 12px; font-size: 13px; color: var(--muted); max-width: 70ch; }
+#play-skills small { display: block; font-size: 12px; color: var(--muted); }
 .st-lv { display: grid; gap: 2px; margin-bottom: 10px; }
 .st-lv b { font: 800 20px/1.1 var(--f-display); }
 .st-lv span { font-size: 13px; color: var(--muted); }
@@ -680,8 +697,8 @@ body.can-ask .ask { display: grid; gap: 6px; }
 
 <dialog class="play-dlg" id="play" aria-labelledby="play-t">
   <h2 id="play-t">Jugar con Mochi</h2>
-  <p>Muy pronto: un juego aparte, simple y para despejarse, donde Mochi usa sus habilidades. Lo que entrenas con tus tareas y los puntos que le das en Stats van a contar aquí.</p>
-  <h3>Sus mejores habilidades ahora</h3>
+  <p>Muy pronto: un juego aparte, simple y para despejarse, donde Mochi usa sus stats de juego (VIT, STR, FIT, DEX, AGI, INT, WIT, PER, WIL y DEV). Los subes con los puntos de cada nivel, y lo que entrenas con tus tareas también les suma.</p>
+  <h3>Sus mejores stats de juego</h3>
   <ul id="play-skills"></ul>
   <p class="muted">Mientras tanto, sigue entrenándolo: cada tarea, mezcla y conversación le suma.</p>
   <div class="play-acts"><button class="btn ghost" data-go="stats" data-play-close>Ver stats</button><button class="btn primary" data-play-close>Volver con Mochi</button></div>
@@ -726,11 +743,15 @@ body.can-ask .ask { display: grid; gap: 6px; }
 </section>
 
 <section class="screen" id="scr-stats" hidden aria-label="Stats">
-  <div class="screen-head"><div><h1>Stats</h1><p>Mochi no tiene fuerza ni defensa: tiene cabeza y corazón. Cada atributo sube de dos formas: <b>usándolo</b>, como en Final Fantasy II (cada tarea entrena lo que de verdad usa, y repetir lo mismo el mismo día rinde menos), y con <b>1 punto por nivel</b> que repartes tú.</p></div></div>
+  <div class="screen-head"><div><h1>Stats</h1><p>Mochi tiene dos clases de stats. Los <b>de juego</b> los subes tú con <b>1 punto por nivel</b> y cuentan cuando juegas con Mochi. Los <b>de aprendizaje</b> solo suben <b>usándolos</b>, como en Final Fantasy II: cada tarea entrena lo que de verdad usa, y repetir lo mismo el mismo día rinde menos.</p></div></div>
   <div class="sheet">
     <div class="panel st-panel"><h3>Vitales</h3><div id="st-vitals"></div></div>
     <div class="panel st-panel"><h3>Puntos de nivel</h3><div id="st-points" class="st-points"></div></div>
   </div>
+  <h2 class="sec-t"><span>Stats de juego</span><span class="muted">para jugar con Mochi</span></h2>
+  <ul class="gstats" id="st-game"></ul>
+  <h2 class="sec-t st-learn"><span>Atributos de aprendizaje</span><span class="muted">suben usándolos</span></h2>
+  <p class="st-learn-p">No se compran con puntos: crecen con tus tareas, fases, mezclas y conversaciones. Cada 3 niveles le dan +1 a su stat de juego afín.</p>
   <h2 class="sec-t"><span>Cognitivos</span><span class="muted">pensar y hacer</span></h2>
   <ul class="attrs" id="st-cog"></ul>
   <h2 class="sec-t"><span>Emocionales</span><span class="muted">sentir y seguir</span></h2>
@@ -808,7 +829,7 @@ body.can-ask .ask { display: grid; gap: 6px; }
         <tr><td>Fase superada (+20 % si terminas dentro de lo estimado)</td><td>40 + 5/tarea</td></tr>
         <tr><td>Copiar el prompt de una fase por primera vez</td><td>+3</td></tr>
         <tr><td>Misión diaria (más con Memoria de trabajo)</td><td>10 a 25</td></tr>
-        <tr><td>Cada nivel: 1 punto de stat para repartir en Stats</td><td>+1</td></tr>
+        <tr><td>Cada nivel: 1 punto para los stats de juego (VIT, STR, FIT…)</td><td>+1</td></tr>
         <tr><td>Equipo puesto</td><td>bono</td></tr>
         <tr><td><b>HP</b> vida: baja 25 por cada día sin avanzar</td><td>0–100</td></tr>
         <tr><td><b>MP</b> maná: +25 por tarea de Claude o prompt copiado hoy</td><td>0–100</td></tr>

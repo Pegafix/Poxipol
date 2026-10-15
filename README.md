@@ -31,15 +31,17 @@ Carga tus guías de desarrollo en PDF (formato "Hoja de ruta paso a paso & integ
 - **Misiones**: tres misiones diarias que cambian cada día y se reclaman por XP (más con Memoria de trabajo), y la lista de misiones principales (una por PDF). Al abrir una ves todo lo de la guía: fases, campos, tareas, prompts, cronómetro y registro.
 - **Equipo**: 20 piezas en 6 ranuras (cabeza, cara, cuello, joya, base, aura) que se desbloquean avanzando. Cada una se ve sobre el personaje y da un bono de XP mientras la llevas puesta. También muestra los atributos y los últimos 28 días.
 - **Stats**: la tabla de Mochi.
-  - **Vitales**: arriba, nivel, XP y lo que falta para el siguiente, más HP, MP, STA y EMP.
-  - **Atributos**: debajo, nueve atributos que no son los típicos de un JRPG.
+  - **Vitales**: nivel, XP y lo que falta para el siguiente, más HP, MP, STA y EMP.
+  - **Stats de juego**: los que subes tú con **1 punto por nivel**, para **Jugar con Mochi**. Se pueden reasignar una vez al día.
+    - Los diez: VIT (vigor y salud), STR (fuerza bruta), FIT (acondicionamiento), DEX (destreza fina), AGI (agilidad y reflejos), INT (inteligencia y lógica), WIT (ingenio y astucia), PER (sabiduría y percepción), WIL (voluntad y templanza) y DEV (fe y devoción).
+    - Cada uno parte en 5 y muestra lo que significa en el juego: vida máxima, daño de impacto, estamina, precisión, esquiva, poder de fórmulas, iniciativa, detección, resistencia mental y poder vital.
+    - Lo aprendido también suma: cada 3 niveles del atributo de aprendizaje afín le dan +1 (resiliencia → VIT, enfoque → FIT, agilidad manual → DEX, lógica → INT, metacognición → WIT, análisis → PER, tolerancia → WIL, empatía → DEV).
+  - **Atributos de aprendizaje**: no se compran con puntos, solo suben usándolos, como en Final Fantasy II.
     - Cognitivos: Razonamiento lógico, Memoria de trabajo, Agilidad manual y Análisis crítico.
     - Emocionales: Tolerancia a la frustración, Resiliencia, Empatía, Enfoque y Metacognición.
-  - **Cómo suben** los atributos, de dos formas:
-    - **Usándolos**, como en Final Fantasy II. Cada tarea entrena lo que usa: construir sube agilidad, lógica y memoria; delegar a Claude, análisis, lógica y metacognición; crear, agilidad, enfoque y memoria; probar, análisis, tolerancia y lógica. También entrenan las fases, los prompts, las misiones diarias, los combos, volver después de días sin avanzar, las mezclas del Taller (fallar entrena tolerancia) y tratar bien a Mochi. Repetir lo mismo el mismo día rinde cada vez menos.
-    - **Con 1 punto por nivel** que repartes tú. Se puede reasignar una vez al día.
-  - **Efecto de cada atributo**: XP extra en tareas, misiones o fases, ventana de combo más larga, vida que baja más lento, Mochi con más paciencia y empatía que sube más rápido.
-  - Cada atributo muestra su base científica.
+    - Cada tarea entrena lo que usa: construir sube agilidad, lógica y memoria; delegar a Claude, análisis, lógica y metacognición; crear, agilidad, enfoque y memoria; probar, análisis, tolerancia y lógica. También entrenan las fases, los prompts, las misiones diarias, los combos, volver después de días sin avanzar, las mezclas del Taller (fallar entrena tolerancia) y tratar bien a Mochi. Repetir lo mismo el mismo día rinde cada vez menos.
+    - Tienen efecto en la app: XP extra en tareas, misiones o fases, ventana de combo más larga, vida que baja más lento, Mochi con más paciencia y empatía que sube más rápido.
+    - Cada uno muestra su base científica.
 - **Taller**: química, cocina y orfebrería de verdad. Avanzar da materiales reales (metales y carbón de las tareas de construir; arena, cal, vinagre, bicarbonato… de las de Claude; harina, levadura, cacao, cera… de las de crear; leche, limón, sal, miel… de las de probar; oro o plata de las fases; hierbas al tratar bien a Mochi; el agua nunca se acaba). Se eligen de 1 a 3 y un proceso (en frío, calentar, hornear, fundir, forjar). Las 33 recetas son reales (bronce, latón, acero, oro rosa, electro, plata de ley, vidrio, cerámica, mortero, jabón de ceniza, pan, requesón, limonada, tés, experimentos como bicarbonato con vinagre…) y **la app no las enseña**: no hay pistas, solo se ven las que uno descubre. Lo fabricado sirve para otras mezclas, las comidas cuidan a Mochi y las aleaciones se forjan en joyas.
 - **Plaza**: comunidad entre quienes usan la página. Se publican descubrimientos (con la receta adjunta), preguntas, debates (con postura de acuerdo o en desacuerdo) y pedidos de material; se responde, se marca lo útil y se regalan materiales. Si alguien prueba una receta compartida y le sale, quien la compartió gana XP ("enseñaste a…"). Cada persona escribe solo su propio documento y lee el de todos; lo de otras personas se valida antes de mostrarse.
 - **Menú**: nombre del compañero, tema, música, sonido, reglas de la experiencia y reinicio.
@@ -70,7 +72,7 @@ Si vuelves a cargar una versión nueva de la misma guía, el progreso se conserv
 | Copiar el prompt de una fase por primera vez | +3 |
 | Misión diaria | 10 a 25 |
 | Equipo puesto | bono según la pieza |
-| Cada nivel | 1 punto de stat para repartir |
+| Cada nivel | 1 punto para los stats de juego |
 
 El tipo de tarea que más haces da color a los destellos que salen al tachar (azul construir, verde delegar, ámbar crear, rojo probar). Si pasan días sin avanzar, Mochi se duerme, pero nunca se va.
 

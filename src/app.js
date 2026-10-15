@@ -395,6 +395,32 @@
       how: 'Registrar horas, terminar fases dentro de lo estimado y copiar prompts.', eff: b => `+${b * 3} % XP al superar una fase` }
   ];
   const ATTR = Object.fromEntries(ATTRS.map(a => [a.id, a]));
+  // Stats de juego: los que subes tú con 1 punto por nivel, para Jugar con Mochi.
+  // Parten en 5. Además, cada 3 niveles entrenados del atributo afín suman +1 (lo que aprendes también cuenta).
+  const GAME_BASE = 5;
+  const GAME_STATS = [
+    { id: 'vit', ab: 'VIT', name: 'Vigor / Salud', color: '#ff6b81', aff: 'resiliencia',
+      what: 'Define la reserva total de vida (HP) y la resistencia a estados alterados corporales.', out: v => ['Vida máxima', 40 + 8 * v] },
+    { id: 'str', ab: 'STR', name: 'Fuerza bruta', color: '#e8774a', aff: null,
+      what: 'Determina el daño de impacto, la capacidad de empuje y de levantamiento.', out: v => ['Daño de impacto', 2 * v] },
+    { id: 'fit', ab: 'FIT', name: 'Potencia muscular / Acondicionamiento', color: '#ffb35c', aff: 'enfoque',
+      what: 'Influye en la estamina (MP/STA) y en el daño sostenido.', out: v => ['Estamina', 20 + 6 * v] },
+    { id: 'dex', ab: 'DEX', name: 'Destreza fina', color: '#5fd3a0', aff: 'agilidad',
+      what: 'Manipulación de objetos pequeños, cerrajería, puntería a distancia y manualidades.', out: v => ['Precisión', Math.min(95, 50 + 3 * v) + ' %'] },
+    { id: 'agi', ab: 'AGI', name: 'Agilidad / Reflejos', color: '#6fd6e8', aff: null,
+      what: 'Velocidad de desplazamiento, tiempo de reacción y esquiva.', out: v => ['Esquiva', Math.min(60, 2 * v) + ' %'] },
+    { id: 'int', ab: 'INT', name: 'Inteligencia / Lógica', color: '#7fc4ff', aff: 'logica',
+      what: 'Conocimiento académico, memoria, análisis de debilidades y magia de fórmulas (arcana o tecnológica).', out: v => ['Poder de fórmulas', 2 * v] },
+    { id: 'wit', ab: 'WIT', name: 'Ingenio / Astucia', color: '#a98bff', aff: 'metacog',
+      what: 'Velocidad mental para improvisar, velocidad de lanzamiento de hechizos, iniciativa y engaño.', out: v => ['Iniciativa', v] },
+    { id: 'per', ab: 'PER', name: 'Sabiduría / Percepción', color: '#c7a6ff', aff: 'analisis',
+      what: 'Observación de detalles, detectar trampas y sigilo, y sentido común.', out: v => ['Detección', 3 * v] },
+    { id: 'wil', ab: 'WIL', name: 'Voluntad / Templanza', color: '#ff8fb1', aff: 'tolerancia',
+      what: 'Resistencia a la magia mental (control, miedo), perseverancia y control del dolor.', out: v => ['Resistencia mental', Math.min(75, 3 * v) + ' %'] },
+    { id: 'dev', ab: 'DEV', name: 'Fe / Devoción', color: '#ffd166', aff: 'empatia',
+      what: 'Conexión con entidades superiores, milagros, magia sagrada o canalización de energía vital.', out: v => ['Poder vital', 2 * v] }
+  ];
+  const GAME = Object.fromEntries(GAME_STATS.map(g => [g.id, g]));
   // Qué entrena cada tipo de tarea (suma 1).
   const FAM_TRAINS = {
     build: { agilidad: 0.45, logica: 0.35, memoria: 0.2 },
@@ -450,14 +476,19 @@
     pts.empatia += 5 * Object.keys(bd.lessons).length + (bd.empOld || 0);
     if (bd.lessons.respect) pts.tolerancia += 5;
 
-    const alloc = pr.statPts || {};
-    const out = { _spent: 0 };
+    // Los atributos de aprendizaje solo suben usándolos.
+    const out = { _spent: 0, _game: {} };
     ATTRS.forEach(a => {
       let L = 1, rest = pts[a.id];
       while (rest >= attrNeed(L)) { rest -= attrNeed(L); L++; }
-      const given = alloc[a.id] || 0;
+      out[a.id] = { trained: L, into: rest, need: attrNeed(L), value: L, pts: pts[a.id] };
+    });
+    // Los stats de juego reciben los puntos de nivel.
+    const alloc = pr.gamePts || {};
+    GAME_STATS.forEach(g => {
+      const given = alloc[g.id] || 0, aff = g.aff ? Math.floor((out[g.aff].trained - 1) / 3) : 0;
       out._spent += given;
-      out[a.id] = { trained: L, into: rest, need: attrNeed(L), given, value: L + given, pts: pts[a.id] };
+      out._game[g.id] = { given, aff, value: GAME_BASE + given + aff };
     });
     out._avail = Math.max(0, levelOf(tot.xp).L - 1 - out._spent);
     attrCache = { t: Date.now(), v: out };
@@ -466,19 +497,27 @@
   const statB = id => attrs()[id].value - 1; // bono: lo que tiene por sobre el nivel 1
   function giveStat(id) {
     const a = attrs(totals());
-    if (!ATTR[id] || a._avail < 1) return;
+    if (!GAME[id] || a._avail < 1) return;
     const pr = state.profile;
-    pr.statPts = pr.statPts || {};
-    pr.statPts[id] = (pr.statPts[id] || 0) + 1;
+    pr.gamePts = pr.gamePts || {};
+    pr.gamePts[id] = (pr.gamePts[id] || 0) + 1;
     attrCache.t = 0; touchProfile();
     renderAll();
-    say(pick([`${ATTR[id].name} subió a ${attrs()[id].value}. Lo siento en las orejitas.`, `¡+1 a ${ATTR[id].name.toLowerCase()}!`, `Gracias. Voy a usar bien ese punto de ${ATTR[id].name.toLowerCase()}.`]));
+    const g = GAME[id], v = attrs()._game[id].value;
+    say(pick([`${g.ab} sube a ${v}. ¡Lo siento en las orejitas!`, `¡+1 a ${g.name.toLowerCase()}! Ya quiero probarlo jugando.`, `Gracias. Voy a usar bien ese punto de ${g.ab}.`]));
   }
   function resetStats() {
     const pr = state.profile, k = dayKey(Date.now());
-    if (pr.statReset === k || !Object.keys(pr.statPts || {}).length) return;
-    if (!confirm('¿Reasignar todos los puntos? Lo entrenado practicando se queda. Puedes hacerlo una vez al día.')) return;
-    pr.statPts = {}; pr.statReset = k; attrCache.t = 0; touchProfile(); renderAll();
+    if (pr.statReset === k || !Object.keys(pr.gamePts || {}).length) return;
+    if (!confirm('¿Reasignar todos los puntos de los stats de juego? Puedes hacerlo una vez al día.')) return;
+    pr.gamePts = {}; pr.statReset = k; attrCache.t = 0; touchProfile(); renderAll();
+  }
+  // Antes los puntos iban a los atributos de aprendizaje; ahora vuelven para repartirlos en los de juego.
+  function migrateStatPoints() {
+    const pr = state.profile;
+    if (!pr.statPts || !Object.keys(pr.statPts).length) { delete pr.statPts; return false; }
+    delete pr.statPts; attrCache.t = 0; touchProfile();
+    return true;
   }
   // Lo que subió practicando entre dos fotos de los atributos.
   function attrUps(before) {
@@ -489,7 +528,7 @@
   function noteProgress(before, lvBefore, lvAfter) {
     const ups = attrUps(before);
     const msgs = [];
-    if (lvAfter > lvBefore) msgs.push(`Tienes ${lvAfter - lvBefore === 1 ? '1 punto' : (lvAfter - lvBefore) + ' puntos'} de stat para repartir.`);
+    if (lvAfter > lvBefore) msgs.push(`Tienes ${lvAfter - lvBefore === 1 ? '1 punto' : (lvAfter - lvBefore) + ' puntos'} para tus stats de juego.`);
     if (ups.length) msgs.push(`Practicando subió: ${ups.join(', ')}.`);
     if (msgs.length) setTimeout(() => say(msgs.join(' '), state.screen === 'home'), 2600);
   }
@@ -1408,7 +1447,7 @@
   const PROACTIVE = [
     () => { const n = nextIn(active()); return n && n.t ? [`Hoy tengo la cabeza clarita. ¿Y si hacemos "${n.t.text.slice(0, 70)}${n.t.text.length > 70 ? '…' : ''}"? Creo que sale.`, [['Vamos', '¡Eso! Te espero allá.', 'warm', 'mision'], ['Después', 'Ok, la dejo anotada en mi cabecita.', 'ok']]] : null; },
     () => { const r = questState().filter(x => x.ready).length; return r ? [`Tienes ${r === 1 ? 'una misión diaria lista' : r + ' misiones diarias listas'}. ¡No dejes XP en la mesa!`, [['A reclamar', '¡Ñam, XP!', 'warm', 'misiones'], ['Luego', 'Ok, no se van a ir a ninguna parte.', 'ok']]] : null; },
-    () => { const a = attrs()._avail; return a ? [`Tengo ${a === 1 ? 'un punto' : a + ' puntos'} de stat sin usar. ¿Me ayudas a elegir en qué crecer?`, [['Vamos a ver', '¡Qué emoción!', 'warm', 'stats'], ['Después', 'Me los guardo para un buen momento.', 'ok']]] : null; },
+    () => { const a = attrs()._avail; return a ? [`Tengo ${a === 1 ? 'un punto' : a + ' puntos'} sin usar para mis stats de juego. ¿Me ayudas a elegir? ¿Fuerza, ingenio, fe…?`, [['Vamos a ver', '¡Qué emoción!', 'warm', 'stats'], ['Después', 'Me los guardo para un buen momento.', 'ok']]] : null; },
     () => {
       const a = attrs(), x = ATTRS.map(t => [t, a[t.id].into / a[t.id].need]).filter(([, f]) => f >= 0.7).sort((p, q) => q[1] - p[1])[0];
       return x ? [`Me falta poquito para subir ${x[0].name.toLowerCase()}. ${x[0].how.replace(/\.$/, '')} y lo logro.`] : null;
@@ -2079,8 +2118,8 @@
   function openPlay() {
     const d = $('#play'); if (!d) return;
     const a = attrs(totals());
-    const top = ATTRS.slice().sort((x, y) => a[y.id].value - a[x.id].value || a[y.id].pts - a[x.id].pts).slice(0, 3);
-    $('#play-skills').innerHTML = top.map(x => `<li style="--ac:${x.color}"><b>${esc(x.name)}</b><span>${a[x.id].value}</span></li>`).join('');
+    const top = GAME_STATS.slice().sort((x, y) => a._game[y.id].value - a._game[x.id].value).slice(0, 3);
+    $('#play-skills').innerHTML = top.map(g => { const [l, v] = g.out(a._game[g.id].value); return `<li style="--ac:${g.color}"><div><b>${g.ab} · ${esc(g.name)}</b><small>${esc(l)}: ${v}</small></div><span>${a._game[g.id].value}</span></li>`; }).join('');
     if (pets.home) pets.home.express('sparkle', 2500);
     if (d.showModal) d.showModal(); else d.setAttribute('open', '');
   }
@@ -2437,22 +2476,35 @@
         ${row('STA', v.sta, 100, '#ffd166', 'Estamina: tareas de hoy')}
         ${row('EMP', Math.round(bd.emp), 100, '#ff7fb0', 'Empatía de Mochi contigo · ' + TIERS[tierOf(bd.emp)].name)}
       </tbody></table>`;
-    const k = dayKey(Date.now()), any = Object.keys(pr.statPts || {}).length;
+    const k = dayKey(Date.now()), any = Object.keys(pr.gamePts || {}).length;
     $('#st-points').innerHTML = `<span class="st-pts ${a._avail ? 'on' : ''}"><b>${a._avail}</b> ${a._avail === 1 ? 'punto disponible' : 'puntos disponibles'}</span>
-      <span class="muted">Ganas 1 por cada nivel (${lv.L - 1} en total, ${a._spent} repartidos).</span>
-      <span class="muted">Elige según lo que quieres que Mochi haga mejor. Lo entrenado practicando no se compra: solo se gana usándolo.</span>
+      <span class="muted">Ganas 1 por cada nivel (${lv.L - 1} en total, ${a._spent} repartidos). Van a los stats de juego, para cuando juegues con Mochi.</span>
       ${any ? `<button class="btn small ghost" id="st-reset" ${pr.statReset === k ? 'disabled title="Ya reasignaste hoy"' : ''}>Reasignar</button>` : ''}`;
+    const maxG = Math.max(15, ...GAME_STATS.map(g => a._game[g.id].value));
+    $('#st-game').innerHTML = GAME_STATS.map(g => {
+      const s = a._game[g.id], [olab, oval] = g.out(s.value), [, next] = g.out(s.value + 1);
+      const parts = [`Base ${GAME_BASE}`, s.given ? `puntos +${s.given}` : null, s.aff ? `${ATTR[g.aff].name.toLowerCase()} +${s.aff}` : null].filter(Boolean).join(' · ');
+      return `<li class="gstat" style="--ac:${g.color}">
+        <span class="g-ab">${g.ab}</span>
+        <div class="g-main"><div class="g-head"><b>${esc(g.name)}</b><span class="g-val">${s.value}</span></div>
+          <div class="g-bar"><i style="width:${(s.value / maxG * 100).toFixed(1)}%"></i></div>
+          <p class="g-what">${esc(g.what)}</p>
+          <p class="g-meta"><span>${esc(parts)}</span><span>${esc(olab)}: <b>${oval}</b>${a._avail ? ` → ${next}` : ''}</span></p>
+          ${g.aff ? `<p class="g-aff">Afinidad: +1 por cada 3 niveles de ${esc(ATTR[g.aff].name.toLowerCase())}</p>` : ''}
+        </div>
+        <button class="btn small ${a._avail ? 'primary' : 'ghost'}" data-stat="${g.id}" ${a._avail ? '' : 'disabled'} aria-label="Dar 1 punto a ${esc(g.name)}">+1</button>
+      </li>`;
+    }).join('');
     const card = x => {
-      const s = a[x.id], b = s.value - 1;
+      const s = a[x.id], b = s.value - 1, gs = GAME_STATS.find(g => g.aff === x.id);
       return `<li class="attr" style="--ac:${x.color}">
         <div class="a-head"><b>${esc(x.name)}</b><span class="a-val">${s.value}</span></div>
         <p class="a-what">${esc(x.what)}</p>
         <div class="a-bar" title="Entrenado: ${Math.floor(s.into)} de ${s.need} para el nivel ${s.trained + 1}"><i style="width:${(s.into / s.need * 100).toFixed(1)}%"></i></div>
-        <div class="a-meta"><span>Entrenado ${s.trained} · ${Math.floor(s.into)}/${s.need}</span><span>${s.given ? 'Puntos +' + s.given : 'Sin puntos'}</span></div>
-        <p class="a-eff">${b ? esc(x.eff(b)) : 'Sin efecto todavía'}<small>Con 1 más: ${esc(x.eff(b + 1))}</small></p>
+        <div class="a-meta"><span>Nivel ${s.trained} · ${Math.floor(s.into)}/${s.need}</span>${gs ? `<span>Afín a ${gs.ab}</span>` : ''}</div>
+        <p class="a-eff">${b ? esc(x.eff(b)) : 'Sin efecto todavía'}<small>Al subir: ${esc(x.eff(b + 1))}</small></p>
         <p class="a-how"><b>Sube con:</b> ${esc(x.how)}</p>
         <details><summary>Base científica</summary><p>${esc(x.basis)}</p></details>
-        <button class="btn small ${a._avail ? 'primary' : 'ghost'}" data-stat="${x.id}" ${a._avail ? '' : 'disabled'} aria-label="Dar 1 punto a ${esc(x.name)}">+1</button>
       </li>`;
     };
     $('#st-cog').innerHTML = ATTRS.filter(x => x.g === 'cog').map(card).join('');
@@ -2637,6 +2689,7 @@
     }
     if (!state.projects[state.activeId]) state.activeId = Object.keys(state.projects)[0] || null;
     checkUnlocks(true);
+    if (migrateStatPoints()) setTimeout(() => say('Ahora tengo stats de juego. Te devolví los puntos que habías repartido: búscalos en Stats.', true), 3500);
 
     document.addEventListener('click', e => {
       const g = e.target.closest('[data-go]');
