@@ -285,6 +285,22 @@ button.chip { cursor: pointer; }
 .lessons span { color: var(--muted); }
 
 /* ---------- Música y jugar ---------- */
+.volpop { position: absolute; z-index: 6; right: 16px; top: 58px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 6px 10px; width: min(300px, calc(100% - 32px)); padding: 10px 14px; border-radius: 16px; background: color-mix(in srgb, var(--surface) 94%, transparent); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0,0,0,.16); backdrop-filter: blur(8px); pointer-events: auto; animation: volin .18s ease-out; }
+.volpop[hidden] { display: none; }
+@keyframes volin { from { opacity: 0; transform: translateY(-6px); } }
+@media (max-width: 520px) { .volpop { top: 92px; } }
+.vol-mute { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); cursor: pointer; }
+.vol-mute svg { width: 20px; height: 20px; }
+.vol-mute .m-off { display: none; } .vol-mute.off .m-on { display: none; } .vol-mute.off .m-off { display: block; }
+.vol-val { font: 700 13px/1 var(--f-body); font-variant-numeric: tabular-nums; min-width: 52px; text-align: right; }
+.vol-track { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.vol-range { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; cursor: pointer; --p: 80%; }
+.vol-range::-webkit-slider-runnable-track { height: 8px; border-radius: 99px; background: linear-gradient(90deg, #c7a6ff var(--p), var(--surface-2) var(--p)); box-shadow: inset 0 0 0 1px var(--line); }
+.vol-range::-moz-range-track { height: 8px; border-radius: 99px; background: linear-gradient(90deg, #c7a6ff var(--p), var(--surface-2) var(--p)); box-shadow: inset 0 0 0 1px var(--line); }
+.vol-range::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -6px; border-radius: 50%; background: #fff; border: 2px solid #a98bff; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+.vol-range::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid #a98bff; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+.vol-range:focus-visible { outline: 2px solid #a98bff; outline-offset: 2px; border-radius: 8px; }
+.vol-row { margin-top: 10px; } .vol-row .vol-range { max-width: 220px; }
 .chip.music svg { width: 16px; height: 16px; }
 .chip.music .m-off { display: none; }
 .chip.music.off .m-on { display: none; }
@@ -650,6 +666,12 @@ body.can-ask .ask { display: grid; gap: 6px; }
         <span class="chip" id="h-combo" role="img" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h5l2-5 2 10 2-5h5" stroke="#ff8fb1"/></svg><b>×1,5</b></span>
       </div>
     </div>
+    <div class="volpop" id="h-vol" role="group" aria-label="Volumen de la música" hidden>
+      <button class="vol-mute" id="vol-mute" aria-label="Silenciar música"><svg class="m-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><svg class="m-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6" stroke="#ff6b81"/></svg></button>
+      <input type="range" id="vol-range" class="vol-range" min="0" max="100" step="1" value="80" aria-label="Volumen">
+      <span class="vol-val" id="vol-val">80 %</span>
+      <small class="vol-track" id="vol-track"></small>
+    </div>
     <div class="thought"><div class="bubble" id="h-bubble" aria-live="polite"></div></div>
     <button class="play-btn" id="h-play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="11" rx="5.5"/><path d="M7 10.5v4M5 12.5h4"/><circle cx="15.5" cy="11.5" r="1" fill="currentColor"/><circle cx="18" cy="13.5" r="1" fill="currentColor"/></svg>Jugar con Mochi</button>
     <div class="xpbar" id="xpbar" role="progressbar" aria-label="Experiencia hacia el siguiente nivel" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="xp-fill"></span><span id="xp-pct">0%</span></div>
@@ -773,7 +795,9 @@ body.can-ask .ask { display: grid; gap: 6px; }
         <label><input type="radio" name="theme" id="theme-dark" value="dark">Noche</label>
         <label><input type="radio" name="theme" id="theme-light" value="light">Día</label>
       </span></div></div>
-    <div class="panel"><label class="row" for="menu-music"><span>Música en el inicio</span><span class="switch"><input type="checkbox" id="menu-music"><i></i></span></label></div>
+    <div class="panel"><label class="row" for="menu-music"><span>Música en el inicio</span><span class="switch"><input type="checkbox" id="menu-music"><i></i></span></label>
+      <label class="row vol-row" for="menu-vol"><span>Volumen</span><input type="range" id="menu-vol" class="vol-range" min="0" max="100" step="1" value="80"></label>
+      <p class="muted" style="font-size:12.5px;margin:6px 0 0">Mañana hasta las 13:15, tarde hasta que Mochi se duerme, y canción de cuna mientras duerme.</p></div>
     <div class="panel"><label class="row" for="menu-sound"><span>Sonido al tachar</span><span class="switch"><input type="checkbox" id="menu-sound"><i></i></span></label></div>
     <div class="panel">
       <h3>Cómo se gana experiencia (XP)</h3>

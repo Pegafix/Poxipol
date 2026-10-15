@@ -3,7 +3,7 @@
   'use strict';
 
   const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
-  const LS_PROJECTS = 'brasa.v1.projects', LS_ACTIVE = 'brasa.v1.active', LS_SOUND = 'brasa.v1.sound', LS_PROFILE = 'brasa.v1.profile', LS_MUSIC = 'brasa.v1.music';
+  const LS_PROJECTS = 'brasa.v1.projects', LS_ACTIVE = 'brasa.v1.active', LS_SOUND = 'brasa.v1.sound', LS_PROFILE = 'brasa.v1.profile', LS_MUSIC = 'brasa.v1.music', LS_MUSIC_VOL = 'brasa.v1.musicVol';
   const DAY = 86400000;
 
   const FAMILY = { UNITY: 'build', CLAUDE: 'claude', PRUEBA: 'test' };
@@ -1883,49 +1883,63 @@
   }
 
   // ---------- música del inicio ----------
-  // Dos pistas, solo donde está Mochi: una de día y una canción de cuna mientras duerme.
-  // Los navegadores no dejan sonar nada antes del primer toque, así que parte con la primera interacción.
-  // Se repiten sin corte (Web Audio, recortando el silencio final) y se cruzan suave cuando se duerme o despierta.
-  // Si lo despiertas de noche, la cuna se frena en seco y queda todo en silencio; cuando vuelve a cerrar los ojos,
-  // la cuna empieza de nuevo, despacito, a medida que retoma el sueño.
+  // Tres pistas, solo donde está Mochi: la mañana (desde que despierta hasta las 13:15), el resto del día,
+  // y una canción de cuna mientras duerme. Los navegadores no dejan sonar nada antes del primer toque,
+  // así que parte con la primera interacción. Se repiten sin corte (Web Audio, recortando el silencio final)
+  // y se cruzan suave al cambiar. Si lo despiertas de noche, la cuna se frena en seco y queda en silencio;
+  // cuando vuelve a cerrar los ojos, la cuna empieza de nuevo, despacito, a medida que retoma el sueño.
+  // Para no llenar la memoria del celular, solo se decodifica la pista que suena; las otras quedan como MP3.
   const TRACKS = {
-    day: { url: 'assets/music/warm-melodic-storytelling.mp3', vol: 0.32 },
-    night: { url: 'assets/music/music-box-lullaby.mp3', vol: 0.26 }
+    morning: { url: 'assets/music/sunshine-arpeggios.mp3', vol: 0.32, name: 'Mañana' },
+    day: { url: 'assets/music/warm-melodic-storytelling.mp3', vol: 0.32, name: 'Tarde' },
+    night: { url: 'assets/music/music-box-lullaby.mp3', vol: 0.26, name: 'Canción de cuna' }
   };
-  const music = { on: lsGet(LS_MUSIC) !== 'off', ctx: null, master: null, simple: false, started: false, unlocked: false, heard: false, quietUntil: 0, back: 0 };
+  const MORNING_END = 13 * 60 + 15; // la mañana termina a las 13:15
   const SLEEP_BACK = 22; // segundos que tarda la cuna en volver mientras retoma el sueño
-  function musicWanted() {
-    if (!music.on || state.screen !== 'home' || document.hidden) return null;
-    return circadian().sleeping ? 'night' : 'day';
+  const savedVol = parseFloat(lsGet(LS_MUSIC_VOL));
+  const music = {
+    on: lsGet(LS_MUSIC) !== 'off', vol: isFinite(savedVol) ? Math.max(0, Math.min(1, savedVol)) : 0.8,
+    ctx: null, master: null, simple: false, started: false, unlocked: false, heard: false, quietUntil: 0, back: 0
+  };
+  // La pista que corresponde ahora, suene o no.
+  function trackNow() {
+    if (circadian().sleeping) return 'night';
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes() < MORNING_END ? 'morning' : 'day';
   }
+  function musicWanted() { return !music.on || state.screen !== 'home' || document.hidden ? null : trackNow(); }
   function loopEnd(buf) {
     const ch = buf.getChannelData(0); let end = ch.length - 1;
     while (end > 0 && Math.abs(ch[end]) < 0.01) end--;
     return Math.min(buf.duration, end / buf.sampleRate + 0.25);
   }
-  async function loadTrack(k) {
+  // Baja el MP3 una vez y lo guarda comprimido; decodificar es aparte.
+  function fetchTrack(k) {
     const t = TRACKS[k];
-    if (t.buf || t.loading) return t.loading;
-    t.loading = fetch(t.url).then(r => { if (!r.ok) throw new Error('sin música'); return r.arrayBuffer(); })
-      .then(b => new Promise((ok, ko) => music.ctx.decodeAudioData(b, ok, ko)))
-      .then(buf => { t.buf = buf; t.end = loopEnd(buf); });
-    return t.loading;
+    return t.bytes || (t.bytes = fetch(t.url).then(r => { if (!r.ok) throw new Error('sin música'); return r.arrayBuffer(); }));
+  }
+  function loadTrack(k) {
+    const t = TRACKS[k];
+    if (t.buf) return Promise.resolve();
+    return t.decoding || (t.decoding = fetchTrack(k)
+      .then(b => new Promise((ok, ko) => music.ctx.decodeAudioData(b.slice(0), ok, ko)))
+      .then(buf => { t.buf = buf; t.end = loopEnd(buf); })
+      .finally(() => { t.decoding = null; }));
   }
   // Arranca una pista desde el principio (la cuna vuelve a empezar después de una despertada).
   function playTrack(k) {
     const t = TRACKS[k];
     if (!t.buf || t.node) return;
-    t.gain = t.gain || (() => { const g = music.ctx.createGain(); g.gain.value = 0; g.connect(music.master); return g; })();
+    if (!t.gain) { t.gain = music.ctx.createGain(); t.gain.gain.value = 0; t.gain.connect(music.master); }
     const s = music.ctx.createBufferSource();
     s.buffer = t.buf; s.loop = true; s.loopStart = 0; s.loopEnd = t.end;
     s.connect(t.gain); s.start();
     t.node = s;
   }
-  function stopTrack(k) {
+  function stopTrack(k, free) {
     const t = TRACKS[k];
-    if (!t.node) return;
-    try { t.node.stop(); } catch (e) { /* ya parada */ }
-    t.node.disconnect(); t.node = null;
+    if (t.node) { try { t.node.stop(); } catch (e) { /* ya parada */ } t.node.disconnect(); t.node = null; }
+    if (free) t.buf = null; // libera la memoria; el MP3 comprimido queda guardado
   }
   function ramp(g, v, secs) {
     const now = music.ctx.currentTime;
@@ -1942,7 +1956,7 @@
       Object.entries(TRACKS).forEach(([k, t]) => {
         const on = want === k && !(k === 'night' && quiet);
         if (!t.el) return;
-        t.el.volume = on ? t.vol : 0;
+        t.el.volume = on ? t.vol * music.vol : 0;
         if (on) t.el.play().catch(() => {}); else t.el.pause();
       });
       return;
@@ -1951,6 +1965,7 @@
     Object.entries(TRACKS).forEach(([k, t]) => {
       const on = want === k && !(k === 'night' && quiet);
       if (on) {
+        clearTimeout(t.stopT);
         if (!t.buf) { loadTrack(k).then(() => musicApply(fade)).catch(() => {}); return; }
         const fresh = !t.node;
         playTrack(k);
@@ -1959,10 +1974,21 @@
         if (resleep && !fresh) return;
         if (fresh) t.gain.gain.value = 0;
         ramp(t.gain, t.vol, resleep ? SLEEP_BACK : fresh ? 2.5 : (fade == null ? 1.5 : fade));
-      } else if (t.gain) {
-        ramp(t.gain, 0, fade == null ? 1.5 : fade);
+      } else if (t.gain && t.node) {
+        const secs = fade == null ? 1.5 : fade;
+        ramp(t.gain, 0, secs);
+        // Cuando terminó de apagarse, se detiene; si ya no toca hoy, también se libera de la memoria.
+        clearTimeout(t.stopT);
+        t.stopT = setTimeout(() => {
+          const w = musicWanted();
+          if (w === k) return;
+          stopTrack(k, trackNow() !== k); // si es la de ahora (solo saliste del inicio), se guarda para volver rápido
+        }, secs * 1000 + 300);
       }
     });
+    // Precarga (comprimida) la siguiente pista del día.
+    const nextK = want === 'night' ? 'morning' : want === 'morning' ? 'day' : want === 'day' ? 'night' : null;
+    if (nextK) fetchTrack(nextK).catch(() => {});
     clearTimeout(music.sleepT);
     if (!want) music.sleepT = setTimeout(() => { if (!musicWanted() && music.ctx.state === 'running') music.ctx.suspend().catch(() => {}); }, 2000);
   }
@@ -1983,10 +2009,8 @@
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
       music.ctx = new AC();
-      music.master = music.ctx.createGain(); music.master.connect(music.ctx.destination);
-      const first = musicWanted() || 'day';
-      await loadTrack(first);
-      loadTrack(first === 'day' ? 'night' : 'day').catch(() => {}); // la otra, en segundo plano
+      music.master = music.ctx.createGain(); music.master.gain.value = music.vol; music.master.connect(music.ctx.destination);
+      await loadTrack(musicWanted() || 'day');
     } catch (e) {
       // Sin Web Audio o sin poder leer el archivo (por ejemplo, abierto como archivo local): reproductor simple.
       if (music.ctx) { try { music.ctx.close(); } catch (x) { /* nada */ } }
@@ -1996,20 +2020,49 @@
     music.heard = true;
     musicApply(2.5);
   }
+  function musicSetOn(on) {
+    music.on = on;
+    lsSet(LS_MUSIC, on ? 'on' : 'off');
+    if (on) musicStart(); else musicApply(0.6);
+    const sw = $('#menu-music'); if (sw) sw.checked = on;
+  }
   function musicToggle() {
     // Si todavía no sonaba (primer toque justo en el botón), el toque la enciende en vez de silenciarla.
     if (music.on && !music.heard) { musicStart(); return; }
-    music.on = !music.on;
-    lsSet(LS_MUSIC, music.on ? 'on' : 'off');
-    if (music.on) musicStart(); else musicApply(0.6);
-    const sw = $('#menu-music'); if (sw) sw.checked = music.on;
+    musicSetOn(!music.on);
+  }
+  function musicVolume(v) {
+    music.vol = Math.max(0, Math.min(1, v));
+    lsSet(LS_MUSIC_VOL, String(music.vol));
+    if (music.master) { const t = music.ctx.currentTime; music.master.gain.cancelScheduledValues(t); music.master.gain.setTargetAtTime(music.vol, t, 0.05); }
+    if (music.simple) musicApply(0);
+    // Subir la barra con la música apagada la enciende.
+    if (music.vol > 0 && !music.on) musicSetOn(true);
+    renderMusicBtn();
   }
   function renderMusicBtn() {
     const b = $('#h-music'); if (!b) return;
-    b.classList.toggle('off', !music.on);
-    b.setAttribute('aria-pressed', String(music.on));
-    const label = music.on ? 'Silenciar música' : 'Activar música';
+    const silent = !music.on || music.vol === 0;
+    b.classList.toggle('off', silent);
+    b.setAttribute('aria-pressed', String(!silent));
+    b.setAttribute('aria-expanded', String(!$('#h-vol').hidden));
+    const pct = Math.round(music.vol * 100);
+    const label = `Música: ${music.on ? pct + ' %' : 'silenciada'}. Toca para ajustar el volumen.`;
     b.title = label; b.setAttribute('aria-label', label);
+    $('#vol-range').value = pct; $('#vol-val').textContent = music.on ? pct + ' %' : 'Silencio';
+    $('#vol-range').style.setProperty('--p', pct + '%');
+    $('#vol-mute').classList.toggle('off', !music.on);
+    $('#vol-mute').setAttribute('aria-label', music.on ? 'Silenciar música' : 'Activar música');
+    $('#vol-mute').title = music.on ? 'Silenciar' : 'Activar';
+    const k = music.on ? trackNow() : null;
+    $('#vol-track').textContent = k ? 'Sonando: ' + TRACKS[k].name : 'Música apagada';
+    const mr = $('#menu-vol'); if (mr) { mr.value = pct; mr.style.setProperty('--p', pct + '%'); }
+  }
+  function openVol(open) {
+    const p = $('#h-vol');
+    p.hidden = !open;
+    renderMusicBtn();
+    if (open) setTimeout(() => $('#vol-range').focus({ preventScroll: true }), 30);
   }
   // Primer toque en cualquier parte: ahora sí puede sonar.
   function musicUnlock() {
@@ -2607,7 +2660,10 @@
       const st = e.target.closest('[data-stat]');
       if (st) { giveStat(st.dataset.stat); return; }
       if (e.target.closest('#st-reset')) { resetStats(); return; }
-      if (e.target.closest('#h-music')) { musicToggle(); return; }
+      if (e.target.closest('#h-music')) { if (music.on && !music.heard) musicStart(); openVol($('#h-vol').hidden); return; }
+      if (e.target.closest('#vol-mute')) { musicToggle(); return; }
+      if (e.target.closest('#h-vol')) return;
+      if (!$('#h-vol').hidden) openVol(false); // tocar fuera cierra el panel de volumen
       if (e.target.closest('#h-play')) { openPlay(); return; }
       if (e.target.closest('[data-play-close]')) { closePlay(); return; }
       const q = e.target.closest('[data-equip]');
@@ -2633,7 +2689,10 @@
     nm.oninput = () => { clearTimeout(nm._t); nm._t = setTimeout(() => { state.profile.name = nm.value.trim().slice(0, 24) || 'Mochi'; touchProfile(); }, 400); };
     $$('[name="theme"]').forEach(r => (r.onchange = () => { state.profile.theme = r.value; touchProfile(); applyTheme(); }));
     const mus = $('#menu-music'); mus.checked = music.on;
-    mus.onchange = () => { if (mus.checked !== music.on) { music.heard = true; musicToggle(); } };
+    mus.onchange = () => { if (mus.checked !== music.on) musicSetOn(mus.checked); };
+    $('#vol-range').oninput = e => musicVolume(e.target.value / 100);
+    $('#menu-vol').oninput = e => musicVolume(e.target.value / 100);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#h-vol').hidden) { openVol(false); $('#h-music').focus(); } });
     renderMusicBtn();
     // Mochi se duerme y despierta solo: la música lo acompaña.
     setInterval(() => { if (music.unlocked) musicApply(3); }, 60000);
