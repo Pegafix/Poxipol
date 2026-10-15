@@ -1786,6 +1786,7 @@
     }, Math.max(1000, pause.until - Date.now()));
   }
 
+  let wakeT = 0;
   // Toques: despierto responde; dormido se despierta medio borracho de sueño, y eso pasa la cuenta mañana.
   function poke() {
     const c = circadian(), now = Date.now();
@@ -1802,7 +1803,10 @@
       else if (n >= 2) { pets.home.express(pick(['dizzy', 'squint', 'drowsy']), 4500, true); think(pick(WOKEN_AGAIN)); }
       else { pets.home.express(pick(['dizzy', 'squint', 'surprised']), 4500, true); think(pick(WOKEN)); }
       renderHome(totals());
-      setTimeout(() => renderPets(totals()), 5000);
+      // Vuelve a cerrar los ojos después de un rato (más largo mientras más veces lo despiertas).
+      const back = 5000 + 2500 * Math.min(4, n - 1);
+      clearTimeout(wakeT); wakeT = setTimeout(() => renderPets(totals()), back);
+      musicWoken(back);
       return;
     }
     if (c.sleeping) { think('Zzz… estoy muy cansadito.', 'sad'); return; }
@@ -1879,53 +1883,116 @@
   }
 
   // ---------- música del inicio ----------
-  // Suena solo donde está Mochi. Los navegadores no dejan sonar nada antes del primer toque,
-  // así que parte con la primera interacción. Se repite sin corte (Web Audio, recortando el silencio final),
-  // baja cuando Mochi duerme y se apaga suave al ir a otra sección.
-  const MUSIC_SRC = 'assets/music/warm-melodic-storytelling.mp3';
-  const music = { on: lsGet(LS_MUSIC) !== 'off', ctx: null, gain: null, src: null, el: null, loading: false, unlocked: false };
-  function musicTarget() {
-    if (!music.on || state.screen !== 'home' || document.hidden) return 0;
-    return circadian().sleeping ? 0.12 : 0.32;
+  // Dos pistas, solo donde está Mochi: una de día y una canción de cuna mientras duerme.
+  // Los navegadores no dejan sonar nada antes del primer toque, así que parte con la primera interacción.
+  // Se repiten sin corte (Web Audio, recortando el silencio final) y se cruzan suave cuando se duerme o despierta.
+  // Si lo despiertas de noche, la cuna se frena en seco y queda todo en silencio; cuando vuelve a cerrar los ojos,
+  // la cuna empieza de nuevo, despacito, a medida que retoma el sueño.
+  const TRACKS = {
+    day: { url: 'assets/music/warm-melodic-storytelling.mp3', vol: 0.32 },
+    night: { url: 'assets/music/music-box-lullaby.mp3', vol: 0.26 }
+  };
+  const music = { on: lsGet(LS_MUSIC) !== 'off', ctx: null, master: null, simple: false, started: false, unlocked: false, heard: false, quietUntil: 0, back: 0 };
+  const SLEEP_BACK = 22; // segundos que tarda la cuna en volver mientras retoma el sueño
+  function musicWanted() {
+    if (!music.on || state.screen !== 'home' || document.hidden) return null;
+    return circadian().sleeping ? 'night' : 'day';
+  }
+  function loopEnd(buf) {
+    const ch = buf.getChannelData(0); let end = ch.length - 1;
+    while (end > 0 && Math.abs(ch[end]) < 0.01) end--;
+    return Math.min(buf.duration, end / buf.sampleRate + 0.25);
+  }
+  async function loadTrack(k) {
+    const t = TRACKS[k];
+    if (t.buf || t.loading) return t.loading;
+    t.loading = fetch(t.url).then(r => { if (!r.ok) throw new Error('sin música'); return r.arrayBuffer(); })
+      .then(b => new Promise((ok, ko) => music.ctx.decodeAudioData(b, ok, ko)))
+      .then(buf => { t.buf = buf; t.end = loopEnd(buf); });
+    return t.loading;
+  }
+  // Arranca una pista desde el principio (la cuna vuelve a empezar después de una despertada).
+  function playTrack(k) {
+    const t = TRACKS[k];
+    if (!t.buf || t.node) return;
+    t.gain = t.gain || (() => { const g = music.ctx.createGain(); g.gain.value = 0; g.connect(music.master); return g; })();
+    const s = music.ctx.createBufferSource();
+    s.buffer = t.buf; s.loop = true; s.loopStart = 0; s.loopEnd = t.end;
+    s.connect(t.gain); s.start();
+    t.node = s;
+  }
+  function stopTrack(k) {
+    const t = TRACKS[k];
+    if (!t.node) return;
+    try { t.node.stop(); } catch (e) { /* ya parada */ }
+    t.node.disconnect(); t.node = null;
+  }
+  function ramp(g, v, secs) {
+    const now = music.ctx.currentTime;
+    g.gain.cancelScheduledValues(now);
+    g.gain.setValueAtTime(g.gain.value, now);
+    g.gain.linearRampToValueAtTime(v, now + Math.max(0.05, secs));
   }
   function musicApply(fade) {
-    const v = musicTarget();
-    if (music.gain) {
-      const t = music.ctx.currentTime;
-      music.gain.gain.cancelScheduledValues(t);
-      music.gain.gain.setValueAtTime(music.gain.gain.value, t);
-      music.gain.gain.linearRampToValueAtTime(v, t + (fade == null ? 1.2 : fade));
-      if (v > 0 && music.ctx.state === 'suspended') music.ctx.resume().catch(() => {});
-      clearTimeout(music.sleepT);
-      if (v === 0) music.sleepT = setTimeout(() => { if (!musicTarget() && music.ctx.state === 'running') music.ctx.suspend().catch(() => {}); }, 1600);
-    } else if (music.el) {
-      music.el.volume = v;
-      if (v > 0) music.el.play().catch(() => {}); else music.el.pause();
-    }
     renderMusicBtn();
+    if (!music.started) return;
+    const want = musicWanted(), now = Date.now();
+    const quiet = now < music.quietUntil; // recién despertado: silencio
+    if (music.simple) {
+      Object.entries(TRACKS).forEach(([k, t]) => {
+        const on = want === k && !(k === 'night' && quiet);
+        if (!t.el) return;
+        t.el.volume = on ? t.vol : 0;
+        if (on) t.el.play().catch(() => {}); else t.el.pause();
+      });
+      return;
+    }
+    if (want && music.ctx.state === 'suspended') music.ctx.resume().catch(() => {});
+    Object.entries(TRACKS).forEach(([k, t]) => {
+      const on = want === k && !(k === 'night' && quiet);
+      if (on) {
+        if (!t.buf) { loadTrack(k).then(() => musicApply(fade)).catch(() => {}); return; }
+        const fresh = !t.node;
+        playTrack(k);
+        // Volviendo a dormir: entra muy despacio desde cero, y nada la apura mientras tanto.
+        const resleep = k === 'night' && now - music.back < SLEEP_BACK * 1000;
+        if (resleep && !fresh) return;
+        if (fresh) t.gain.gain.value = 0;
+        ramp(t.gain, t.vol, resleep ? SLEEP_BACK : fresh ? 2.5 : (fade == null ? 1.5 : fade));
+      } else if (t.gain) {
+        ramp(t.gain, 0, fade == null ? 1.5 : fade);
+      }
+    });
+    clearTimeout(music.sleepT);
+    if (!want) music.sleepT = setTimeout(() => { if (!musicWanted() && music.ctx.state === 'running') music.ctx.suspend().catch(() => {}); }, 2000);
+  }
+  // Lo despertaron de noche: la cuna se frena y vuelve sola cuando Mochi retoma el sueño.
+  function musicWoken(ms) {
+    music.quietUntil = Date.now() + ms;
+    const t = TRACKS.night;
+    if (!music.simple && t.gain && music.ctx) {
+      ramp(t.gain, 0, 0.18);
+      setTimeout(() => { if (Date.now() < music.quietUntil) stopTrack('night'); }, 250);
+    } else if (t.el) { t.el.pause(); t.el.currentTime = 0; }
+    clearTimeout(music.backT);
+    music.backT = setTimeout(() => { music.back = Date.now(); musicApply(); }, ms + 50);
   }
   async function musicStart() {
-    if (music.src || music.el || music.loading || !music.on) { musicApply(); return; }
-    music.loading = true;
+    if (music.started || !music.on) { musicApply(); return; }
+    music.started = true;
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
       music.ctx = new AC();
-      music.gain = music.ctx.createGain(); music.gain.gain.value = 0; music.gain.connect(music.ctx.destination);
-      const buf = await fetch(MUSIC_SRC).then(r => { if (!r.ok) throw new Error('sin música'); return r.arrayBuffer(); });
-      const audio = await new Promise((ok, ko) => music.ctx.decodeAudioData(buf, ok, ko));
-      // Recorta el silencio del final para que la vuelta no tenga hueco.
-      const ch = audio.getChannelData(0); let end = ch.length - 1;
-      while (end > 0 && Math.abs(ch[end]) < 0.01) end--;
-      const src = music.ctx.createBufferSource();
-      src.buffer = audio; src.loop = true; src.loopStart = 0; src.loopEnd = Math.min(audio.duration, end / audio.sampleRate + 0.25);
-      src.connect(music.gain); src.start();
-      music.src = src;
+      music.master = music.ctx.createGain(); music.master.connect(music.ctx.destination);
+      const first = musicWanted() || 'day';
+      await loadTrack(first);
+      loadTrack(first === 'day' ? 'night' : 'day').catch(() => {}); // la otra, en segundo plano
     } catch (e) {
       // Sin Web Audio o sin poder leer el archivo (por ejemplo, abierto como archivo local): reproductor simple.
       if (music.ctx) { try { music.ctx.close(); } catch (x) { /* nada */ } }
-      music.ctx = music.gain = null;
-      const el = new Audio(MUSIC_SRC); el.loop = true; el.volume = 0; music.el = el;
-    } finally { music.loading = false; }
+      music.ctx = null; music.simple = true;
+      Object.values(TRACKS).forEach(t => { t.el = new Audio(t.url); t.el.loop = true; t.el.volume = 0; });
+    }
     music.heard = true;
     musicApply(2.5);
   }
