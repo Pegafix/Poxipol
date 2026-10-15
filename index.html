@@ -284,6 +284,25 @@ button.chip { cursor: pointer; }
 .lessons li { display: grid; gap: 2px; font-size: 13px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); }
 .lessons span { color: var(--muted); }
 
+/* ---------- Música y jugar ---------- */
+.chip.music svg { width: 16px; height: 16px; }
+.chip.music .m-off { display: none; }
+.chip.music.off .m-on { display: none; }
+.chip.music.off .m-off { display: block; color: var(--muted); }
+.play-btn { position: absolute; z-index: 3; left: 50%; transform: translateX(-50%); bottom: calc(max(12px, calc(22% * .22)) + 34px); display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px 9px 14px; border-radius: 99px; border: 0; background: var(--ember); color: var(--ember-ink); font: 700 14px/1 var(--f-body); box-shadow: 0 4px 14px rgba(0,0,0,.18); cursor: pointer; transition: transform .15s ease; }
+.play-btn svg { width: 22px; height: 22px; }
+.play-btn:hover { transform: translateX(-50%) translateY(-2px); }
+.play-btn:active { transform: translateX(-50%) scale(.97); }
+.play-dlg { border: 1px solid var(--line); border-radius: 18px; background: var(--surface); color: var(--ink); padding: 20px 22px; width: min(420px, calc(100% - 32px)); }
+.play-dlg::backdrop { background: rgba(20, 14, 30, .45); }
+.play-dlg h2 { margin: 0 0 6px; font: 800 22px/1.1 var(--f-display); }
+.play-dlg h3 { margin: 14px 0 8px; font: 700 12px/1 var(--f-body); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+.play-dlg p { margin: 0 0 8px; font-size: 14px; }
+#play-skills { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+#play-skills li { display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); border-left: 4px solid var(--ac); font-size: 14px; }
+#play-skills span { font: 800 16px/1 var(--f-display); color: var(--ac); }
+.play-acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
 /* ---------- Stats ---------- */
 .st-lv { display: grid; gap: 2px; margin-bottom: 10px; }
 .st-lv b { font: 800 20px/1.1 var(--f-display); }
@@ -627,13 +646,24 @@ body.can-ask .ask { display: grid; gap: 6px; }
         <span class="chip" id="h-streak" role="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z" fill="#ff9a5a" stroke="#ff9a5a"/></svg><b>0</b></span>
         <span class="chip" id="h-xp" role="img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z" fill="#ffd166" stroke="#ffd166"/></svg><b>0</b></span>
         <button class="chip" id="h-daily" data-go="misiones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4" stroke="#7fc4ff"/><path d="M8 12l3 3 5-6" stroke="#7fc4ff"/></svg><b>0/3</b></button>
+        <button class="chip music" id="h-music" aria-pressed="true" aria-label="Silenciar música" title="Silenciar música"><svg class="m-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V6l10-2v12" stroke="#c7a6ff"/><circle cx="6.5" cy="18" r="2.5" fill="#c7a6ff" stroke="#c7a6ff"/><circle cx="16.5" cy="16" r="2.5" fill="#c7a6ff" stroke="#c7a6ff"/></svg><svg class="m-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/><path d="M3 3l18 18" stroke="#ff6b81"/></svg></button>
         <span class="chip" id="h-combo" role="img" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h5l2-5 2 10 2-5h5" stroke="#ff8fb1"/></svg><b>×1,5</b></span>
       </div>
     </div>
     <div class="thought"><div class="bubble" id="h-bubble" aria-live="polite"></div></div>
+    <button class="play-btn" id="h-play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="11" rx="5.5"/><path d="M7 10.5v4M5 12.5h4"/><circle cx="15.5" cy="11.5" r="1" fill="currentColor"/><circle cx="18" cy="13.5" r="1" fill="currentColor"/></svg>Jugar con Mochi</button>
     <div class="xpbar" id="xpbar" role="progressbar" aria-label="Experiencia hacia el siguiente nivel" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="xp-fill"></span><span id="xp-pct">0%</span></div>
   </div>
 </section>
+
+<dialog class="play-dlg" id="play" aria-labelledby="play-t">
+  <h2 id="play-t">Jugar con Mochi</h2>
+  <p>Muy pronto: un juego aparte, simple y para despejarse, donde Mochi usa sus habilidades. Lo que entrenas con tus tareas y los puntos que le das en Stats van a contar aquí.</p>
+  <h3>Sus mejores habilidades ahora</h3>
+  <ul id="play-skills"></ul>
+  <p class="muted">Mientras tanto, sigue entrenándolo: cada tarea, mezcla y conversación le suma.</p>
+  <div class="play-acts"><button class="btn ghost" data-go="stats" data-play-close>Ver stats</button><button class="btn primary" data-play-close>Volver con Mochi</button></div>
+</dialog>
 
 <section class="screen" id="scr-misiones" hidden aria-label="Misiones">
   <div class="screen-head">
@@ -743,6 +773,7 @@ body.can-ask .ask { display: grid; gap: 6px; }
         <label><input type="radio" name="theme" id="theme-dark" value="dark">Noche</label>
         <label><input type="radio" name="theme" id="theme-light" value="light">Día</label>
       </span></div></div>
+    <div class="panel"><label class="row" for="menu-music"><span>Música en el inicio</span><span class="switch"><input type="checkbox" id="menu-music"><i></i></span></label></div>
     <div class="panel"><label class="row" for="menu-sound"><span>Sonido al tachar</span><span class="switch"><input type="checkbox" id="menu-sound"><i></i></span></label></div>
     <div class="panel">
       <h3>Cómo se gana experiencia (XP)</h3>

@@ -7,6 +7,12 @@ Carga tus guías de desarrollo en PDF (formato "Hoja de ruta paso a paso & integ
 - **Inicio**: el personaje en su escritorio (ventana con día o noche según el tema, repisa, lámpara, cuaderno, taza y planta). Piensa en voz alta cosas simples sobre aprender, curiosidades de la vida y ganas de mejorar. Arriba, el nivel con **HP** (baja si pasas días sin avanzar), **MP** (sube al aprender con Claude hoy) y **STA** (sube con cada tarea de hoy), más racha, XP total, diarias y combo como símbolos. Abajo, la barra de experiencia con su porcentaje.
   - **Su día**: sigue un ritmo de sueño sano según la hora. Duerme de 23:00 a 7:00 (ojos cerrados, "z", pieza a oscuras), despierta lento y bosteza, está más despierto y preguntón a media mañana y a media tarde, le da sueñito después de almuerzo y se calma de noche. La ventana muestra amanecer, día, atardecer o noche. Algunas preguntas son para ti y traen botones para responderle.
   - **Noches**: dormido a veces habla incoherencias. Si lo despiertas, responde medio borracho de sueño y la despertada queda anotada; al otro día puede amanecer con efectos de mal dormir (Ojeras, Cabeza nublada, Malhumor, Lento) que bajan sus stats, o Descansado si durmió de corrido. Con mal dormir mantiene sus expresiones normales y se le notan ojeras, más marcadas según cuántos malestares tenga. A la sexta despertada se enoja de verdad y al otro día amanece **Agotado**: apático, seco y con menos paciencia, pero igual se pregunta cosas sobre lo que le pasa (¿se puede recuperar el sueño perdido?).
+  - **Música**: una pista suave suena solo en el inicio, donde está Mochi.
+    - Parte con el primer toque, porque los navegadores no dejan sonar nada antes.
+    - Se repite sin corte y suena más bajito cuando Mochi duerme.
+    - Se apaga suave al ir a otra sección.
+    - Se silencia con la nota musical de arriba o en Menú, y recuerda lo que elegiste.
+  - **Jugar con Mochi**: el botón bajo Mochi abre la entrada a un juego aparte, simple y para despejarse, donde Mochi va a usar sus habilidades. Por ahora muestra sus mejores stats; el juego llega después.
   - **De buen humor**: cuando durmió de corrido (Descansado), o anda sin malestares y con la vida alta, piensa distinto:
     - **Datos curiosos** reales con una vuelta de tuerca: los tres corazones del pulpo, la baraja que nunca se repitió, Cleopatra más cerca de la Luna que de las pirámides…
     - **Preguntas más ingeniosas** con botones: "si tu proyecto fuera un animal", "¿empezar o terminar?", "explícalo en una frase", "¿modo valiente o constante?"…
@@ -35,7 +41,7 @@ Carga tus guías de desarrollo en PDF (formato "Hoja de ruta paso a paso & integ
   - Cada atributo muestra su base científica.
 - **Taller**: química, cocina y orfebrería de verdad. Avanzar da materiales reales (metales y carbón de las tareas de construir; arena, cal, vinagre, bicarbonato… de las de Claude; harina, levadura, cacao, cera… de las de crear; leche, limón, sal, miel… de las de probar; oro o plata de las fases; hierbas al tratar bien a Mochi; el agua nunca se acaba). Se eligen de 1 a 3 y un proceso (en frío, calentar, hornear, fundir, forjar). Las 33 recetas son reales (bronce, latón, acero, oro rosa, electro, plata de ley, vidrio, cerámica, mortero, jabón de ceniza, pan, requesón, limonada, tés, experimentos como bicarbonato con vinagre…) y **la app no las enseña**: no hay pistas, solo se ven las que uno descubre. Lo fabricado sirve para otras mezclas, las comidas cuidan a Mochi y las aleaciones se forjan en joyas.
 - **Plaza**: comunidad entre quienes usan la página. Se publican descubrimientos (con la receta adjunta), preguntas, debates (con postura de acuerdo o en desacuerdo) y pedidos de material; se responde, se marca lo útil y se regalan materiales. Si alguien prueba una receta compartida y le sale, quien la compartió gana XP ("enseñaste a…"). Cada persona escribe solo su propio documento y lee el de todos; lo de otras personas se valida antes de mostrarse.
-- **Menú**: nombre del compañero, tema, sonido, reglas de la experiencia y reinicio.
+- **Menú**: nombre del compañero, tema, música, sonido, reglas de la experiencia y reinicio.
 
 ## Uso
 
@@ -84,5 +90,6 @@ La carpeta `server/` tiene la API multiplataforma (escritorio, móvil y web): Po
 - `src/pet.js`: dibuja a Mochi y su equipo en un canvas
 - `src/app.js`: pantallas, misiones, equipo, puntos y guardado
 - `src/sample.js`: la guía v2 ya leída
+- `assets/music/`: la música del inicio (MP3)
 
 El progreso se guarda en el navegador (`localStorage`). Publicada en claude.ai, también se guarda en tu cuenta.

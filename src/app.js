@@ -3,7 +3,7 @@
   'use strict';
 
   const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
-  const LS_PROJECTS = 'brasa.v1.projects', LS_ACTIVE = 'brasa.v1.active', LS_SOUND = 'brasa.v1.sound', LS_PROFILE = 'brasa.v1.profile';
+  const LS_PROJECTS = 'brasa.v1.projects', LS_ACTIVE = 'brasa.v1.active', LS_SOUND = 'brasa.v1.sound', LS_PROFILE = 'brasa.v1.profile', LS_MUSIC = 'brasa.v1.music';
   const DAY = 86400000;
 
   const FAMILY = { UNITY: 'build', CLAUDE: 'claude', PRUEBA: 'test' };
@@ -1878,6 +1878,94 @@
     clearTimeout(sayTimer);
   }
 
+  // ---------- música del inicio ----------
+  // Suena solo donde está Mochi. Los navegadores no dejan sonar nada antes del primer toque,
+  // así que parte con la primera interacción. Se repite sin corte (Web Audio, recortando el silencio final),
+  // baja cuando Mochi duerme y se apaga suave al ir a otra sección.
+  const MUSIC_SRC = 'assets/music/warm-melodic-storytelling.mp3';
+  const music = { on: lsGet(LS_MUSIC) !== 'off', ctx: null, gain: null, src: null, el: null, loading: false, unlocked: false };
+  function musicTarget() {
+    if (!music.on || state.screen !== 'home' || document.hidden) return 0;
+    return circadian().sleeping ? 0.12 : 0.32;
+  }
+  function musicApply(fade) {
+    const v = musicTarget();
+    if (music.gain) {
+      const t = music.ctx.currentTime;
+      music.gain.gain.cancelScheduledValues(t);
+      music.gain.gain.setValueAtTime(music.gain.gain.value, t);
+      music.gain.gain.linearRampToValueAtTime(v, t + (fade == null ? 1.2 : fade));
+      if (v > 0 && music.ctx.state === 'suspended') music.ctx.resume().catch(() => {});
+      clearTimeout(music.sleepT);
+      if (v === 0) music.sleepT = setTimeout(() => { if (!musicTarget() && music.ctx.state === 'running') music.ctx.suspend().catch(() => {}); }, 1600);
+    } else if (music.el) {
+      music.el.volume = v;
+      if (v > 0) music.el.play().catch(() => {}); else music.el.pause();
+    }
+    renderMusicBtn();
+  }
+  async function musicStart() {
+    if (music.src || music.el || music.loading || !music.on) { musicApply(); return; }
+    music.loading = true;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      music.ctx = new AC();
+      music.gain = music.ctx.createGain(); music.gain.gain.value = 0; music.gain.connect(music.ctx.destination);
+      const buf = await fetch(MUSIC_SRC).then(r => { if (!r.ok) throw new Error('sin música'); return r.arrayBuffer(); });
+      const audio = await new Promise((ok, ko) => music.ctx.decodeAudioData(buf, ok, ko));
+      // Recorta el silencio del final para que la vuelta no tenga hueco.
+      const ch = audio.getChannelData(0); let end = ch.length - 1;
+      while (end > 0 && Math.abs(ch[end]) < 0.01) end--;
+      const src = music.ctx.createBufferSource();
+      src.buffer = audio; src.loop = true; src.loopStart = 0; src.loopEnd = Math.min(audio.duration, end / audio.sampleRate + 0.25);
+      src.connect(music.gain); src.start();
+      music.src = src;
+    } catch (e) {
+      // Sin Web Audio o sin poder leer el archivo (por ejemplo, abierto como archivo local): reproductor simple.
+      if (music.ctx) { try { music.ctx.close(); } catch (x) { /* nada */ } }
+      music.ctx = music.gain = null;
+      const el = new Audio(MUSIC_SRC); el.loop = true; el.volume = 0; music.el = el;
+    } finally { music.loading = false; }
+    music.heard = true;
+    musicApply(2.5);
+  }
+  function musicToggle() {
+    // Si todavía no sonaba (primer toque justo en el botón), el toque la enciende en vez de silenciarla.
+    if (music.on && !music.heard) { musicStart(); return; }
+    music.on = !music.on;
+    lsSet(LS_MUSIC, music.on ? 'on' : 'off');
+    if (music.on) musicStart(); else musicApply(0.6);
+    const sw = $('#menu-music'); if (sw) sw.checked = music.on;
+  }
+  function renderMusicBtn() {
+    const b = $('#h-music'); if (!b) return;
+    b.classList.toggle('off', !music.on);
+    b.setAttribute('aria-pressed', String(music.on));
+    const label = music.on ? 'Silenciar música' : 'Activar música';
+    b.title = label; b.setAttribute('aria-label', label);
+  }
+  // Primer toque en cualquier parte: ahora sí puede sonar.
+  function musicUnlock() {
+    if (music.unlocked) return;
+    music.unlocked = true;
+    if (music.on) musicStart();
+  }
+  document.addEventListener('pointerdown', musicUnlock, { once: true, capture: true });
+  document.addEventListener('keydown', musicUnlock, { once: true, capture: true });
+  document.addEventListener('visibilitychange', () => { if (music.unlocked) musicApply(0.4); });
+
+  // ---------- jugar con Mochi ----------
+  // Por ahora es la puerta de entrada: muestra con qué habilidades va a jugar. El juego llega después.
+  function openPlay() {
+    const d = $('#play'); if (!d) return;
+    const a = attrs(totals());
+    const top = ATTRS.slice().sort((x, y) => a[y.id].value - a[x.id].value || a[y.id].pts - a[x.id].pts).slice(0, 3);
+    $('#play-skills').innerHTML = top.map(x => `<li style="--ac:${x.color}"><b>${esc(x.name)}</b><span>${a[x.id].value}</span></li>`).join('');
+    if (pets.home) pets.home.express('sparkle', 2500);
+    if (d.showModal) d.showModal(); else d.setAttribute('open', '');
+  }
+  function closePlay() { const d = $('#play'); if (d.close) d.close(); else d.removeAttribute('open'); }
+
   // ---------- siguiente tarea ----------
   function nextIn(p) {
     if (!p) return null;
@@ -1899,6 +1987,7 @@
     }
     state.screen = screen;
     SCREENS.forEach(s => ($('#scr-' + s).hidden = s !== screen));
+    if (music.unlocked) musicApply();
     $$('.tab').forEach(t => t.setAttribute('aria-current', t.dataset.go === (screen === 'mision' ? 'misiones' : screen) ? 'page' : 'false'));
     $('#toast').hidden = true;
     try { history.replaceState(null, '', '#' + (screen === 'home' ? 'inicio' : screen)); } catch (e) { /* sin historial */ }
@@ -2431,7 +2520,7 @@
 
     document.addEventListener('click', e => {
       const g = e.target.closest('[data-go]');
-      if (g) { go(g.dataset.go); return; }
+      if (g) { const pd = $('#play'); if (pd && pd.open) closePlay(); go(g.dataset.go); return; }
       const m = e.target.closest('[data-open-mission]');
       if (m) { go('mision', { id: m.dataset.openMission }); return; }
       const mt = e.target.closest('[data-mat]');
@@ -2451,6 +2540,9 @@
       const st = e.target.closest('[data-stat]');
       if (st) { giveStat(st.dataset.stat); return; }
       if (e.target.closest('#st-reset')) { resetStats(); return; }
+      if (e.target.closest('#h-music')) { musicToggle(); return; }
+      if (e.target.closest('#h-play')) { openPlay(); return; }
+      if (e.target.closest('[data-play-close]')) { closePlay(); return; }
       const q = e.target.closest('[data-equip]');
       if (q) {
         const it = ITEM[q.dataset.equip];
@@ -2473,6 +2565,11 @@
     const nm = $('#menu-name');
     nm.oninput = () => { clearTimeout(nm._t); nm._t = setTimeout(() => { state.profile.name = nm.value.trim().slice(0, 24) || 'Mochi'; touchProfile(); }, 400); };
     $$('[name="theme"]').forEach(r => (r.onchange = () => { state.profile.theme = r.value; touchProfile(); applyTheme(); }));
+    const mus = $('#menu-music'); mus.checked = music.on;
+    mus.onchange = () => { if (mus.checked !== music.on) { music.heard = true; musicToggle(); } };
+    renderMusicBtn();
+    // Mochi se duerme y despierta solo: la música lo acompaña.
+    setInterval(() => { if (music.unlocked) musicApply(3); }, 60000);
     $('#menu-sound').onchange = e => { state.sound = e.target.checked; lsSet(LS_SOUND, state.sound ? 'on' : 'off'); if (state.sound) crackle(1); };
     $('#menu-reset').onclick = () => { $('#menu-reset-confirm').hidden = false; };
     $('#menu-reset-no').onclick = () => { $('#menu-reset-confirm').hidden = true; };
