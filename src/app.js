@@ -418,9 +418,94 @@
     { id: 'wil', ab: 'WIL', name: 'Voluntad / Templanza', color: '#ff8fb1', aff: 'tolerancia',
       what: 'Resistencia a la magia mental (control, miedo), perseverancia y control del dolor.', out: v => ['Resistencia mental', Math.min(75, 3 * v) + ' %'] },
     { id: 'dev', ab: 'DEV', name: 'Fe / Devoción', color: '#ffd166', aff: 'empatia',
-      what: 'Conexión con entidades superiores, milagros, magia sagrada o canalización de energía vital.', out: v => ['Poder vital', 2 * v] }
+      what: 'Conexión con entidades superiores, milagros, magia sagrada o canalización de energía vital.', out: v => ['Poder vital', 2 * v] },
+    { id: 'lck', ab: 'LCK', name: 'Suerte / Fortuna', color: '#7ed957', aff: null,
+      what: 'Probabilidad de golpes críticos, mejor botín y eventos afortunados.', out: v => ['Crítico', Math.min(50, 1 + v) + ' %'] },
+    { id: 'cha', ab: 'CHA', name: 'Carisma / Presencia', color: '#f78fd0', aff: null,
+      what: 'Liderazgo, persuasión, intimidación y presencia ante aliados y rivales.', out: v => ['Persuasión', 3 * v] }
   ];
   const GAME = Object.fromEntries(GAME_STATS.map(g => [g.id, g]));
+  // Sinergias: se calculan solas a partir de los stats de juego. No reciben puntos.
+  // Se activan cuando TODOS sus stats llegan al mínimo del rango; su nivel es el promedio de esos stats
+  // y su potencia crece con lo que pasa del mínimo. CON = VIT y WIS = DEV en la nomenclatura de Mochi.
+  const SYN_TIERS = [
+    { n: 2, name: 'Combinaciones focales', min: 8 },
+    { n: 3, name: 'Especializaciones de arquetipo', min: 10 },
+    { n: 4, name: 'Maestrías de alto nivel', min: 12 },
+    { n: 5, name: 'Trascendencia', min: 14 }
+  ];
+  const SYNERGIES = [
+    // 2 atributos
+    { id: 'tenacidad', name: 'Tenacidad / Aplomo', uses: ['str', 'vit'], desc: 'La firmeza física del personaje frente al castigo pesado.',
+      fx: ['Reduce la duración de aturdimientos (Stun), derribos y congelaciones en un % proporcional.', 'Inmunidad a la interrupción de ataques (Super Armor) contra golpes de bajo impacto.', 'Más masa corporal: reduce la distancia de empuje por ataques enemigos.'] },
+    { id: 'impacto', name: 'Impacto devastador', uses: ['str', 'dex'], desc: 'Enfocar toda la potencia física en el punto más vulnerable del objetivo.',
+      fx: ['Multiplicador adicional al daño crítico de los ataques físicos.', 'Probabilidad de ignorar escudos de mano en ataques cuerpo a cuerpo.', 'Más probabilidad de inutilizar extremidades enemigas.'] },
+    { id: 'fluidez', name: 'Fluidez en combate', uses: ['agi', 'dex'], desc: 'Coordinación motora perfecta entre movimiento rápido y precisión de ejecución.',
+      fx: ['Más velocidad de ataque y de recarga de armas de rango.', 'Una esquiva perfecta da un contragolpe automático sin coste de estamina.', 'Menos coste de estamina al encadenar combos de ataques ligeros.'] },
+    { id: 'debilidades', name: 'Análisis de debilidades', uses: ['int', 'per'], desc: 'Calcular las brechas estructurales en la defensa enemiga.',
+      fx: ['% de penetración de armadura física y resistencia mágica en cada golpe.', 'Revela la salud exacta, inmunidades y debilidades de los enemigos al mirarlos.', 'Más probabilidad de crítico al atacar por los flancos o por la espalda.'] },
+    { id: 'tejido', name: 'Tejido mental / Barrera arcana', uses: ['int', 'wil'], desc: 'Convertir el poder intelectual y la voluntad en una defensa física.',
+      fx: ['Escudo de energía equivalente a un % del maná máximo, que absorbe daño antes del HP.', 'El maná se regenera más rápido al recibir daño mágico.', 'Menos penalización de tiempo de casteo en hechizos pesados.'] },
+    { id: 'vampirismo', name: 'Vampirismo arcano', uses: ['int', 'lck'], desc: 'Sintonización afortunada para drenar la esencia residual de los hechizos.',
+      fx: ['Convierte un % del daño mágico en recuperación instantánea de maná o HP.', 'Probabilidad fija de que un hechizo no consuma maná.', 'Duplica la probabilidad de críticos con magia arcana.'] },
+    { id: 'dominio', name: 'Aura de dominio', uses: ['cha', 'str'], desc: 'Presencia física imponente que quiebra la determinación de los rivales.',
+      fx: ['Aura que reduce el daño físico y la moral de los enemigos cercanos.', 'Gran bonus de daño contra enemigos reducidos, acorralados o huyendo.', 'Más éxito al Intimidar en diálogos y combate.'] },
+    { id: 'ingenieria', name: 'Ingeniería táctica', uses: ['dex', 'int'], desc: 'Dominio en el uso, creación y despliegue de tecnología, trampas y mecanismos.',
+      fx: ['Más rango, daño y efectividad de trampas, bombas y consumibles.', 'La mitad del tiempo para reparar equipo, abrir cerraduras o desactivar trampas.', 'Más durabilidad máxima de armas y armaduras equipadas.'] },
+    { id: 'furia', name: 'Furia impetuosa', uses: ['str', 'agi'], desc: 'Fuerza explosiva para abalanzarse sobre los enemigos a gran velocidad.',
+      fx: ['Más distancia y velocidad de embestida o salto de combate.', 'La velocidad de movimiento se convierte en daño extra al impactar a la carrera.', 'Menos recuperación tras ataques pesados o caídas.'] },
+    { id: 'temple', name: 'Temple sagrado', uses: ['vit', 'wil'], desc: 'Resistencia corporal y espiritual inquebrantable ante los estados alterados.',
+      fx: ['Inmunidad a venenos, enfermedades, maldiciones y hemorragias de nivel bajo.', 'Más curación recibida de cualquier fuente (pociones, milagros, alimentos).', 'La estamina y los recursos vitales se drenan a la mitad de velocidad.'] },
+    // 3 atributos
+    { id: 'baluarte', name: 'Baluarte inamovible', uses: ['str', 'vit', 'wil'], desc: 'El cuerpo como una fortaleza viva capaz de resistir catástrofes.',
+      fx: ['Inmunidad total a ser empujado, derribado o lanzado por los aires.', 'Con menos de 30 % de salud, duplica la armadura física y la resistencia mágica.', 'Absorbe parte del daño que reciben los aliados cercanos.'] },
+    { id: 'marcial', name: 'Artes marciales / Esgrima maestra', uses: ['str', 'agi', 'dex'], desc: 'Sincronización letal de fuerza, velocidad y precisión técnica.',
+      fx: ['Combos desarmados o con armas ligeras que aplican sangrado y aturdimiento.', 'Permite desviar proyectiles físicos (flechas, dagas) con armas de mano.', 'El daño escala con el más alto entre STR, AGI y DEX.'] },
+    { id: 'battlemage', name: 'Magia bélica / Battlemage', uses: ['str', 'int', 'vit'], desc: 'Artes arcanas en medio de la melé sin perder estabilidad corporal.',
+      fx: ['Los hechizos a corta distancia hacen mucho más daño y derriban.', 'Los golpes físicos no interrumpen el lanzamiento de hechizos.', 'Un % de la defensa de la armadura pesada se vuelve poder mágico.'] },
+    { id: 'asesino', name: 'Asesino de sombras', uses: ['agi', 'dex', 'lck'], desc: 'Emboscadas, golpes letales y evasión absoluta.',
+      fx: ['Los ataques en sigilo o por la espalda son críticos garantizados.', 'Invisibilidad breve justo después de eliminar a un enemigo.', 'Más distancia de esquiva y más probabilidad de evasión absoluta.'] },
+    { id: 'paladin', name: 'Devoción del paladín', uses: ['str', 'wil', 'cha'], desc: 'La fe y el liderazgo para proteger y sanar a través de la batalla.',
+      fx: ['Parte del daño físico infligido cura al aliado más golpeado.', 'Aura de grupo que aumenta la resistencia a la magia oscura y al miedo.', 'Los ataques físicos hacen daño sagrado extra contra no muertos y demonios.'] },
+    { id: 'astral', name: 'Proyección astral', uses: ['int', 'dev', 'wil'], desc: 'La mente por encima de la materia, manipulando la realidad misma.',
+      fx: ['Aumenta muchísimo el alcance máximo de hechizos y habilidades.', 'Permite mover la visión a distancia y detectar entes invisibles o etéreos.', 'La magia no consume estamina.'] },
+    { id: 'liderazgo', name: 'Liderazgo táctico', uses: ['cha', 'int', 'per'], desc: 'Leer el campo de batalla y dirigir escuadrones.',
+      fx: ['Todo el grupo gana Precisión, Evasión e Iniciativa.', 'Marca a un enemigo: el grupo le hace un % más de daño.', 'Permite reordenar posiciones o turnos del equipo en combate.'] },
+    { id: 'medico', name: 'Médico de campo / Alquimista', uses: ['vit', 'int', 'dex'], desc: 'Ciencia y manos hábiles para sanar o alterar la vida.',
+      fx: ['Las curaciones y pociones se aplican al instante y rinden el doble.', 'Brebajes, venenos y bombas de nivel superior con menos materiales.', 'Aura de purificación que quita poco a poco los debuffs de los aliados.'] },
+    // 4 atributos
+    { id: 'sobreviviente', name: 'Sobreviviente implacable', uses: ['str', 'dex', 'vit', 'wil'], desc: 'Dominio total sobre la propia biología para aguantar cualquier entorno.',
+      fx: ['Regeneración continua de HP y estamina, más rápida mientras menos vida quede.', 'Resistencias a todos los elementos que se acumulan durante el combate.', 'Al caer derribado se levanta al instante con una onda de choque.'] },
+    { id: 'encantador', name: 'Encantador supremo', uses: ['int', 'dev', 'dex', 'lck'], desc: 'La perfección en infundir objetos con magia y fortuna.',
+      fx: ['Los encantamientos superan el límite normal de nivel.', 'Al fabricar o mejorar equipo, puede duplicar sus estadísticas.', 'Las armas mágicas no gastan cargas ni durabilidad.'] },
+    { id: 'espectro', name: 'Espectro sombrío', uses: ['agi', 'dex', 'per', 'lck'], desc: 'Un fantasma imposible de golpear o predecir.',
+      fx: ['Invulnerabilidad extendida (i-frames) durante cualquier evasión.', 'Revela trampas, puertas secretas y cofres ocultos en el mapa.', 'La esquiva funciona incluso contra ataques en área y magia masiva.'] },
+    { id: 'invocaciones', name: 'Comandante de invocaciones', uses: ['dev', 'wil', 'cha', 'lck'], desc: 'Liderazgo espiritual para sostener un ejército de entes o esbirros.',
+      fx: ['Más mascotas, esbirros o invocaciones activas a la vez.', 'Las invocaciones heredan el 100 % de tu crítico y resistencia mágica.', 'Ante un golpe mortal, una invocación se sacrifica en tu lugar.'] },
+    // 5 atributos
+    { id: 'avatar', name: 'Avatar físico / Maestro de armas', uses: ['str', 'agi', 'dex', 'vit', 'per'], desc: 'El límite de la perfección anatómica y el dominio de la guerra física.',
+      fx: ['Sin requisitos de atributos ni penalizaciones de peso en armas y armaduras.', 'Armas de dos manos con una sola mano, sin perder daño ni velocidad.', 'Cada golpe acertado sube la velocidad y el daño físico durante el combate.'] },
+    { id: 'archimago', name: 'Mente absoluta / Archimago', uses: ['int', 'dev', 'wil', 'cha', 'lck'], desc: 'Un conducto viviente de la energía mágica pura del universo.',
+      fx: ['Ignora inmunidades y resistencias mágicas de cualquier enemigo o jefe.', 'Matar con magia reinicia el tiempo de recarga de todas las habilidades.', 'Todos los hechizos salen en su versión aumentada o de mayor radio.'] },
+    { id: 'berserker', name: 'Estado berserker / Voluntad inquebrantable', uses: ['str', 'vit', 'wil', 'agi', 'lck'], desc: 'Negar la muerte con instinto primario y furia pura.',
+      fx: ['Un golpe que sería mortal activa el Estado Inmortal por 10 segundos.', 'En ese estado la vida no baja de 1 HP y todo el daño infligido cura.', 'Velocidad de movimiento y de ataque +100 % mientras dura la furia.'] },
+    { id: 'estratega', name: 'Gran estratega / Soberano', uses: ['int', 'per', 'cha', 'wil', 'lck'], desc: 'Control total sobre las probabilidades, la psicología y el tiempo del combate.',
+      fx: ['Dicta el orden de turnos, o ralentiza el tiempo de los enemigos en tiempo real.', 'Muestra la próxima acción exacta del enemigo.', 'Multiplicador de daño para el grupo que crece por cada aliado vivo.'] }
+  ];
+  function synergyState(g) {
+    return SYNERGIES.map(s => {
+      const tier = SYN_TIERS.find(t => t.n === s.uses.length);
+      const vals = s.uses.map(id => g[id].value), sum = vals.reduce((x, y) => x + y, 0), avg = sum / vals.length;
+      const active = vals.every(v => v >= tier.min);
+      const missing = s.uses.map((id, i) => [id, Math.max(0, tier.min - vals[i])]).filter(x => x[1] > 0);
+      const toGo = missing.reduce((n, x) => n + x[1], 0);
+      // Avance hacia activarla: cuánto de los mínimos ya se tiene. Potencia: crece con lo que pasa del mínimo.
+      const progress = vals.reduce((n, v) => n + Math.min(v, tier.min), 0) / (tier.min * vals.length);
+      const power = active ? Math.min(100, Math.round(20 + (avg - tier.min) * 8)) : 0;
+      return { s, tier, sum, avg, level: Math.floor(avg), active, missing, toGo, progress, power };
+    });
+  }
+
   // Qué entrena cada tipo de tarea (suma 1).
   const FAM_TRAINS = {
     build: { agilidad: 0.45, logica: 0.35, memoria: 0.2 },
@@ -2119,6 +2204,8 @@
     const d = $('#play'); if (!d) return;
     const a = attrs(totals());
     const top = GAME_STATS.slice().sort((x, y) => a._game[y.id].value - a._game[x.id].value).slice(0, 3);
+    const act = synergyState(a._game).filter(x => x.active);
+    $('#play-syn').textContent = act.length ? `Sinergias activas: ${act.map(x => x.s.name).join(', ')}.` : 'Todavía sin sinergias activas: se activan cuando varios stats llegan juntos al mínimo.';
     $('#play-skills').innerHTML = top.map(g => { const [l, v] = g.out(a._game[g.id].value); return `<li style="--ac:${g.color}"><div><b>${g.ab} · ${esc(g.name)}</b><small>${esc(l)}: ${v}</small></div><span>${a._game[g.id].value}</span></li>`; }).join('');
     if (pets.home) pets.home.express('sparkle', 2500);
     if (d.showModal) d.showModal(); else d.setAttribute('open', '');
@@ -2464,7 +2551,11 @@
     } finally { btn.disabled = false; }
   }
 
-  // Stats: tabla de vitales y los nueve atributos, con lo entrenado, lo asignado y su efecto.
+  // Pestaña y filtro de Stats, recordados en este navegador.
+  const LS_STATS_TAB = 'brasa.v1.statsTab', LS_SYN_F = 'brasa.v1.synFilter';
+  const statsTab = () => (lsGet(LS_STATS_TAB) === 'learn' ? 'learn' : 'game');
+  const synFilter = () => { const f = lsGet(LS_SYN_F); return f === 'active' || f === 'near' ? f : 'all'; };
+  // Stats: vitales, puntos, stats de juego con sus sinergias, y los atributos de aprendizaje.
   function renderStats(tot) {
     const lv = levelOf(tot.xp), v = vitals(tot), a = attrs(tot), bd = bond(), pr = state.profile;
     const row = (k, val, max, color, note) => `<tr><th>${k}</th><td><span class="st-bar"><i style="width:${Math.min(100, val / max * 100).toFixed(0)}%;background:${color}"></i></span></td><td class="n">${val}${max === 100 ? '' : ''}</td><td class="st-note">${esc(note)}</td></tr>`;
@@ -2480,21 +2571,52 @@
     $('#st-points').innerHTML = `<span class="st-pts ${a._avail ? 'on' : ''}"><b>${a._avail}</b> ${a._avail === 1 ? 'punto disponible' : 'puntos disponibles'}</span>
       <span class="muted">Ganas 1 por cada nivel (${lv.L - 1} en total, ${a._spent} repartidos). Van a los stats de juego, para cuando juegues con Mochi.</span>
       ${any ? `<button class="btn small ghost" id="st-reset" ${pr.statReset === k ? 'disabled title="Ya reasignaste hoy"' : ''}>Reasignar</button>` : ''}`;
+    const syn = synergyState(a._game), nActive = syn.filter(x => x.active).length;
+    $('#st-points').insertAdjacentHTML('beforeend', `<span class="st-synsum"><b>${nActive}</b> de ${syn.length} sinergias activas</span>`);
+    // Pestañas: Juego (principales + sinergias) y Aprendizaje (lo que sube usándolo).
+    const tab = statsTab();
+    $$('#st-tabs [data-st-tab]').forEach(b => { const on = b.dataset.stTab === tab; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; });
+    $('#st-p-game').hidden = tab !== 'game'; $('#st-p-learn').hidden = tab !== 'learn';
+    $('#st-tab-game-n').textContent = `${GAME_STATS.length} + ${nActive}/${syn.length}`;
     const maxG = Math.max(15, ...GAME_STATS.map(g => a._game[g.id].value));
+    const feeds = id => SYNERGIES.filter(x => x.uses.includes(id)).length;
     $('#st-game').innerHTML = GAME_STATS.map(g => {
       const s = a._game[g.id], [olab, oval] = g.out(s.value), [, next] = g.out(s.value + 1);
-      const parts = [`Base ${GAME_BASE}`, s.given ? `puntos +${s.given}` : null, s.aff ? `${ATTR[g.aff].name.toLowerCase()} +${s.aff}` : null].filter(Boolean).join(' · ');
+      const parts = [`Base ${GAME_BASE}`, s.given ? `+${s.given} puntos` : null, s.aff ? `+${s.aff} ${ATTR[g.aff].name.toLowerCase()}` : null].filter(Boolean).join(' · ');
+      const nf = feeds(g.id);
       return `<li class="gstat" style="--ac:${g.color}">
         <span class="g-ab">${g.ab}</span>
         <div class="g-main"><div class="g-head"><b>${esc(g.name)}</b><span class="g-val">${s.value}</span></div>
           <div class="g-bar"><i style="width:${(s.value / maxG * 100).toFixed(1)}%"></i></div>
-          <p class="g-what">${esc(g.what)}</p>
-          <p class="g-meta"><span>${esc(parts)}</span><span>${esc(olab)}: <b>${oval}</b>${a._avail ? ` → ${next}` : ''}</span></p>
-          ${g.aff ? `<p class="g-aff">Afinidad: +1 por cada 3 niveles de ${esc(ATTR[g.aff].name.toLowerCase())}</p>` : ''}
+          <p class="g-what" title="${esc(g.what)}">${esc(g.what)}</p>
+          <p class="g-meta"><span>${esc(olab)}: <b>${oval}</b>${a._avail ? ` → ${next}` : ''}</span><span>${nf ? `En ${nf} sinergia${nf === 1 ? '' : 's'}` : ''}</span></p>
+          <p class="g-src">${esc(parts)}${g.aff && !s.aff ? ` · afín a ${esc(ATTR[g.aff].name.toLowerCase())}` : ''}</p>
         </div>
         <button class="btn small ${a._avail ? 'primary' : 'ghost'}" data-stat="${g.id}" ${a._avail ? '' : 'disabled'} aria-label="Dar 1 punto a ${esc(g.name)}">+1</button>
       </li>`;
     }).join('');
+    // Sinergias por rango, con filtro.
+    const flt = synFilter();
+    $$('#st-synf [data-syn-f]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.synF === flt)));
+    const near = x => !x.active && x.toGo <= 4;
+    const counts = { all: syn.length, active: nActive, near: syn.filter(near).length };
+    $$('#st-synf [data-syn-f]').forEach(b => { b.querySelector('em').textContent = counts[b.dataset.synF]; });
+    const pass = x => flt === 'all' || (flt === 'active' ? x.active : near(x));
+    const chip = (id, v, min) => `<span class="sy-c ${v >= min ? 'ok' : ''}" style="--ac:${GAME[id].color}" title="${esc(GAME[id].name)}: ${v} de ${min}">${GAME[id].ab}<b>${v}</b></span>`;
+    $('#st-syn').innerHTML = SYN_TIERS.map(t => {
+      const list = syn.filter(x => x.tier.n === t.n && pass(x));
+      if (!list.length) return '';
+      const on = syn.filter(x => x.tier.n === t.n && x.active).length, all = syn.filter(x => x.tier.n === t.n).length;
+      return `<section class="sy-tier">
+        <h3 class="sy-th"><span><b>${t.n} atributos</b> · ${esc(t.name)}</span><span>${on}/${all} activas · se activan con todos en ${t.min}+</span></h3>
+        <ul class="sy-list">${list.map(x => `
+          <li class="sy ${x.active ? 'on' : ''}">
+            <div class="sy-head"><b>${esc(x.s.name)}</b>${x.active ? `<span class="sy-pill on">Activa · ${x.power} %</span>` : `<span class="sy-pill">Faltan ${x.toGo}</span>`}</div>
+            <div class="sy-cs">${x.s.uses.map(id => chip(id, a._game[id].value, t.min)).join('')}<span class="sy-lv" title="Promedio de sus stats">Nv ${x.level}</span></div>
+            <div class="sy-bar" title="${x.active ? 'Potencia ' + x.power + ' %' : Math.round(x.progress * 100) + ' % para activarla'}"><i style="width:${(x.active ? x.power : x.progress * 100).toFixed(0)}%"></i></div>
+            <details><summary>${x.active ? 'Efectos' : 'Ver efectos'}</summary><p class="sy-desc">${esc(x.s.desc)}</p><ul class="sy-fx">${x.s.fx.map(f => `<li>${esc(f)}</li>`).join('')}</ul></details>
+          </li>`).join('')}</ul></section>`;
+    }).join('') || '<p class="muted">Ninguna con este filtro todavía.</p>';
     const card = x => {
       const s = a[x.id], b = s.value - 1, gs = GAME_STATS.find(g => g.aff === x.id);
       return `<li class="attr" style="--ac:${x.color}">
@@ -2710,6 +2832,10 @@
       if (up) { usePotion(up.dataset.use, up); return; }
       const c = e.target.closest('[data-claim]');
       if (c) { claimQuest(c.dataset.claim, c); return; }
+      const stt = e.target.closest('[data-st-tab]');
+      if (stt) { lsSet(LS_STATS_TAB, stt.dataset.stTab); renderAll(); return; }
+      const sf = e.target.closest('[data-syn-f]');
+      if (sf) { lsSet(LS_SYN_F, sf.dataset.synF); renderAll(); return; }
       const st = e.target.closest('[data-stat]');
       if (st) { giveStat(st.dataset.stat); return; }
       if (e.target.closest('#st-reset')) { resetStats(); return; }
@@ -2744,6 +2870,12 @@
     const mus = $('#menu-music'); mus.checked = music.on;
     mus.onchange = () => { if (mus.checked !== music.on) musicSetOn(mus.checked); };
     $('#vol-range').oninput = e => musicVolume(e.target.value / 100);
+    // Pestañas de Stats con flechas del teclado.
+    $('#st-tabs').addEventListener('keydown', e => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const next = statsTab() === 'game' ? 'learn' : 'game';
+      lsSet(LS_STATS_TAB, next); renderAll(); $(`#st-tabs [data-st-tab="${next}"]`).focus();
+    });
     $('#menu-vol').oninput = e => musicVolume(e.target.value / 100);
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#h-vol').hidden) { openVol(false); $('#h-music').focus(); } });
     renderMusicBtn();

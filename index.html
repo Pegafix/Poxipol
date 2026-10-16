@@ -330,7 +330,41 @@ button.chip { cursor: pointer; }
 .g-val { font: 800 20px/1 var(--f-display); color: color-mix(in srgb, var(--ac) 75%, var(--ink)); font-variant-numeric: tabular-nums; }
 .g-bar { height: 5px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
 .g-bar i { display: block; height: 100%; background: var(--ac); border-radius: 99px; transition: width .4s ease; }
-.g-what { margin: 0; font-size: 12.5px; color: var(--muted); }
+.g-what { margin: 0; font-size: 12.5px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.g-src { margin: 0; font-size: 11.5px; color: var(--muted); }
+.st-synsum { font-size: 13px; padding-top: 8px; border-top: 1px solid var(--line); width: 100%; } .st-synsum b { font-size: 15px; }
+.st-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 18px 0 0; padding: 4px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); }
+.st-tabs button { display: grid; gap: 2px; justify-items: center; padding: 9px 8px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); cursor: pointer; font: inherit; }
+.st-tabs button b { font-size: 14.5px; }
+.st-tabs button small { font-size: 11.5px; }
+.st-tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+.sy-filter { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; }
+.sy-filter button { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 99px; padding: 6px 12px; font: 600 13px/1 var(--f-body); cursor: pointer; }
+.sy-filter button em { font-style: normal; color: var(--muted); margin-left: 4px; font-variant-numeric: tabular-nums; }
+.sy-filter button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.sy-filter button[aria-pressed="true"] em { color: inherit; opacity: .7; }
+.sy-tier { margin: 0 0 16px; }
+.sy-th { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 0 0 8px; font: 500 12.5px/1.3 var(--f-body); color: var(--muted); }
+.sy-th b { color: var(--ink); }
+.sy-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.sy { display: grid; gap: 7px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; opacity: .88; }
+.sy.on { opacity: 1; border-color: color-mix(in srgb, #5fd3a0 55%, var(--line)); box-shadow: inset 3px 0 0 #5fd3a0; }
+.sy-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.sy-head b { font-size: 14px; }
+.sy-pill { flex: none; font: 700 11.5px/1 var(--f-body); padding: 4px 8px; border-radius: 99px; background: var(--surface-2); color: var(--muted); font-variant-numeric: tabular-nums; }
+.sy-pill.on { background: color-mix(in srgb, #5fd3a0 22%, var(--surface)); color: color-mix(in srgb, #2f9c6f 80%, var(--ink)); }
+.sy-cs { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.sy-c { display: inline-flex; gap: 5px; align-items: center; padding: 3px 7px; border-radius: 8px; font: 700 11.5px/1 var(--f-mono); background: var(--surface-2); color: var(--muted); border: 1px dashed var(--line); }
+.sy-c b { font-family: var(--f-body); color: var(--ink); font-variant-numeric: tabular-nums; }
+.sy-c.ok { background: color-mix(in srgb, var(--ac) 16%, var(--surface-2)); color: color-mix(in srgb, var(--ac) 70%, var(--ink)); border-style: solid; border-color: color-mix(in srgb, var(--ac) 40%, var(--line)); }
+.sy-lv { margin-left: auto; font: 700 12px/1 var(--f-body); color: var(--muted); font-variant-numeric: tabular-nums; }
+.sy-bar { height: 5px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+.sy-bar i { display: block; height: 100%; border-radius: 99px; background: #a98bff; transition: width .4s ease; }
+.sy.on .sy-bar i { background: #5fd3a0; }
+.sy details { font-size: 12.5px; }
+.sy summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+.sy-desc { margin: 6px 0 4px; color: var(--muted); font-style: italic; }
+.sy-fx { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
 .g-meta { margin: 0; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .g-meta b { color: var(--ink); }
 .g-aff { margin: 0; font-size: 11.5px; color: var(--muted); font-style: italic; }
@@ -697,9 +731,10 @@ body.can-ask .ask { display: grid; gap: 6px; }
 
 <dialog class="play-dlg" id="play" aria-labelledby="play-t">
   <h2 id="play-t">Jugar con Mochi</h2>
-  <p>Muy pronto: un juego aparte, simple y para despejarse, donde Mochi usa sus stats de juego (VIT, STR, FIT, DEX, AGI, INT, WIT, PER, WIL y DEV). Los subes con los puntos de cada nivel, y lo que entrenas con tus tareas también les suma.</p>
+  <p>Muy pronto: un juego aparte, simple y para despejarse, donde Mochi usa sus stats de juego (VIT, STR, FIT, DEX, AGI, INT, WIT, PER, WIL, DEV, LCK y CHA) y sus sinergias. Los subes con los puntos de cada nivel, y lo que entrenas con tus tareas también les suma.</p>
   <h3>Sus mejores stats de juego</h3>
   <ul id="play-skills"></ul>
+  <p class="muted" id="play-syn"></p>
   <p class="muted">Mientras tanto, sigue entrenándolo: cada tarea, mezcla y conversación le suma.</p>
   <div class="play-acts"><button class="btn ghost" data-go="stats" data-play-close>Ver stats</button><button class="btn primary" data-play-close>Volver con Mochi</button></div>
 </dialog>
@@ -743,19 +778,32 @@ body.can-ask .ask { display: grid; gap: 6px; }
 </section>
 
 <section class="screen" id="scr-stats" hidden aria-label="Stats">
-  <div class="screen-head"><div><h1>Stats</h1><p>Mochi tiene dos clases de stats. Los <b>de juego</b> los subes tú con <b>1 punto por nivel</b> y cuentan cuando juegas con Mochi. Los <b>de aprendizaje</b> solo suben <b>usándolos</b>, como en Final Fantasy II: cada tarea entrena lo que de verdad usa, y repetir lo mismo el mismo día rinde menos.</p></div></div>
+  <div class="screen-head"><div><h1>Stats</h1><p><b>Juego</b>: los stats principales los subes tú con 1 punto por nivel, y las sinergias crecen solas con la suma de sus stats. <b>Aprendizaje</b>: atributos que solo suben usándolos, con tus tareas y proyectos.</p></div></div>
   <div class="sheet">
     <div class="panel st-panel"><h3>Vitales</h3><div id="st-vitals"></div></div>
     <div class="panel st-panel"><h3>Puntos de nivel</h3><div id="st-points" class="st-points"></div></div>
   </div>
-  <h2 class="sec-t"><span>Stats de juego</span><span class="muted">para jugar con Mochi</span></h2>
-  <ul class="gstats" id="st-game"></ul>
-  <h2 class="sec-t st-learn"><span>Atributos de aprendizaje</span><span class="muted">suben usándolos</span></h2>
-  <p class="st-learn-p">No se compran con puntos: crecen con tus tareas, fases, mezclas y conversaciones. Cada 3 niveles le dan +1 a su stat de juego afín.</p>
-  <h2 class="sec-t"><span>Cognitivos</span><span class="muted">pensar y hacer</span></h2>
-  <ul class="attrs" id="st-cog"></ul>
-  <h2 class="sec-t"><span>Emocionales</span><span class="muted">sentir y seguir</span></h2>
-  <ul class="attrs" id="st-emo"></ul>
+  <div class="st-tabs" id="st-tabs" role="tablist" aria-label="Clases de stats">
+    <button role="tab" id="st-tab-game" data-st-tab="game" aria-controls="st-p-game"><b>Juego</b><small>Principales y sinergias · <span id="st-tab-game-n"></span></small></button>
+    <button role="tab" id="st-tab-learn" data-st-tab="learn" aria-controls="st-p-learn"><b>Aprendizaje</b><small>Suben usándolos · 9</small></button>
+  </div>
+  <div id="st-p-game" role="tabpanel" aria-labelledby="st-tab-game">
+    <h2 class="sec-t"><span>Principales</span><span class="muted">1 punto por nivel</span></h2>
+    <ul class="gstats" id="st-game"></ul>
+    <h2 class="sec-t"><span>Sinergias</span><span class="muted">se calculan solas</span></h2>
+    <p class="st-learn-p">Cada sinergia mezcla 2 a 5 stats principales. Se activa cuando todos llegan al mínimo de su rango; su nivel es el promedio de esos stats y su potencia sube mientras más los pases. CON es VIT y WIS es DEV.</p>
+    <div class="sy-filter" id="st-synf" role="group" aria-label="Filtrar sinergias">
+      <button data-syn-f="all">Todas <em></em></button><button data-syn-f="active">Activas <em></em></button><button data-syn-f="near">Cerca <em></em></button>
+    </div>
+    <div id="st-syn"></div>
+  </div>
+  <div id="st-p-learn" role="tabpanel" aria-labelledby="st-tab-learn" hidden>
+    <p class="st-learn-p" style="margin-top:14px">No se compran con puntos: crecen con tus tareas, fases, mezclas y conversaciones, como en Final Fantasy II. Cada 3 niveles le dan +1 a su stat principal afín.</p>
+    <h2 class="sec-t"><span>Cognitivos</span><span class="muted">pensar y hacer</span></h2>
+    <ul class="attrs" id="st-cog"></ul>
+    <h2 class="sec-t"><span>Emocionales</span><span class="muted">sentir y seguir</span></h2>
+    <ul class="attrs" id="st-emo"></ul>
+  </div>
 </section>
 
 <section class="screen" id="scr-taller" hidden aria-label="Taller">

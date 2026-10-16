@@ -32,11 +32,16 @@ Carga tus guías de desarrollo en PDF (formato "Hoja de ruta paso a paso & integ
 - **Equipo**: 20 piezas en 6 ranuras (cabeza, cara, cuello, joya, base, aura) que se desbloquean avanzando. Cada una se ve sobre el personaje y da un bono de XP mientras la llevas puesta. También muestra los atributos y los últimos 28 días.
 - **Stats**: la tabla de Mochi.
   - **Vitales**: nivel, XP y lo que falta para el siguiente, más HP, MP, STA y EMP.
-  - **Stats de juego**: los que subes tú con **1 punto por nivel**, para **Jugar con Mochi**. Se pueden reasignar una vez al día.
-    - Los diez: VIT (vigor y salud), STR (fuerza bruta), FIT (acondicionamiento), DEX (destreza fina), AGI (agilidad y reflejos), INT (inteligencia y lógica), WIT (ingenio y astucia), PER (sabiduría y percepción), WIL (voluntad y templanza) y DEV (fe y devoción).
-    - Cada uno parte en 5 y muestra lo que significa en el juego: vida máxima, daño de impacto, estamina, precisión, esquiva, poder de fórmulas, iniciativa, detección, resistencia mental y poder vital.
+  - **Dos pestañas**, que recuerda: **Juego** y **Aprendizaje**.
+  - **Juego · principales**: los subes tú con **1 punto por nivel**, para **Jugar con Mochi**. Se pueden reasignar una vez al día.
+    - Los doce: VIT (vigor y salud), STR (fuerza bruta), FIT (acondicionamiento), DEX (destreza fina), AGI (agilidad y reflejos), INT (inteligencia y lógica), WIT (ingenio y astucia), PER (sabiduría y percepción), WIL (voluntad y templanza), DEV (fe y devoción), LCK (suerte) y CHA (carisma).
+    - Cada uno parte en 5 y muestra su valor en el juego (vida máxima, daño de impacto, estamina, precisión, esquiva, poder de fórmulas, iniciativa, detección, resistencia mental, poder vital, crítico y persuasión) y en cuántas sinergias participa.
     - Lo aprendido también suma: cada 3 niveles del atributo de aprendizaje afín le dan +1 (resiliencia → VIT, enfoque → FIT, agilidad manual → DEX, lógica → INT, metacognición → WIT, análisis → PER, tolerancia → WIL, empatía → DEV).
-  - **Atributos de aprendizaje**: no se compran con puntos, solo suben usándolos, como en Final Fantasy II.
+  - **Juego · sinergias**: 26 stats secundarios que no reciben puntos; crecen solos con la suma de sus stats principales. En la nomenclatura de Mochi, CON es VIT y WIS es DEV.
+    - Van en cuatro rangos: 10 de 2 atributos (se activan con todos en 8+), 8 de 3 (10+), 4 de 4 (12+) y 4 de 5 (14+).
+    - Cada una muestra sus stats con su valor, el nivel (el promedio de sus stats), cuánto falta para activarla o su potencia si ya está activa, y sus efectos pasivos.
+    - Se filtran por todas, activas o cerca de activarse (faltan 4 o menos).
+  - **Aprendizaje**: atributos que no se compran con puntos, solo suben usándolos, como en Final Fantasy II.
     - Cognitivos: Razonamiento lógico, Memoria de trabajo, Agilidad manual y Análisis crítico.
     - Emocionales: Tolerancia a la frustración, Resiliencia, Empatía, Enfoque y Metacognición.
     - Cada tarea entrena lo que usa: construir sube agilidad, lógica y memoria; delegar a Claude, análisis, lógica y metacognición; crear, agilidad, enfoque y memoria; probar, análisis, tolerancia y lógica. También entrenan las fases, los prompts, las misiones diarias, los combos, volver después de días sin avanzar, las mezclas del Taller (fallar entrena tolerancia) y tratar bien a Mochi. Repetir lo mismo el mismo día rinde cada vez menos.
