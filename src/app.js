@@ -1,4 +1,5 @@
 import express from 'express';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -10,7 +11,18 @@ import { crearGeocodificador } from './services/geocoding.js';
 import { crearCotizador, combinarParametros } from './services/cotizador.js';
 import { costoDesgastePorKm } from './services/costos.js';
 
-const dirPublico = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
+const raiz = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+// La app interactiva es la misma página que se publica como artifact; aquí se
+// envuelve en un documento completo y usa el mapa real (OpenStreetMap).
+function paginaApp() {
+  try {
+    const cuerpo = readFileSync(path.join(raiz, 'artifact', 'poxipol-traslados.html'), 'utf8');
+    return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}</style></head><body>${cuerpo}</body></html>`;
+  } catch {
+    return '<p>Falta generar la app: ejecuta <code>node artifact/build.mjs</code>.</p>';
+  }
+}
 
 // Las dependencias se pueden inyectar (tests, otro proveedor de mapas).
 export function crearApp({ config = configBase, proveedor, geocodificar } = {}) {
@@ -29,9 +41,17 @@ export function crearApp({ config = configBase, proveedor, geocodificar } = {}) 
 
   const app = express();
   app.use(express.json({ limit: '1mb' }));
-  app.use(express.static(dirPublico));
+  const html = paginaApp();
+  app.get('/', (_req, res) => res.type('html').send(html));
 
-  app.get('/api/salud', (_req, res) => res.json({ ok: true, proveedorRutas: proveedor.nombre }));
+  app.get('/api/salud', (_req, res) => res.json({ ok: true, app: 'poxipol-traslados', proveedorRutas: proveedor.nombre }));
+
+  // --- Mapa real (usado por la app) ---------------------------------------------
+  app.get('/api/buscar', async (req, res) => res.json(geocodificar.buscar ? await geocodificar.buscar(req.query.q) : []));
+  app.post('/api/rutas', async (req, res) => {
+    const { puntos, categoriaPeaje } = req.body || {};
+    res.json(await cotizar.rutasMapa(puntos, Number(categoriaPeaje) || 1));
+  });
 
   // --- Vehículos ---------------------------------------------------------------
   const conCostos = (v) => ({ ...v, desgastePorKm: costoDesgastePorKm(v) });

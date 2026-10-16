@@ -6,13 +6,20 @@ API REST (Node.js + Express) para cotizar traslados de pasajeros sobre el mapa:
 - Según el **modelo del vehículo** calcula el gasto en **combustible**, **peajes**, **desgaste** (depreciación, mantención, neumáticos), **tiempo del conductor** y **costos fijos**, y entrega **cuánto cobrar** para que el viaje salga a cuenta.
 - Cotiza **solo ida** e **ida y vuelta** (con tiempo de espera y la opción de cobrar el retorno vacío).
 - Soporta **varias paradas**: optimiza el orden de las bajadas y **reparte el cobro por pasajero** según cuántos km viaja cada uno.
-- Incluye una página con mapa (`http://localhost:3000/`) para marcar los puntos con clic y ver las rutas.
+- Incluye la app interactiva en `http://localhost:3000/` con el mapa real (ver abajo).
 
-## App interactiva (artifact)
+## App interactiva
 
-`artifact/poxipol-traslados.html` es la versión para usar directo en claude.ai, sin instalar nada: mapa de Chile, búsqueda de lugares, paradas con pasajeros, 3 rutas calculadas por Claude (km, tiempos, peajes y trazado), costos, precio sugerido, cobro por pasajero y botón para copiar la cotización. Usa las mismas fórmulas que la API.
+La misma página funciona de dos formas:
 
-Se edita `artifact/plantilla.html` y se genera la página con `node artifact/build.mjs` (incrusta el CSS de Leaflet y el mapa de `artifact/datos/`).
+| Dónde | Mapa y rutas | Cómo |
+|---|---|---|
+| **En tu computador** (`npm start` → http://localhost:3000) | Mapa real de OpenStreetMap, rutas por calles reales (OSRM) y búsqueda de cualquier dirección | Recomendado para usar en serio |
+| **En claude.ai** (artifact) | Mapa de Chile con las 343 comunas; Claude calcula rutas, km, tiempos y peajes, busca direcciones, los datos de tu vehículo y el precio del combustible de tu región | Abrir y usar, sin instalar nada |
+
+Parte en blanco: eliges el vehículo (o escribes tu modelo), escribes origen y destino, y las rutas, el combustible y el precio se calculan solos.
+
+Se edita `artifact/plantilla.html` y se genera la página con `node artifact/build.mjs` (incrusta Leaflet, el mapa, lagos, ríos y comunas de `artifact/datos/`).
 
 ## Uso rápido
 
@@ -66,6 +73,8 @@ Por cada ruta:
 | `DELETE` | `/api/peajes/:id` | Elimina una plaza |
 | `GET` / `PATCH` | `/api/parametros` | Ver / cambiar los parámetros de tarifa por defecto |
 | `POST` | `/api/cotizar` | **Cotiza un traslado** |
+| `POST` | `/api/rutas` | Rutas sobre el mapa real para la app `{ puntos: [{lat, lng}], categoriaPeaje }` |
+| `GET` | `/api/buscar?q=lautaro` | Busca direcciones y lugares en OpenStreetMap |
 
 ### `POST /api/cotizar`
 

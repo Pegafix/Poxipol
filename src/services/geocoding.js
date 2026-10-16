@@ -30,7 +30,30 @@ export function crearGeocodificador({ url, userAgent, timeoutMs = 15000, fetchIm
     return punto;
   }
 
-  return async function geocodificar(entrada, etiqueta = 'ubicación') {
+  // Varias coincidencias para el buscador de la app (solo Chile y vecinos).
+  async function buscarLugares(texto) {
+    const q = String(texto || '').trim();
+    if (q.length < 3) return [];
+    let res;
+    try {
+      res = await fetchImpl(
+        `${url.replace(/\/$/, '')}/search?format=json&limit=6&addressdetails=1&countrycodes=cl,ar&accept-language=es&q=${encodeURIComponent(q)}`,
+        { headers: { 'User-Agent': userAgent }, signal: AbortSignal.timeout(timeoutMs) },
+      );
+    } catch (err) {
+      throw Object.assign(new Error(`No se pudo consultar el buscador de mapas (${err.message}).`), { status: 502 });
+    }
+    if (!res.ok) throw Object.assign(new Error(`El buscador de mapas respondió HTTP ${res.status}.`), { status: 502 });
+    const data = await res.json();
+    return data.map((d) => {
+      const a = d.address || {};
+      const lugar = a.city || a.town || a.village || a.municipality || a.county || '';
+      const nombre = d.name && d.name !== lugar ? `${d.name}${lugar ? `, ${lugar}` : ''}` : lugar || d.display_name.split(',')[0];
+      return { nombre, detalle: [a.state, a.country].filter(Boolean).join(', '), lat: Number(d.lat), lng: Number(d.lon) };
+    });
+  }
+
+  const geocodificar = async function geocodificar(entrada, etiqueta = 'ubicación') {
     if (entrada == null || entrada === '') throw errorUbicacion(`Falta la ${etiqueta}.`);
     if (typeof entrada === 'string') return buscarTexto(entrada);
 
@@ -49,4 +72,6 @@ export function crearGeocodificador({ url, userAgent, timeoutMs = 15000, fetchIm
     }
     return { lat, lng, nombre: nombre || `${lat.toFixed(5)}, ${lng.toFixed(5)}` };
   };
+  geocodificar.buscar = buscarLugares;
+  return geocodificar;
 }

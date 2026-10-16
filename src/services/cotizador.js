@@ -180,7 +180,40 @@ export function crearCotizador({ proveedor, geocodificar, plazasPeaje, config })
     return filas;
   }
 
-  return async function cotizar(peticion = {}) {
+  // Rutas sobre el mapa real para la app interactiva. Los puntos llegan ya en
+  // el orden de visita; los costos los calcula la app.
+  async function rutasMapa(puntosIn, categoria = 1) {
+    if (!Array.isArray(puntosIn) || puntosIn.length < 2) throw errorPeticion('Envía al menos 2 puntos en "puntos".');
+    if (puntosIn.length > 12) throw errorPeticion('Máximo 12 puntos por recorrido.');
+    const puntos = [];
+    for (const [i, p] of puntosIn.entries()) puntos.push(await geocodificar(p, `ubicación del punto ${i + 1}`));
+    const advertencias = [];
+    const [origen, ...resto] = puntos;
+    const destino = resto.pop();
+    const candidatos = await generarRutas(origen, resto, destino, false, advertencias);
+    const peajesDe = (geometria) =>
+      detectarPeajes(geometria, plazasPeaje, { categoria, radioKm: config.radioDeteccionPeajeKm }).map((p) => ({
+        nombre: p.nombre,
+        monto: p.monto,
+        enVuelta: true,
+      }));
+    const [regreso] = await proveedor.ruta([puntos[puntos.length - 1], origen]);
+    return {
+      fuente: candidatos.some((c) => c.fuente === 'estimado') ? 'estimado' : 'osrm',
+      rutas: candidatos.map((c, i) => ({
+        id: `m${i}`,
+        nombre: i === 0 ? 'Ruta principal' : `Alternativa ${i}`,
+        descripcion: c.fuente === 'osrm' ? 'Por calles y carreteras reales' : 'Distancia estimada (sin servidor de rutas)',
+        tramos: c.tramos.map((t) => ({ km: t.distanciaKm, min: t.duracionMin })),
+        peajes: peajesDe(c.geometria),
+        trazado: c.geometria.map(([lng, lat]) => [lat, lng]),
+      })),
+      retorno: { km: regreso.distanciaKm, min: regreso.duracionMin, peajes: peajesDe(regreso.geometria) },
+      advertencias,
+    };
+  }
+
+  const cotizar = async function cotizar(peticion = {}) {
     const advertencias = [];
     const params = combinarParametros(config.tarifa, peticion.parametros);
     const vehiculo = resolverVehiculo(peticion.vehiculo);
@@ -408,4 +441,6 @@ export function crearCotizador({ proveedor, geocodificar, plazasPeaje, config })
       advertencias,
     };
   };
+  cotizar.rutasMapa = rutasMapa;
+  return cotizar;
 }

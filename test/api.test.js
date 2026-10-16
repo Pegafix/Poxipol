@@ -163,3 +163,30 @@ test('el proveedor OSRM interpreta rutas alternativas y matrices', async () => {
   assert.equal(m.distanciasKm[1][0], 1.2);
   assert.equal(m.duracionesMin[0][1], 1);
 });
+
+test('POST /api/rutas entrega 3 rutas en formato de la app y GET /api/buscar responde', async () => {
+  const LAUTARO = { lat: -38.5292, lng: -72.435, nombre: 'Lautaro' };
+  const TEMUCO = { lat: -38.7397, lng: -72.5984, nombre: 'Temuco' };
+  const { status, body } = await post('/api/rutas', { puntos: [LAUTARO, TEMUCO], categoriaPeaje: 1 });
+  assert.equal(status, 200);
+  assert.equal(body.rutas.length, 3);
+  for (const r of body.rutas) {
+    assert.equal(r.tramos.length, 1);
+    assert.ok(r.tramos[0].km > 0 && r.tramos[0].min > 0);
+    assert.ok(r.trazado.length >= 2 && Math.abs(r.trazado[0][0] - LAUTARO.lat) < 0.01, 'trazado en [lat, lng]');
+  }
+  assert.ok(body.retorno.km > 0);
+
+  const malo = await post('/api/rutas', { puntos: [LAUTARO] });
+  assert.equal(malo.status, 400);
+
+  const busqueda = await fetch(`${base}/api/buscar?q=la`);
+  assert.deepEqual(await busqueda.json(), []);
+});
+
+test('GET / sirve la app interactiva', async () => {
+  const res = await fetch(`${base}/`);
+  const html = await res.text();
+  assert.equal(res.status, 200);
+  assert.match(html, /<title>Poxipol Traslados<\/title>/);
+});
