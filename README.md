@@ -8,6 +8,12 @@ API REST (Node.js + Express) para cotizar traslados de pasajeros sobre el mapa:
 - Soporta **varias paradas**: optimiza el orden de las bajadas y **reparte el cobro por pasajero** según cuántos km viaja cada uno.
 - Incluye una página con mapa (`http://localhost:3000/`) para marcar los puntos con clic y ver las rutas.
 
+## App interactiva (artifact)
+
+`artifact/poxipol-traslados.html` es la versión para usar directo en claude.ai, sin instalar nada: mapa de Chile, búsqueda de lugares, paradas con pasajeros, 3 rutas calculadas por Claude (km, tiempos, peajes y trazado), costos, precio sugerido, cobro por pasajero y botón para copiar la cotización. Usa las mismas fórmulas que la API.
+
+Se edita `artifact/plantilla.html` y se genera la página con `node artifact/build.mjs` (incrusta el CSS de Leaflet y el mapa de `artifact/datos/`).
+
 ## Uso rápido
 
 ```bash

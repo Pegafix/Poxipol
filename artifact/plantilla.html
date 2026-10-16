@@ -1,0 +1,1540 @@
+<title>Poxipol Traslados</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@500;700;800&family=Overpass+Mono:wght@500;600&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/*@@LEAFLET_CSS@@*/
+</style>
+<style>
+/* Layout: panel de control a la izquierda (vehículo → recorrido → viaje → tarifa), a la derecha el mapa y debajo las rutas como letreros de carretera; en teléfono se apila y una barra fija abajo muestra el precio. */
+:root {
+  --bg: #eaefeb;
+  --surface: #ffffff;
+  --surface-2: #f3f6f3;
+  --ink: #16211b;
+  --muted: #59685f;
+  --line: #d3dcd5;
+  --sign: #0b6b43;
+  --sign-2: #08583a;
+  --sign-ink: #ffffff;
+  --accent-ink: #0b6b43;
+  --lane: #e5a50a;
+  --lane-ink: #2b1d00;
+  --ok: #1d7a45;
+  --warn: #9a6100;
+  --bad: #b83227;
+  --sea: #d7e4e8;
+  --land: #fbfcf8;
+  --land-2: #e6eae2;
+  --border-land: #a9b7ad;
+  --r1: #0b7a4b;
+  --r2: #2463c9;
+  --r3: #c2611a;
+  --c-fuel: #2463c9;
+  --c-toll: #c2611a;
+  --c-wear: #7a5bc0;
+  --c-driver: #0b7a4b;
+  --c-fixed: #6b7c72;
+  --c-extra: #a8a29e;
+  --c-margin: #e5a50a;
+  --shadow: 0 1px 2px rgba(22, 33, 27, .06), 0 6px 20px rgba(22, 33, 27, .06);
+  --f-display: "Overpass", "Highway Gothic", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "Overpass Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1411; --surface: #151d19; --surface-2: #1b2520; --ink: #e6ece8; --muted: #93a39a; --line: #2a3631;
+    --sign: #138552; --sign-2: #0e6e43; --sign-ink: #ffffff; --accent-ink: #4cc485; --lane: #f2bb2e; --lane-ink: #241800;
+    --ok: #4cc485; --warn: #f0b545; --bad: #ff7b6e;
+    --sea: #0b1820; --land: #1c2622; --land-2: #151d19; --border-land: #3d4c44;
+    --r1: #3ccf87; --r2: #6ea0ff; --r3: #ff9a4d;
+    --c-fuel: #6ea0ff; --c-toll: #ff9a4d; --c-wear: #b59cff; --c-driver: #3ccf87; --c-fixed: #94a39b; --c-extra: #6f7a74; --c-margin: #f2bb2e;
+    --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 10px 30px rgba(0,0,0,.3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1411; --surface: #151d19; --surface-2: #1b2520; --ink: #e6ece8; --muted: #93a39a; --line: #2a3631;
+  --sign: #138552; --sign-2: #0e6e43; --sign-ink: #ffffff; --accent-ink: #4cc485; --lane: #f2bb2e; --lane-ink: #241800;
+  --ok: #4cc485; --warn: #f0b545; --bad: #ff7b6e;
+  --sea: #0b1820; --land: #1c2622; --land-2: #151d19; --border-land: #3d4c44;
+  --r1: #3ccf87; --r2: #6ea0ff; --r3: #ff9a4d;
+  --c-fuel: #6ea0ff; --c-toll: #ff9a4d; --c-wear: #b59cff; --c-driver: #3ccf87; --c-fixed: #94a39b; --c-extra: #6f7a74; --c-margin: #f2bb2e;
+  --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 10px 30px rgba(0,0,0,.3);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 24px;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--lane); outline-offset: 2px; }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+
+/* ---------- Cabecera ---------- */
+.top {
+  max-width: 1400px; margin: 0 auto; padding-block: 16px 12px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-sign {
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 9px;
+  background: var(--sign); color: var(--sign-ink); border: 2px solid var(--sign-ink); box-shadow: 0 0 0 2px var(--sign);
+  font: 800 15px/1 var(--f-display); letter-spacing: .02em;
+}
+.brand h1 { margin: 0; font: 800 clamp(22px, 3vw, 28px)/1 var(--f-display); letter-spacing: -.01em; text-wrap: balance; }
+.brand p { margin: 3px 0 0; color: var(--muted); font-size: 13.5px; }
+.status-chip {
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border-radius: 99px;
+  background: var(--surface); border: 1px solid var(--line); font-size: 13px; font-weight: 600;
+}
+.status-chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.status-chip.on i { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent); }
+
+/* ---------- Estructura ---------- */
+.layout {
+  max-width: 1400px; margin: 0 auto;
+  display: grid; grid-template-columns: minmax(0, 390px) minmax(0, 1fr); gap: 16px; align-items: start;
+  grid-template-areas: "ctrl mapa" "ctrl res"; grid-template-rows: auto 1fr;
+}
+.controls { grid-area: ctrl; }
+.mapwrap { grid-area: mapa; }
+#resultados { grid-area: res; align-content: start; }
+@media (max-width: 980px) {
+  .layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "mapa" "ctrl" "res"; grid-template-rows: auto; }
+  #mapa { height: 300px; }
+  .map-hint { display: none; }
+}
+.panel {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
+}
+.controls { display: grid; gap: 12px; }
+.step { padding: 14px 16px 16px; display: grid; gap: 10px; min-width: 0; }
+.step-h { display: flex; align-items: center; gap: 10px; }
+.step-h b {
+  display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; flex: none;
+  background: var(--lane); color: var(--lane-ink); font: 800 13px/1 var(--f-display);
+}
+.step-h h2 { margin: 0; font: 800 16px/1.1 var(--f-display); letter-spacing: .01em; text-transform: uppercase; }
+.step-h .aside { margin-left: auto; }
+label.lbl { display: grid; gap: 4px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.field, select.field {
+  width: 100%; min-width: 0; padding: 9px 11px; border-radius: 9px; border: 1px solid var(--line);
+  background: var(--surface-2); color: var(--ink); font-size: 14.5px;
+}
+.field:focus { border-color: var(--sign); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--sign) 22%, transparent); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 9px 14px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface-2);
+  font-weight: 600; font-size: 14px; transition: background .12s ease, transform .12s ease;
+}
+.btn:hover:not(:disabled) { background: var(--line); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.primary { background: var(--sign); color: var(--sign-ink); border-color: transparent; }
+.btn.primary:hover:not(:disabled) { background: var(--sign-2); }
+.btn.lane { background: var(--lane); color: var(--lane-ink); border-color: transparent; }
+.btn.ghost { background: transparent; }
+.btn.sm { padding: 5px 10px; font-size: 13px; border-radius: 8px; }
+.btn.block { width: 100%; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--accent-ink); font-weight: 600; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+.iconbtn { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); flex: none; padding: 0; }
+.iconbtn:hover { background: var(--line); }
+.iconbtn svg { width: 16px; height: 16px; }
+
+/* segmentado */
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 3px; gap: 3px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); }
+.seg button { border: 0; background: transparent; padding: 8px 6px; border-radius: 7px; font-weight: 600; font-size: 14px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+/* interruptor */
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; }
+.toggle small { display: block; color: var(--muted); font-size: 12.5px; }
+.switch { position: relative; width: 42px; height: 24px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.switch i { position: absolute; inset: 0; border-radius: 99px; background: var(--line); transition: background .15s; pointer-events: none; }
+.switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.switch input:checked + i { background: var(--sign); }
+.switch input:checked + i::after { transform: translateX(18px); }
+.switch input:focus-visible + i { outline: 2px solid var(--lane); outline-offset: 2px; }
+
+/* stepper */
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--surface-2); flex: none; }
+.stepper button { width: 30px; height: 30px; border: 0; background: transparent; font-size: 17px; font-weight: 700; line-height: 1; }
+.stepper button:hover { background: var(--line); }
+.stepper output { min-width: 28px; text-align: center; font: 600 14px/1 var(--f-mono); }
+
+/* vehículo */
+.veh-specs { display: flex; flex-wrap: wrap; gap: 6px; }
+.spec { display: inline-flex; gap: 5px; align-items: baseline; padding: 4px 8px; border-radius: 7px; background: var(--surface-2); border: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+.spec b { color: var(--ink); font: 600 12.5px/1.2 var(--f-mono); }
+.veh-edit { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; border-radius: 10px; background: var(--surface-2); border: 1px dashed var(--line); }
+.veh-edit label.lbl { font-size: 11.5px; }
+.veh-edit .field { padding: 6px 8px; font-size: 13.5px; background: var(--surface); }
+.veh-edit .full { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+/* puntos */
+.pts { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; position: relative; }
+.pt { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 0; }
+.pt::before { content: ""; position: absolute; left: 13px; top: 0; bottom: 0; width: 2px; background: repeating-linear-gradient(180deg, var(--lane) 0 6px, transparent 6px 11px); }
+.pt:first-child::before { top: 50%; }
+.pt:last-child::before { bottom: 50%; }
+.pt:only-child::before { display: none; }
+.pin {
+  position: relative; z-index: 1; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  font: 800 12px/1 var(--f-display); background: var(--surface); border: 2px solid var(--sign); color: var(--sign);
+}
+.pt.origen .pin { background: var(--sign); color: var(--sign-ink); }
+.pt.ultimo .pin { background: var(--lane); border-color: var(--lane); color: var(--lane-ink); }
+.pt-main { min-width: 0; display: grid; gap: 2px; position: relative; }
+.pt-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.pt-name span { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pt-sub { font-size: 12px; color: var(--muted); }
+.pt-side { display: flex; align-items: center; gap: 6px; }
+.pt input.field { padding: 7px 10px; font-size: 14px; }
+.pt.vacio .pin { border-style: dashed; color: var(--muted); border-color: var(--muted); }
+.sugs {
+  position: absolute; z-index: 40; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 4px; list-style: none;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); max-height: 260px; overflow: auto;
+}
+.sugs li button { width: 100%; text-align: left; border: 0; background: transparent; padding: 7px 9px; border-radius: 7px; display: grid; gap: 1px; }
+.sugs li button:hover, .sugs li button.act { background: var(--surface-2); }
+.sugs li small { color: var(--muted); font-size: 12px; }
+.sugs li.claude button { color: var(--accent-ink); font-weight: 600; }
+.pts-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.total-pax { font-size: 13.5px; }
+.total-pax b { font: 700 15px/1 var(--f-mono); }
+
+details.ajustes > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+details.ajustes > summary::-webkit-details-marker { display: none; }
+details.ajustes > summary .chev { margin-left: auto; transition: transform .2s; color: var(--muted); }
+details.ajustes[open] > summary .chev { transform: rotate(180deg); }
+.params { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.params .field { padding: 7px 9px; font-size: 14px; }
+.params .wide { grid-column: 1 / -1; }
+.params .hint { font-weight: 400; font-size: 11.5px; }
+
+.calc { padding: 14px 16px; display: grid; gap: 8px; }
+.calc .note { font-size: 12.5px; color: var(--muted); margin: 0; }
+.busy { display: flex; align-items: center; gap: 10px; font-size: 13.5px; }
+.spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--sign); animation: spin 0.8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.alert { padding: 9px 11px; border-radius: 9px; font-size: 13px; background: color-mix(in srgb, var(--warn) 14%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--line)); }
+.alert.bad { background: color-mix(in srgb, var(--bad) 12%, var(--surface)); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
+
+/* ---------- Mapa ---------- */
+.right { display: grid; gap: 16px; min-width: 0; }
+.mapwrap { position: relative; overflow: hidden; padding: 0; }
+#mapa { height: clamp(320px, 46vh, 520px); background: var(--sea); border-radius: 14px; }
+.leaflet-container { font: 12px/1.4 var(--f-body); background: var(--sea); }
+.leaflet-control-zoom a { background: var(--surface) !important; color: var(--ink) !important; border-color: var(--line) !important; }
+.leaflet-tooltip.lugar { background: transparent; border: 0; box-shadow: none; padding: 0; color: var(--muted); font: 600 11px/1 var(--f-body); text-shadow: 0 0 3px var(--land), 0 0 3px var(--land); }
+.leaflet-tooltip.lugar::before { display: none; }
+.leaflet-tooltip.punto { background: var(--surface); color: var(--ink); border: 1px solid var(--line); font: 600 12px/1.2 var(--f-body); box-shadow: var(--shadow); }
+.leaflet-tooltip.punto::before { display: none; }
+.mk { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font: 800 12px/1 var(--f-display); border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35); background: var(--sign); color: var(--sign-ink); }
+.mk.ultimo { background: var(--lane); color: var(--lane-ink); }
+.mk.tmp { background: var(--surface); color: var(--ink); border: 2px dashed var(--sign); }
+.map-hint {
+  position: absolute; z-index: 500; left: 12px; bottom: 12px; padding: 6px 10px; border-radius: 8px; font-size: 12.5px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--line); pointer-events: none; max-width: calc(100% - 24px);
+}
+.map-action {
+  position: absolute; z-index: 600; left: 12px; right: 12px; top: 12px; margin: 0 auto; max-width: 520px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
+}
+.map-action p { margin: 0; flex: 1 1 180px; font-size: 13.5px; min-width: 0; }
+.map-legend { position: absolute; z-index: 500; right: 12px; bottom: 12px; display: grid; gap: 4px; padding: 7px 10px; border-radius: 8px; font-size: 12px; background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--line); }
+.map-legend span { display: flex; align-items: center; gap: 6px; }
+.map-legend i { width: 18px; height: 4px; border-radius: 2px; }
+
+/* ---------- Resultados ---------- */
+.res-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 16px; }
+.res-head h2 { margin: 0; font: 800 20px/1.1 var(--f-display); text-wrap: balance; }
+.res-head p { margin: 3px 0 0; color: var(--muted); font-size: 13.5px; }
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 99px; font-size: 11.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); }
+.chip.claude { background: color-mix(in srgb, var(--ok) 14%, var(--surface)); border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); color: var(--ok); }
+.chip.est { background: color-mix(in srgb, var(--warn) 14%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); color: var(--warn); }
+.chip.edit { color: var(--r2); }
+
+.signs { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.sign-card {
+  text-align: left; padding: 0; border-radius: 12px; overflow: hidden; background: var(--surface); border: 1px solid var(--line);
+  display: grid; box-shadow: var(--shadow); transition: transform .15s ease, box-shadow .15s ease;
+}
+.sign-card:hover { transform: translateY(-2px); }
+.sign-card[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--rc), var(--shadow); border-color: transparent; }
+.sign-top {
+  background: var(--sign); color: var(--sign-ink); padding: 10px 12px 9px; display: grid; gap: 3px; position: relative;
+  border-bottom: 4px solid var(--rc);
+}
+.sign-top::after { content: ""; position: absolute; inset: 4px; border: 1.5px solid color-mix(in srgb, #fff 70%, transparent); border-radius: 8px; pointer-events: none; }
+.sign-top b { font: 800 16px/1.15 var(--f-display); letter-spacing: .01em; text-wrap: balance; }
+.sign-top small { font-size: 12px; opacity: .85; line-height: 1.3; }
+.sign-body { padding: 10px 12px 12px; display: grid; gap: 8px; }
+.sign-stats { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--muted); }
+.sign-stats b { color: var(--ink); font: 600 13.5px/1.2 var(--f-mono); }
+.sign-price { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.sign-price strong { font: 800 26px/1 var(--f-display); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.sign-price span { font-size: 12.5px; color: var(--muted); }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; min-height: 20px; }
+.tag { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+.tag.rec { background: var(--lane); color: var(--lane-ink); border-color: transparent; }
+
+.detail { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 1180px) { .detail { grid-template-columns: minmax(0, 1fr); } }
+.card { padding: 16px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.card h3 { margin: 0; font: 800 14px/1.1 var(--f-display); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.price-hero { display: grid; gap: 4px; }
+.price-hero .big { font: 800 clamp(34px, 5vw, 46px)/1 var(--f-display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.price-hero .sub { color: var(--muted); font-size: 13.5px; }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.kpi { padding: 9px 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); display: grid; gap: 3px; min-width: 0; }
+.kpi span { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+.kpi b { font: 700 16px/1.1 var(--f-mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kpi.good b { color: var(--ok); }
+@media (max-width: 460px) { .kpis { gap: 6px; } .kpi { padding: 8px; } .kpi b { font-size: 13.5px; } .kpi span { font-size: 11px; } }
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.compare button { text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); display: grid; gap: 2px; }
+.compare button[aria-pressed="true"] { border-color: var(--sign); box-shadow: inset 0 0 0 1px var(--sign); background: color-mix(in srgb, var(--sign) 7%, var(--surface)); }
+.compare span { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.compare b { font: 700 18px/1.1 var(--f-mono); }
+
+.stack { display: flex; height: 14px; border-radius: 99px; overflow: hidden; background: var(--surface-2); }
+.stack i { display: block; height: 100%; }
+.costs { width: 100%; border-collapse: collapse; font-size: 14px; }
+.costs td { padding: 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.costs td:last-child { text-align: right; font: 600 14px/1.3 var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; padding-left: 10px; }
+.costs td small { display: block; color: var(--muted); font-size: 12px; }
+.costs .dot { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 7px; vertical-align: 1px; }
+.costs tr.tot td { border-bottom: 2px solid var(--ink); font-weight: 700; }
+.costs tr.tot td:last-child { font-size: 15px; }
+.costs tr.final td { border-bottom: 0; font-weight: 800; font-size: 15.5px; }
+.costs tr.final td:last-child { font-size: 17px; color: var(--accent-ink); }
+
+.pax { width: 100%; border-collapse: collapse; font-size: 14px; }
+.pax th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 0 0 6px; font-weight: 700; }
+.pax th:not(:first-child), .pax td:not(:first-child) { text-align: right; }
+.pax td { padding: 8px 0; border-top: 1px solid var(--line); vertical-align: top; }
+.pax td:not(:first-child) { font: 600 14px/1.3 var(--f-mono); font-variant-numeric: tabular-nums; padding-left: 8px; white-space: nowrap; }
+.pax td small { display: block; color: var(--muted); font: 400 12px/1.3 var(--f-body); }
+.pax .bar { height: 4px; border-radius: 2px; background: var(--surface-2); margin-top: 5px; overflow: hidden; }
+.pax .bar i { display: block; height: 100%; background: var(--lane); }
+.legs { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13.5px; }
+.legs li { display: flex; justify-content: space-between; gap: 10px; }
+.legs li span:last-child { font-family: var(--f-mono); color: var(--muted); white-space: nowrap; }
+
+.editor { display: grid; gap: 10px; padding: 12px; border-radius: 10px; background: var(--surface-2); border: 1px dashed var(--line); }
+.editor h4 { margin: 0; font-size: 13px; }
+.ed-row { display: grid; grid-template-columns: minmax(0, 1fr) 84px 84px; gap: 6px; align-items: center; font-size: 13px; }
+.ed-row.toll { grid-template-columns: minmax(0, 1fr) 96px auto 30px; }
+.ed-row .field { padding: 6px 8px; font-size: 13.5px; background: var(--surface); }
+.ed-row label { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.ed-head { font-size: 11.5px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+
+.actions-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.toast { position: fixed; z-index: 1000; left: 50%; transform: translateX(-50%); bottom: calc(86px + env(safe-area-inset-bottom, 0px)); padding: 9px 14px; border-radius: 10px; background: var(--ink); color: var(--bg); font-size: 14px; font-weight: 600; box-shadow: var(--shadow); max-width: calc(100vw - 32px); }
+textarea.copy { width: 100%; min-height: 160px; font: 13px/1.4 var(--f-mono); padding: 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); }
+
+/* barra móvil */
+.mbar { display: none; }
+@media (max-width: 980px) {
+  body { padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
+  .mbar {
+    display: flex; position: fixed; z-index: 900; left: 0; right: 0; bottom: 0; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+    background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(10px); border-top: 1px solid var(--line);
+  }
+  .mbar div { display: grid; min-width: 0; }
+  .mbar small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mbar strong { font: 800 22px/1.1 var(--f-display); font-variant-numeric: tabular-nums; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+
+<header class="top">
+  <div class="brand">
+    <div class="brand-sign" aria-hidden="true">PX</div>
+    <div>
+      <h1>Poxipol Traslados</h1>
+      <p>Arma el recorrido, elige el vehículo y te digo cuánto cobrar para que salga a cuenta.</p>
+    </div>
+  </div>
+  <span class="status-chip" id="estadoClaude"><i></i><span>Conectando…</span></span>
+</header>
+
+<main class="layout">
+  <!-- ======= Controles ======= -->
+  <section class="controls" aria-label="Datos del traslado">
+    <div class="panel step">
+      <div class="step-h"><b>1</b><h2>Vehículo</h2></div>
+      <select class="field" id="vehiculo" aria-label="Modelo del vehículo"></select>
+      <div class="veh-specs" id="vehSpecs"></div>
+      <div><button class="linkbtn" id="vehEditToggle" type="button">Ajustar datos de mi vehículo</button></div>
+      <div class="veh-edit" id="vehEdit" hidden></div>
+    </div>
+
+    <div class="panel step">
+      <div class="step-h"><b>2</b><h2>Recorrido</h2><span class="aside small muted">o haz clic en el mapa</span></div>
+      <ul class="pts" id="puntos"></ul>
+      <div class="pts-actions">
+        <button class="btn sm" id="agregarParada" type="button">+ Agregar parada</button>
+        <span class="total-pax">Pasajeros: <b id="totalPax">0</b></span>
+      </div>
+      <label class="toggle">
+        <span>Ordenar paradas por la ruta más corta<small>El último punto queda fijo como destino final</small></span>
+        <span class="switch"><input type="checkbox" id="optimizar"><i></i></span>
+      </label>
+    </div>
+
+    <div class="panel step">
+      <div class="step-h"><b>3</b><h2>Viaje</h2></div>
+      <div class="seg" role="group" aria-label="Tipo de viaje">
+        <button type="button" data-tipo="ida" aria-pressed="true">Solo ida</button>
+        <button type="button" data-tipo="ida_vuelta" aria-pressed="false">Ida y vuelta</button>
+      </div>
+      <div id="opcIdaVuelta" class="row2" hidden>
+        <label class="lbl">Espera en destino (min)<input class="field num" id="espera" type="number" min="0" step="15" inputmode="numeric"></label>
+        <label class="lbl">Vuelta<select class="field" id="recoger"><option value="si">Recoge en las paradas</option><option value="no">Directo al origen</option></select></label>
+      </div>
+      <div id="opcIda">
+        <label class="lbl">Cobrar el regreso vacío (%)<input class="field num" id="retornoPct" type="number" min="0" max="100" step="10" inputmode="numeric"></label>
+      </div>
+    </div>
+
+    <div class="panel step">
+      <details class="ajustes" id="ajustes">
+        <summary><span class="step-h"><b>4</b><h2>Tarifa y costos</h2></span><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="params" id="params"></div>
+      </details>
+    </div>
+
+    <div class="panel calc">
+      <button class="btn primary block" id="calcular" type="button">Calcular rutas reales con Claude</button>
+      <div id="calcEstado"></div>
+      <p class="note" id="calcNota"></p>
+    </div>
+  </section>
+
+  <!-- ======= Mapa + resultados ======= -->
+    <div class="panel mapwrap">
+      <div id="mapa" role="application" aria-label="Mapa del recorrido"></div>
+      <div class="map-action" id="mapAction" hidden></div>
+      <div class="map-hint" id="mapHint">Clic en el mapa para agregar un punto</div>
+      <div class="map-legend" id="mapLegend" hidden></div>
+    </div>
+    <section id="resultados" class="right" aria-label="Rutas y tarifa"></section>
+</main>
+
+<div class="mbar" id="mbar">
+  <div><small id="mbarSub">—</small><strong id="mbarPrecio">—</strong></div>
+  <button class="btn lane" type="button" id="mbarVer">Ver detalle</button>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+"use strict";
+/* =====================================================================
+   Datos
+   ===================================================================== */
+const PAISES = /*@@PAISES@@*/null;
+
+// Catálogo de vehículos (valores aproximados de mercado chileno, CLP).
+const VEHICULOS = [
+  { id: 'toyota-hiace', marca: 'Toyota', modelo: 'Hiace', tipo: 'Van', capacidadPasajeros: 14, combustible: 'diesel', rendimientoCiudadKmL: 9, rendimientoCarreteraKmL: 11.5, precioCompra: 33000000, valorResidualPct: 35, vidaUtilKm: 400000, mantencionPorKm: 45, neumaticosPorKm: 10, costoFijoAnual: 1200000, categoriaPeaje: 1 },
+  { id: 'hyundai-staria', marca: 'Hyundai', modelo: 'Staria (H-1)', tipo: 'Van', capacidadPasajeros: 11, combustible: 'diesel', rendimientoCiudadKmL: 9.5, rendimientoCarreteraKmL: 12, precioCompra: 30000000, valorResidualPct: 35, vidaUtilKm: 380000, mantencionPorKm: 40, neumaticosPorKm: 8, costoFijoAnual: 1100000, categoriaPeaje: 1 },
+  { id: 'maxus-v80', marca: 'Maxus', modelo: 'V80', tipo: 'Van', capacidadPasajeros: 15, combustible: 'diesel', rendimientoCiudadKmL: 8, rendimientoCarreteraKmL: 11, precioCompra: 26000000, valorResidualPct: 25, vidaUtilKm: 350000, mantencionPorKm: 45, neumaticosPorKm: 11, costoFijoAnual: 1150000, categoriaPeaje: 1 },
+  { id: 'mercedes-vito', marca: 'Mercedes-Benz', modelo: 'Vito Tourer', tipo: 'Van', capacidadPasajeros: 8, combustible: 'diesel', rendimientoCiudadKmL: 10, rendimientoCarreteraKmL: 13, precioCompra: 42000000, valorResidualPct: 40, vidaUtilKm: 400000, mantencionPorKm: 50, neumaticosPorKm: 9, costoFijoAnual: 1400000, categoriaPeaje: 1 },
+  { id: 'kia-carnival', marca: 'Kia', modelo: 'Carnival', tipo: 'Van', capacidadPasajeros: 7, combustible: 'diesel', rendimientoCiudadKmL: 10, rendimientoCarreteraKmL: 14, precioCompra: 32000000, valorResidualPct: 40, vidaUtilKm: 350000, mantencionPorKm: 38, neumaticosPorKm: 8, costoFijoAnual: 1100000, categoriaPeaje: 1 },
+  { id: 'chevrolet-n400', marca: 'Chevrolet', modelo: 'N400 Max', tipo: 'Van', capacidadPasajeros: 7, combustible: 'gasolina', rendimientoCiudadKmL: 10, rendimientoCarreteraKmL: 13, precioCompra: 13000000, valorResidualPct: 30, vidaUtilKm: 250000, mantencionPorKm: 30, neumaticosPorKm: 6, costoFijoAnual: 650000, categoriaPeaje: 1 },
+  { id: 'mercedes-sprinter', marca: 'Mercedes-Benz', modelo: 'Sprinter 515', tipo: 'Minibús', capacidadPasajeros: 19, combustible: 'diesel', rendimientoCiudadKmL: 7, rendimientoCarreteraKmL: 10, precioCompra: 55000000, valorResidualPct: 35, vidaUtilKm: 500000, mantencionPorKm: 60, neumaticosPorKm: 14, costoFijoAnual: 1800000, categoriaPeaje: 2 },
+  { id: 'peugeot-boxer', marca: 'Peugeot', modelo: 'Boxer', tipo: 'Minibús', capacidadPasajeros: 16, combustible: 'diesel', rendimientoCiudadKmL: 8, rendimientoCarreteraKmL: 10.5, precioCompra: 38000000, valorResidualPct: 30, vidaUtilKm: 400000, mantencionPorKm: 50, neumaticosPorKm: 12, costoFijoAnual: 1400000, categoriaPeaje: 2 },
+  { id: 'ford-transit', marca: 'Ford', modelo: 'Transit', tipo: 'Minibús', capacidadPasajeros: 15, combustible: 'diesel', rendimientoCiudadKmL: 8, rendimientoCarreteraKmL: 11, precioCompra: 40000000, valorResidualPct: 30, vidaUtilKm: 400000, mantencionPorKm: 50, neumaticosPorKm: 12, costoFijoAnual: 1400000, categoriaPeaje: 2 },
+  { id: 'renault-master', marca: 'Renault', modelo: 'Master', tipo: 'Minibús', capacidadPasajeros: 16, combustible: 'diesel', rendimientoCiudadKmL: 8, rendimientoCarreteraKmL: 11, precioCompra: 36000000, valorResidualPct: 30, vidaUtilKm: 400000, mantencionPorKm: 48, neumaticosPorKm: 12, costoFijoAnual: 1350000, categoriaPeaje: 2 },
+  { id: 'toyota-corolla', marca: 'Toyota', modelo: 'Corolla', tipo: 'Sedán', capacidadPasajeros: 4, combustible: 'gasolina', rendimientoCiudadKmL: 12, rendimientoCarreteraKmL: 17, precioCompra: 20000000, valorResidualPct: 45, vidaUtilKm: 350000, mantencionPorKm: 25, neumaticosPorKm: 6, costoFijoAnual: 800000, categoriaPeaje: 1 },
+  { id: 'toyota-corolla-hybrid', marca: 'Toyota', modelo: 'Corolla Hybrid', tipo: 'Sedán', capacidadPasajeros: 4, combustible: 'gasolina', rendimientoCiudadKmL: 22, rendimientoCarreteraKmL: 20, precioCompra: 25000000, valorResidualPct: 45, vidaUtilKm: 350000, mantencionPorKm: 22, neumaticosPorKm: 6, costoFijoAnual: 900000, categoriaPeaje: 1 },
+  { id: 'hyundai-accent', marca: 'Hyundai', modelo: 'Accent', tipo: 'Sedán', capacidadPasajeros: 4, combustible: 'gasolina', rendimientoCiudadKmL: 13, rendimientoCarreteraKmL: 19, precioCompra: 14000000, valorResidualPct: 40, vidaUtilKm: 300000, mantencionPorKm: 22, neumaticosPorKm: 5, costoFijoAnual: 650000, categoriaPeaje: 1 },
+  { id: 'nissan-versa', marca: 'Nissan', modelo: 'Versa', tipo: 'Sedán', capacidadPasajeros: 4, combustible: 'gasolina', rendimientoCiudadKmL: 13, rendimientoCarreteraKmL: 18, precioCompra: 13500000, valorResidualPct: 40, vidaUtilKm: 300000, mantencionPorKm: 22, neumaticosPorKm: 5, costoFijoAnual: 650000, categoriaPeaje: 1 },
+  { id: 'chevrolet-sail', marca: 'Chevrolet', modelo: 'Sail', tipo: 'Sedán', capacidadPasajeros: 4, combustible: 'gasolina', rendimientoCiudadKmL: 13, rendimientoCarreteraKmL: 18, precioCompra: 11000000, valorResidualPct: 35, vidaUtilKm: 280000, mantencionPorKm: 20, neumaticosPorKm: 5, costoFijoAnual: 600000, categoriaPeaje: 1 },
+  { id: 'suzuki-dzire', marca: 'Suzuki', modelo: 'Dzire', tipo: 'Sedán', capacidadPasajeros: 4, combustible: 'gasolina', rendimientoCiudadKmL: 15, rendimientoCarreteraKmL: 21, precioCompra: 10500000, valorResidualPct: 35, vidaUtilKm: 280000, mantencionPorKm: 20, neumaticosPorKm: 5, costoFijoAnual: 600000, categoriaPeaje: 1 },
+];
+
+const CAMPOS_VEHICULO = [
+  ['capacidadPasajeros', 'Pasajeros', ''],
+  ['categoriaPeaje', 'Categoría peaje', ''],
+  ['rendimientoCiudadKmL', 'Rend. ciudad', 'km/L'],
+  ['rendimientoCarreteraKmL', 'Rend. carretera', 'km/L'],
+  ['precioCompra', 'Valor del vehículo', '$'],
+  ['valorResidualPct', 'Valor al venderlo', '%'],
+  ['vidaUtilKm', 'Vida útil', 'km'],
+  ['mantencionPorKm', 'Mantención', '$/km'],
+  ['neumaticosPorKm', 'Neumáticos', '$/km'],
+  ['costoFijoAnual', 'Seguro + permiso al año', '$'],
+];
+
+// Lugares frecuentes (coordenadas aproximadas).
+const LUGARES = [
+  ['Santiago Centro', -33.4378, -70.6505, 'RM'], ['Providencia', -33.4314, -70.6093, 'RM'], ['Las Condes', -33.408, -70.567, 'RM'],
+  ['Vitacura', -33.39, -70.578, 'RM'], ['Lo Barnechea', -33.353, -70.518, 'RM'], ['Ñuñoa', -33.4569, -70.597, 'RM'],
+  ['La Florida', -33.5228, -70.598, 'RM'], ['Puente Alto', -33.6117, -70.5758, 'RM'], ['Maipú', -33.511, -70.758, 'RM'],
+  ['Pudahuel', -33.442, -70.764, 'RM'], ['Quilicura', -33.36, -70.73, 'RM'], ['San Bernardo', -33.592, -70.699, 'RM'],
+  ['Estación Central', -33.451, -70.679, 'RM'], ['Colina', -33.201, -70.674, 'RM'], ['Buin', -33.732, -70.742, 'RM'],
+  ['Talagante', -33.664, -70.929, 'RM'], ['Peñaflor', -33.606, -70.876, 'RM'], ['Melipilla', -33.689, -71.215, 'RM'],
+  ['Pirque', -33.638, -70.574, 'RM'], ['San José de Maipo', -33.642, -70.353, 'RM'], ['Farellones', -33.355, -70.312, 'RM'],
+  ['Valle Nevado', -33.355, -70.249, 'RM'], ['Aeropuerto SCL (Arturo Merino Benítez)', -33.393, -70.7858, 'RM'],
+  ['Terminal Alameda (Santiago)', -33.4527, -70.6857, 'RM'],
+  ['Valparaíso', -33.0472, -71.6127, 'Valparaíso'], ['Viña del Mar', -33.0245, -71.5518, 'Valparaíso'], ['Reñaca', -32.97, -71.543, 'Valparaíso'],
+  ['Concón', -32.93, -71.519, 'Valparaíso'], ['Quilpué', -33.048, -71.442, 'Valparaíso'], ['Villa Alemana', -33.042, -71.373, 'Valparaíso'],
+  ['Limache', -33.017, -71.265, 'Valparaíso'], ['Quillota', -32.88, -71.247, 'Valparaíso'], ['La Calera', -32.787, -71.205, 'Valparaíso'],
+  ['Los Andes', -32.834, -70.598, 'Valparaíso'], ['San Felipe', -32.75, -70.725, 'Valparaíso'], ['Portillo', -32.835, -70.13, 'Valparaíso'],
+  ['Casablanca', -33.319, -71.408, 'Valparaíso'], ['Algarrobo', -33.364, -71.672, 'Valparaíso'], ['El Quisco', -33.397, -71.697, 'Valparaíso'],
+  ['Isla Negra', -33.442, -71.685, 'Valparaíso'], ['Cartagena', -33.553, -71.606, 'Valparaíso'], ['San Antonio', -33.593, -71.607, 'Valparaíso'],
+  ['Quintero', -32.783, -71.531, 'Valparaíso'], ['Maitencillo', -32.648, -71.433, 'Valparaíso'], ['Zapallar', -32.553, -71.458, 'Valparaíso'],
+  ['Papudo', -32.507, -71.447, 'Valparaíso'], ['La Ligua', -32.452, -71.231, 'Valparaíso'],
+  ['Rancagua', -34.1708, -70.7444, "O'Higgins"], ['Machalí', -34.18, -70.651, "O'Higgins"], ['Rengo', -34.407, -70.858, "O'Higgins"],
+  ['San Fernando', -34.585, -70.989, "O'Higgins"], ['Santa Cruz', -34.638, -71.365, "O'Higgins"], ['Pichilemu', -34.387, -72.003, "O'Higgins"],
+  ['Curicó', -34.983, -71.239, 'Maule'], ['Talca', -35.426, -71.655, 'Maule'], ['Constitución', -35.333, -72.417, 'Maule'],
+  ['Linares', -35.846, -71.593, 'Maule'], ['Parral', -36.143, -71.825, 'Maule'], ['Cauquenes', -35.967, -72.322, 'Maule'],
+  ['Chillán', -36.606, -72.103, 'Ñuble'], ['San Carlos', -36.424, -71.958, 'Ñuble'], ['Termas de Chillán', -36.905, -71.408, 'Ñuble'],
+  ['Concepción', -36.827, -73.05, 'Biobío'], ['Talcahuano', -36.725, -73.117, 'Biobío'], ['San Pedro de la Paz', -36.843, -73.109, 'Biobío'],
+  ['Coronel', -37.03, -73.15, 'Biobío'], ['Lota', -37.089, -73.157, 'Biobío'], ['Tomé', -36.617, -72.958, 'Biobío'], ['Los Ángeles', -37.469, -72.354, 'Biobío'],
+  ['Aeropuerto Carriel Sur (Concepción)', -36.7727, -73.0631, 'Biobío'],
+  ['Temuco', -38.7397, -72.5984, 'Araucanía'], ['Angol', -37.795, -72.716, 'Araucanía'], ['Victoria', -38.233, -72.333, 'Araucanía'],
+  ['Villarrica', -39.28, -72.227, 'Araucanía'], ['Pucón', -39.272, -71.977, 'Araucanía'], ['Aeropuerto La Araucanía (Temuco)', -38.9259, -72.6515, 'Araucanía'],
+  ['Valdivia', -39.8142, -73.2459, 'Los Ríos'], ['Panguipulli', -39.643, -72.337, 'Los Ríos'], ['La Unión', -40.293, -73.082, 'Los Ríos'],
+  ['Osorno', -40.574, -73.133, 'Los Lagos'], ['Frutillar', -41.125, -73.059, 'Los Lagos'], ['Puerto Varas', -41.319, -72.985, 'Los Lagos'],
+  ['Puerto Montt', -41.4693, -72.9424, 'Los Lagos'], ['Aeropuerto El Tepual (Puerto Montt)', -41.4389, -73.094, 'Los Lagos'],
+  ['Ancud', -41.869, -73.827, 'Los Lagos'], ['Castro', -42.482, -73.762, 'Los Lagos'],
+  ['Coyhaique', -45.5712, -72.0685, 'Aysén'], ['Puerto Aysén', -45.403, -72.692, 'Aysén'],
+  ['Punta Arenas', -53.1638, -70.9171, 'Magallanes'], ['Puerto Natales', -51.727, -72.506, 'Magallanes'], ['Aeropuerto Punta Arenas', -53.0026, -70.8546, 'Magallanes'],
+  ['Arica', -18.4783, -70.3126, 'Arica'], ['Aeropuerto Chacalluta (Arica)', -18.3485, -70.3387, 'Arica'], ['Putre', -18.196, -69.559, 'Arica'],
+  ['Iquique', -20.2133, -70.1503, 'Tarapacá'], ['Alto Hospicio', -20.27, -70.101, 'Tarapacá'], ['Pozo Almonte', -20.256, -69.786, 'Tarapacá'],
+  ['Aeropuerto Diego Aracena (Iquique)', -20.5352, -70.1813, 'Tarapacá'],
+  ['Antofagasta', -23.6509, -70.3975, 'Antofagasta'], ['Aeropuerto Cerro Moreno (Antofagasta)', -23.4445, -70.4451, 'Antofagasta'],
+  ['Mejillones', -23.1, -70.45, 'Antofagasta'], ['Tocopilla', -22.092, -70.198, 'Antofagasta'], ['Calama', -22.456, -68.929, 'Antofagasta'],
+  ['Aeropuerto El Loa (Calama)', -22.4982, -68.9036, 'Antofagasta'], ['San Pedro de Atacama', -22.911, -68.2, 'Antofagasta'], ['Taltal', -25.406, -70.484, 'Antofagasta'],
+  ['Copiapó', -27.3668, -70.3314, 'Atacama'], ['Caldera', -27.067, -70.817, 'Atacama'], ['Bahía Inglesa', -27.107, -70.858, 'Atacama'],
+  ['Chañaral', -26.347, -70.622, 'Atacama'], ['Vallenar', -28.576, -70.759, 'Atacama'],
+  ['La Serena', -29.9027, -71.2519, 'Coquimbo'], ['Coquimbo', -29.9533, -71.3436, 'Coquimbo'], ['Aeropuerto La Florida (La Serena)', -29.9162, -71.1995, 'Coquimbo'],
+  ['Vicuña', -30.032, -70.711, 'Coquimbo'], ['Tongoy', -30.256, -71.499, 'Coquimbo'], ['Ovalle', -30.601, -71.199, 'Coquimbo'],
+  ['Illapel', -31.633, -71.166, 'Coquimbo'], ['Salamanca', -31.779, -70.964, 'Coquimbo'], ['Los Vilos', -31.911, -71.51, 'Coquimbo'],
+  ['Mendoza (Argentina)', -32.8895, -68.8458, 'Argentina'],
+].map(([nombre, lat, lng, region]) => ({ nombre, lat, lng, region }));
+
+const PARAMS_DEF = {
+  precioGasolina: 1290, precioDiesel: 990,
+  valorHoraConductor: 6000, valorHoraEspera: 4500,
+  minutosPorParada: 5, recargoPorParada: 2000, tiempoMinimoCobroMin: 60,
+  horasOperativasAnuales: 2000, factorCargaMaxPct: 8,
+  imprevistosPct: 5, margenGananciaPct: 25,
+  incluirIVA: false, ivaPct: 19, redondeo: 500,
+};
+const CAMPOS_PARAMS = [
+  ['precioDiesel', 'Diésel ($/L)'], ['precioGasolina', 'Gasolina 93 ($/L)'],
+  ['valorHoraConductor', 'Hora manejando ($)'], ['valorHoraEspera', 'Hora de espera ($)'],
+  ['margenGananciaPct', 'Ganancia (%)'], ['imprevistosPct', 'Imprevistos (%)'],
+  ['recargoPorParada', 'Recargo por parada extra ($)'], ['minutosPorParada', 'Minutos por parada'],
+  ['tiempoMinimoCobroMin', 'Tiempo mínimo cobrado (min)'], ['redondeo', 'Redondear a ($)'],
+  ['factorCargaMaxPct', 'Consumo extra lleno (%)'], ['horasOperativasAnuales', 'Horas de trabajo al año'],
+];
+
+/* =====================================================================
+   Utilidades
+   ===================================================================== */
+const $ = (id) => document.getElementById(id);
+const clp = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
+const nf = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 1 });
+const money = (n) => clp.format(Math.round(n || 0));
+const km = (n) => `${nf.format(n)} km`;
+const tiempo = (min) => {
+  const m = Math.round(min);
+  if (m < 60) return `${m} min`;
+  return `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ''}`;
+};
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const norm = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const r0 = Math.round;
+const r2 = (n) => Math.round(n * 100) / 100;
+let uid = 1;
+const nuevoId = () => `p${Date.now().toString(36)}${uid++}`;
+
+function haversineKm(a, b) {
+  const rad = (g) => (g * Math.PI) / 180;
+  const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
+function lugarCercano(p) {
+  let mejor = null, d = Infinity;
+  for (const l of LUGARES) { const x = haversineKm(p, l); if (x < d) { d = x; mejor = l; } }
+  return { lugar: mejor, km: d };
+}
+
+/* =====================================================================
+   Motor de costos (mismas fórmulas que la API)
+   ===================================================================== */
+function rendimientoKmL(v, vel) {
+  if (!Number.isFinite(vel) || vel <= 30) return v.rendimientoCiudadKmL;
+  if (vel >= 80) return v.rendimientoCarreteraKmL;
+  return v.rendimientoCiudadKmL + ((v.rendimientoCarreteraKmL - v.rendimientoCiudadKmL) * (vel - 30)) / 50;
+}
+function desgastePorKm(v) {
+  const depreciacion = (v.precioCompra * (1 - v.valorResidualPct / 100)) / Math.max(1, v.vidaUtilKm);
+  return { depreciacion, mantencion: v.mantencionPorKm, neumaticos: v.neumaticosPorKm, total: depreciacion + v.mantencionPorKm + v.neumaticosPorKm };
+}
+function calcularTarifa({ vehiculo: v, params: p, pasajeros, recorridos, numParadas = 0, minutosParadas = 0, esperaMin = 0 }) {
+  const precioLitro = v.combustible === 'diesel' ? p.precioDiesel : p.precioGasolina;
+  const dk = desgastePorKm(v);
+  let kmT = 0, minManejo = 0, litros = 0, peajes = 0;
+  const peajesDetalle = [];
+  for (const rec of recorridos) {
+    const f = rec.factor ?? 1;
+    if (f <= 0) continue;
+    const vel = rec.min > 0 ? rec.km / (rec.min / 60) : NaN;
+    const rend = Math.max(0.5, rendimientoKmL(v, vel));
+    const carga = 1 + (p.factorCargaMaxPct / 100) * Math.min(1, (rec.ocupacion || 0) / Math.max(1, v.capacidadPasajeros));
+    kmT += rec.km * f; minManejo += rec.min * f;
+    litros += (rec.km / rend) * carga * f;
+    for (const t of rec.peajes) { peajes += t.monto * f; peajesDetalle.push({ ...t, recorrido: rec.concepto, cobrado: t.monto * f }); }
+  }
+  const combustible = litros * precioLitro;
+  const desgaste = { depreciacion: kmT * dk.depreciacion, mantencion: kmT * dk.mantencion, neumaticos: kmT * dk.neumaticos };
+  const desgasteT = desgaste.depreciacion + desgaste.mantencion + desgaste.neumaticos;
+  const minTrabajo = minManejo + minutosParadas;
+  const minTotal = minTrabajo + esperaMin;
+  const minExtra = Math.max(0, p.tiempoMinimoCobroMin - minTotal);
+  const conductor = ((minTrabajo + minExtra) / 60) * p.valorHoraConductor + (esperaMin / 60) * p.valorHoraEspera;
+  const fijoHora = v.costoFijoAnual / Math.max(1, p.horasOperativasAnuales);
+  const fijos = ((minTotal + minExtra) / 60) * fijoHora;
+  const subtotal = combustible + peajes + desgasteT + conductor + fijos;
+  const imprevistos = subtotal * (p.imprevistosPct / 100);
+  const costoTotal = subtotal + imprevistos;
+  const margen = costoTotal * (p.margenGananciaPct / 100);
+  const recargo = numParadas * p.recargoPorParada;
+  const neto = costoTotal + margen + recargo;
+  const iva = p.incluirIVA ? neto * (p.ivaPct / 100) : 0;
+  const red = p.redondeo > 0 ? p.redondeo : 1;
+  const precioFinal = Math.ceil((neto + iva) / red) * red;
+  return {
+    km: kmT, minManejo, minParadas: minutosParadas, esperaMin, minExtra, minCobrado: minTotal + minExtra,
+    litros, precioLitro, combustible, peajes, peajesDetalle, desgaste, desgasteT, desgasteKm: dk.total,
+    conductor, fijos, fijoHora, imprevistos, costoTotal, margen, recargo, numParadas, neto, iva, precioFinal,
+    ganancia: precioFinal - iva - costoTotal,
+    minimo: costoTotal * (p.incluirIVA ? 1 + p.ivaPct / 100 : 1),
+    porPasajero: Math.ceil(precioFinal / Math.max(1, pasajeros)),
+    porKm: kmT > 0 ? precioFinal / kmT : 0,
+  };
+}
+
+// Reparte el precio entre quienes bajan en cada punto: el costo de cada tramo
+// se divide entre los pasajeros que van a bordo en ese tramo.
+function desglosePasajeros(puntos, tramos, base, precioFinal) {
+  const totalKm = tramos.reduce((s, t) => s + t.km, 0) || 1;
+  const totalMin = tramos.reduce((s, t) => s + t.min, 0) || 1;
+  const costoKm = base.combustible + base.peajes + base.desgasteT;
+  const costoTiempo = base.conductor + base.fijos;
+  const pesos = puntos.map(() => 0);
+  const kmABordo = puntos.map(() => 0);
+  let aBordo = puntos.slice(1).reduce((s, p) => s + p.bajan, 0);
+  tramos.forEach((t, j) => {
+    const peso = (costoKm * t.km) / totalKm + (costoTiempo * t.min) / totalMin;
+    for (let i = j + 1; i < puntos.length; i++) {
+      if (!puntos[i].bajan || aBordo <= 0) continue;
+      pesos[i] += (peso * puntos[i].bajan) / aBordo;
+      kmABordo[i] += t.km;
+    }
+    aBordo -= puntos[j + 1]?.bajan || 0;
+  });
+  const suma = pesos.reduce((s, x) => s + x, 0) || 1;
+  const filas = [];
+  let asignado = 0;
+  puntos.forEach((p, i) => {
+    if (i === 0 || !p.bajan) return;
+    const prop = pesos[i] / suma;
+    const monto = r0(precioFinal * prop);
+    asignado += monto;
+    filas.push({ orden: i, nombre: p.nombre, pasajeros: p.bajan, kmABordo: kmABordo[i], prop, monto, porPasajero: Math.ceil(monto / p.bajan) });
+  });
+  if (filas.length) filas[filas.length - 1].monto += precioFinal - asignado;
+  return filas;
+}
+
+/* =====================================================================
+   Orden de paradas
+   ===================================================================== */
+function* permutaciones(arr) {
+  if (arr.length <= 1) { yield arr.slice(); return; }
+  for (let i = 0; i < arr.length; i++) {
+    const resto = [...arr.slice(0, i), ...arr.slice(i + 1)];
+    for (const p of permutaciones(resto)) yield [arr[i], ...p];
+  }
+}
+function largoRecorrido(pts) { let s = 0; for (let i = 1; i < pts.length; i++) s += haversineKm(pts[i - 1], pts[i]); return s; }
+function ordenOptimo(origen, paradas) {
+  // El último punto ingresado se mantiene como destino final.
+  if (paradas.length <= 2) return paradas.slice();
+  const fin = paradas[paradas.length - 1];
+  const medio = paradas.slice(0, -1);
+  if (medio.length > 8) {
+    const pend = new Set(medio); const orden = []; let act = origen;
+    while (pend.size) { let m = null; for (const p of pend) if (!m || haversineKm(act, p) < haversineKm(act, m)) m = p; orden.push(m); pend.delete(m); act = m; }
+    return [...orden, fin];
+  }
+  let mejor = null, mejorKm = Infinity;
+  for (const perm of permutaciones(medio)) {
+    const d = largoRecorrido([origen, ...perm, fin]);
+    if (d < mejorKm) { mejorKm = d; mejor = perm; }
+  }
+  return [...mejor, fin];
+}
+
+/* =====================================================================
+   Rutas estimadas (sin Claude)
+   ===================================================================== */
+const velEstimada = (k) => (k < 15 ? 32 : k < 60 ? 60 : 85);
+function curva(a, b, desvio) {
+  const pts = [];
+  const mid = { lat: (a.lat + b.lat) / 2, lng: (a.lng + b.lng) / 2 };
+  const cos = Math.cos((mid.lat * Math.PI) / 180);
+  const dx = (b.lng - a.lng) * cos, dy = b.lat - a.lat;
+  const c = { lat: mid.lat + dx * desvio, lng: mid.lng - (dy * desvio) / cos };
+  for (let t = 0; t <= 1.0001; t += 0.1) {
+    pts.push([(1 - t) ** 2 * a.lat + 2 * (1 - t) * t * c.lat + t * t * b.lat, (1 - t) ** 2 * a.lng + 2 * (1 - t) * t * c.lng + t * t * b.lng]);
+  }
+  return pts;
+}
+function rutasEstimadas(puntos) {
+  const variantes = [
+    { nombre: 'Ruta directa', descripcion: 'Estimación por la vía más directa', f: 1.25, desvio: 0 },
+    { nombre: 'Alternativa por desvío', descripcion: 'Estimación con un rodeo moderado', f: 1.35, desvio: 0.12 },
+    { nombre: 'Alternativa larga', descripcion: 'Estimación por un camino más largo', f: 1.5, desvio: -0.22 },
+  ];
+  return variantes.map((v, i) => {
+    const tramos = [];
+    const trazado = [];
+    for (let j = 1; j < puntos.length; j++) {
+      const k = haversineKm(puntos[j - 1], puntos[j]) * v.f;
+      tramos.push({ km: k, min: (k / velEstimada(k)) * 60 });
+      const seg = curva(puntos[j - 1], puntos[j], v.desvio);
+      trazado.push(...(j > 1 ? seg.slice(1) : seg));
+    }
+    const kr = haversineKm(puntos[puntos.length - 1], puntos[0]) * 1.25;
+    return {
+      id: `e${i}`, nombre: v.nombre, descripcion: v.descripcion, fuente: 'estimado', tramos, peajes: [], trazado,
+      retorno: { km: kr, min: (kr / velEstimada(kr)) * 60, peajes: [] },
+    };
+  });
+}
+
+/* =====================================================================
+   Estado
+   ===================================================================== */
+const CLAVE = 'poxipol-traslados-v1';
+const ejemplo = () => ({
+  vehiculoId: 'toyota-hiace',
+  ajustesVehiculo: {},
+  puntos: [
+    { id: nuevoId(), nombre: 'Aeropuerto SCL (Arturo Merino Benítez)', lat: -33.393, lng: -70.7858, bajan: 0 },
+    { id: nuevoId(), nombre: 'Viña del Mar', lat: -33.0245, lng: -71.5518, bajan: 3 },
+    { id: nuevoId(), nombre: 'Concón', lat: -32.93, lng: -71.519, bajan: 2 },
+    { id: nuevoId(), nombre: 'Valparaíso', lat: -33.0472, lng: -71.6127, bajan: 1 },
+  ],
+  optimizar: true,
+  tipo: 'ida',
+  esperaMin: 120,
+  recoger: true,
+  retornoPct: 0,
+  params: { ...PARAMS_DEF },
+  cacheClaude: {},
+  ediciones: {},
+  sel: 0,
+});
+let S;
+try { S = JSON.parse(localStorage.getItem(CLAVE) || 'null'); } catch { S = null; }
+S = { ...ejemplo(), ...(S || {}) };
+S.params = { ...PARAMS_DEF, ...(S.params || {}) };
+let esEjemplo = !localStorage_tiene();
+function localStorage_tiene() { try { return !!localStorage.getItem(CLAVE); } catch { return false; } }
+function guardar() {
+  esEjemplo = false;
+  try {
+    // Solo se guardan las 20 rutas de Claude más recientes.
+    const claves = Object.keys(S.cacheClaude);
+    if (claves.length > 20) for (const k of claves.slice(0, claves.length - 20)) delete S.cacheClaude[k];
+    localStorage.setItem(CLAVE, JSON.stringify(S));
+  } catch { /* sin almacenamiento: la página sigue funcionando */ }
+}
+
+let sample = null;      // capacidad "preguntar a Claude"
+let calculando = null;  // AbortController del cálculo en curso
+let rutasActuales = [];
+let cotizaciones = [];
+
+const vehiculo = () => {
+  const base = VEHICULOS.find((v) => v.id === S.vehiculoId) || VEHICULOS[0];
+  return { ...base, ...(S.ajustesVehiculo[base.id] || {}) };
+};
+const puntosValidos = () => S.puntos.filter((p) => Number.isFinite(p.lat));
+function puntosOrdenados() {
+  const pv = puntosValidos();
+  if (pv.length < 2) return pv;
+  const [origen, ...resto] = pv;
+  return [origen, ...(S.optimizar ? ordenOptimo(origen, resto) : resto)];
+}
+const firma = (pts) => `${vehiculo().categoriaPeaje}|` + pts.map((p) => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`).join(';');
+
+/* =====================================================================
+   Cálculo de rutas y tarifas
+   ===================================================================== */
+function cotizar() {
+  const pts = puntosOrdenados();
+  if (pts.length < 2) return { pts, rutas: [], fuente: null };
+  const f = firma(pts);
+  const claude = S.cacheClaude[f];
+  let rutas = claude ? structuredClone(claude.rutas) : rutasEstimadas(pts);
+  const retornoClaude = claude?.retorno;
+  // ediciones manuales del usuario sobre cada ruta
+  rutas = rutas.map((r) => {
+    const ed = S.ediciones[`${f}#${r.id}`];
+    if (retornoClaude && !r.retorno) r.retorno = structuredClone(retornoClaude);
+    return ed ? { ...r, tramos: ed.tramos, peajes: ed.peajes, editada: true } : r;
+  });
+  const v = vehiculo();
+  const p = S.params;
+  const pasajeros = pts.slice(1).reduce((s, x) => s + x.bajan, 0);
+  const bajadas = pts.length - 1;
+  const res = rutas.map((ruta) => {
+    const kmIda = ruta.tramos.reduce((s, t) => s + t.km, 0);
+    const minIda = ruta.tramos.reduce((s, t) => s + t.min, 0);
+    let aBordo = pasajeros, paxKm = 0;
+    ruta.tramos.forEach((t, j) => { paxKm += aBordo * t.km; aBordo -= pts[j + 1].bajan; });
+    const ocupacion = kmIda > 0 ? paxKm / kmIda : pasajeros;
+    const peajesVuelta = ruta.peajes.filter((x) => x.enVuelta !== false);
+    const retorno = pts.length === 2 ? { km: kmIda, min: minIda, peajes: peajesVuelta } : ruta.retorno;
+    const recogiendo = S.recoger && pts.length > 2;
+    const recIda = { concepto: 'Ida', km: kmIda, min: minIda, peajes: ruta.peajes, ocupacion };
+    const recVuelta = recogiendo
+      ? { concepto: 'Vuelta recogiendo', km: kmIda, min: minIda, peajes: peajesVuelta, ocupacion }
+      : { concepto: 'Vuelta directa', km: retorno.km, min: retorno.min, peajes: retorno.peajes, ocupacion: pasajeros };
+    const recVacio = { concepto: 'Regreso vacío', km: retorno.km, min: retorno.min, peajes: retorno.peajes, ocupacion: 0, factor: S.retornoPct / 100 };
+    const comun = { vehiculo: v, params: p, pasajeros };
+    const ida = calcularTarifa({ ...comun, recorridos: [recIda, recVacio], numParadas: bajadas - 1, minutosParadas: bajadas * p.minutosPorParada });
+    const idaVuelta = calcularTarifa({
+      ...comun, recorridos: [recIda, recVuelta], numParadas: (bajadas - 1) * (recogiendo ? 2 : 1),
+      minutosParadas: bajadas * p.minutosPorParada * (recogiendo ? 2 : 1), esperaMin: S.esperaMin,
+    });
+    const base = calcularTarifa({ ...comun, params: { ...p, tiempoMinimoCobroMin: 0 }, recorridos: [recIda] });
+    const vacio = calcularTarifa({ ...comun, params: { ...p, tiempoMinimoCobroMin: 0 }, recorridos: [{ ...recVacio, factor: 1 }] });
+    const t = S.tipo === 'ida' ? ida : idaVuelta;
+    return { ruta, kmIda, minIda, ida, idaVuelta, t, retorno, vacio, desglose: desglosePasajeros(pts, ruta.tramos, base, t.precioFinal) };
+  });
+  if (res.length) {
+    const minBy = (fn) => res.reduce((a, b) => (fn(b) < fn(a) ? b : a));
+    minBy((x) => x.kmIda).corta = true;
+    minBy((x) => x.minIda).rapida = true;
+    minBy((x) => x.t.costoTotal).recomendada = true;
+  }
+  return { pts, rutas: res, fuente: claude ? 'claude' : 'estimado', pasajeros, firma: f, fechaClaude: claude?.fecha };
+}
+
+/* =====================================================================
+   Claude: rutas reales, km, tiempos y peajes
+   ===================================================================== */
+function promptRutas(pts, v) {
+  const lista = pts.map((p, i) => `${i}. ${p.nombre} (lat ${p.lat.toFixed(5)}, lng ${p.lng.toFixed(5)})${i ? ` — bajan ${p.bajan}` : ' — origen'}`).join('\n');
+  return `Eres experto en rutas por carretera de Chile (y pasos a países vecinos). Un conductor de traslado de pasajeros necesita cotizar este recorrido en ${v.marca} ${v.modelo} (${v.tipo}), que paga peaje en categoría ${v.categoriaPeaje} (1 = autos, camionetas y vans; 2 = buses y minibuses de 2 ejes; 3 = más de 2 ejes).
+
+Puntos, en este orden fijo (no lo cambies):
+${lista}
+
+Entrega 3 alternativas de ruta en auto DISTINTAS entre sí (por ejemplo, la más corta, la más rápida y otra razonable por otras carreteras). Si de verdad solo existe una vía razonable, entrega variantes reales (por la costa, por el interior, evitando peajes, etc.).
+
+Para cada alternativa:
+- "nombre": corto, con las carreteras principales (ej. "Por Ruta 68").
+- "descripcion": una línea con las vías que usa.
+- "tramos": EXACTAMENTE ${pts.length - 1} objetos, uno por cada tramo entre puntos consecutivos, con "km" (distancia por carretera) y "min" (tiempo de manejo normal sin tráfico extremo).
+- "peajes": plazas de peaje troncales y pórticos de autopista urbana que cruza en la ida, con "nombre", "monto" (pesos chilenos vigentes aproximados para la categoría ${v.categoriaPeaje}) y "enVuelta" (true si también se paga al volver por la misma vía). Lista vacía si no hay.
+- "trazado": entre 10 y 30 pares [lat, lng] que sigan las carreteras de la ruta, del origen al último punto.
+
+Además "retornoDirecto": el regreso del último punto al origen por la ruta más conveniente, con "km", "min" y "peajes" (mismo formato).
+
+Responde SOLO con JSON con esta forma:
+{"rutas":[{"nombre":"","descripcion":"","tramos":[{"km":0,"min":0}],"peajes":[{"nombre":"","monto":0,"enVuelta":true}],"trazado":[[-33.4,-70.6]]}],"retornoDirecto":{"km":0,"min":0,"peajes":[]}}`;
+}
+function limpiarPeajes(lista) {
+  return (Array.isArray(lista) ? lista : [])
+    .filter((x) => x && Number.isFinite(Number(x.monto)))
+    .map((x) => ({ nombre: String(x.nombre || 'Peaje').slice(0, 80), monto: Math.max(0, r0(Number(x.monto))), enVuelta: x.enVuelta !== false }));
+}
+function limpiarTrazado(lista, pts) {
+  let t = (Array.isArray(lista) ? lista : []).filter((c) => Array.isArray(c) && c.length >= 2).map((c) => [Number(c[0]), Number(c[1])])
+    .filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b));
+  // corrige pares invertidos [lng, lat]
+  t = t.map(([a, b]) => (Math.abs(a) > Math.abs(b) && Math.abs(b) <= 60 && Math.abs(a) > 60 ? [b, a] : [a, b]));
+  t = t.filter(([a, b]) => Math.abs(a) <= 90 && Math.abs(b) <= 180);
+  const o = pts[0], f = pts[pts.length - 1];
+  if (t.length < 2) return pts.map((p) => [p.lat, p.lng]);
+  return [[o.lat, o.lng], ...t, [f.lat, f.lng]];
+}
+function normalizarClaude(json, pts) {
+  const n = pts.length - 1;
+  const directos = [];
+  for (let j = 1; j < pts.length; j++) directos.push(haversineKm(pts[j - 1], pts[j]) || 0.1);
+  const sumaDir = directos.reduce((s, x) => s + x, 0);
+  const rutas = (Array.isArray(json?.rutas) ? json.rutas : []).slice(0, 3).map((r, i) => {
+    let tramos = Array.isArray(r?.tramos) ? r.tramos.map((t) => ({ km: Number(t?.km), min: Number(t?.min) })) : [];
+    const malos = tramos.length !== n || tramos.some((t) => !(t.km > 0) || !(t.min > 0));
+    if (malos) {
+      const kmTotal = tramos.reduce((s, t) => s + (t.km > 0 ? t.km : 0), 0) || Number(r?.km) || sumaDir * 1.3;
+      const minTotal = tramos.reduce((s, t) => s + (t.min > 0 ? t.min : 0), 0) || Number(r?.min) || (kmTotal / 70) * 60;
+      tramos = directos.map((d) => ({ km: (kmTotal * d) / sumaDir, min: (minTotal * d) / sumaDir }));
+    }
+    return {
+      id: `c${i}`, nombre: String(r?.nombre || `Ruta ${i + 1}`).slice(0, 60), descripcion: String(r?.descripcion || '').slice(0, 160),
+      fuente: 'claude', tramos, peajes: limpiarPeajes(r?.peajes), trazado: limpiarTrazado(r?.trazado, pts),
+    };
+  }).filter((r) => r.tramos.reduce((s, t) => s + t.km, 0) > 0);
+  const rd = json?.retornoDirecto;
+  const kmR = Number(rd?.km) > 0 ? Number(rd.km) : haversineKm(pts[n], pts[0]) * 1.25;
+  const retorno = { km: kmR, min: Number(rd?.min) > 0 ? Number(rd.min) : (kmR / velEstimada(kmR)) * 60, peajes: limpiarPeajes(rd?.peajes) };
+  return { rutas, retorno };
+}
+
+async function calcularConClaude() {
+  if (!sample) return;
+  const pts = puntosOrdenados();
+  if (pts.length < 2) { toast('Agrega al menos un origen y un destino'); return; }
+  calculando?.abort();
+  const ctl = new AbortController();
+  calculando = ctl;
+  pintarCalculo('busy');
+  try {
+    const json = await sample.json(promptRutas(pts, vehiculo()), { signal: ctl.signal, cache: false });
+    const { rutas, retorno } = normalizarClaude(json, pts);
+    if (!rutas.length) throw { code: 'invalid_json' };
+    const f = firma(pts);
+    S.cacheClaude[f] = { rutas, retorno, fecha: Date.now() };
+    for (const k of Object.keys(S.ediciones)) if (k.startsWith(`${f}#`)) delete S.ediciones[k];
+    S.sel = 0;
+    guardar();
+    pintarCalculo('ok');
+    actualizar();
+    toast(`Listo: ${rutas.length} rutas calculadas`);
+  } catch (e) {
+    if (e?.code === 'cancelled') { pintarCalculo(); return; }
+    const msgs = {
+      not_granted: 'No diste permiso para usar Claude. Puedes seguir con las rutas estimadas y corregir los km a mano.',
+      sampling_disabled: 'Claude no está disponible en esta cuenta. Sigue con las rutas estimadas.',
+      rate_limited: 'Demasiadas consultas seguidas. Espera un momento e inténtalo otra vez.',
+      invalid_json: 'Claude no devolvió rutas que se puedan leer. Inténtalo otra vez.',
+      refused: 'Claude no pudo calcular este recorrido. Revisa los puntos.',
+    };
+    if (['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled'].includes(e?.code)) { sample = null; pintarEstadoClaude(); }
+    pintarCalculo('error', msgs[e?.code] || 'Se cortó la conexión con Claude. Inténtalo otra vez.');
+  } finally {
+    if (calculando === ctl) calculando = null;
+  }
+}
+
+/* =====================================================================
+   Pintado: controles
+   ===================================================================== */
+function pintarVehiculos() {
+  const grupos = {};
+  for (const v of VEHICULOS) (grupos[v.tipo] ||= []).push(v);
+  $('vehiculo').innerHTML = Object.entries(grupos).map(([tipo, lista]) =>
+    `<optgroup label="${esc(tipo)}">${lista.map((v) => `<option value="${v.id}">${esc(v.marca)} ${esc(v.modelo)} · ${v.capacidadPasajeros} pax · ${v.combustible === 'diesel' ? 'diésel' : 'gasolina'}</option>`).join('')}</optgroup>`).join('');
+  $('vehiculo').value = S.vehiculoId;
+  pintarSpecs();
+}
+function pintarSpecs() {
+  const v = vehiculo();
+  const d = desgastePorKm(v);
+  const ajustado = Object.keys(S.ajustesVehiculo[v.id] || {}).length > 0;
+  $('vehSpecs').innerHTML = [
+    ['Capacidad', `${v.capacidadPasajeros} pax`],
+    ['Rinde', `${nf.format(v.rendimientoCiudadKmL)}–${nf.format(v.rendimientoCarreteraKmL)} km/L`],
+    ['Desgaste', `${money(d.total)}/km`],
+    ['Peaje', `cat. ${v.categoriaPeaje}`],
+  ].map(([a, b]) => `<span class="spec">${a} <b>${b}</b></span>`).join('') + (ajustado ? '<span class="chip edit">Datos ajustados</span>' : '');
+  if (!$('vehEdit').hidden) pintarEditorVehiculo();
+}
+function pintarEditorVehiculo() {
+  const v = vehiculo();
+  $('vehEdit').innerHTML = CAMPOS_VEHICULO.map(([k, l, u]) =>
+    `<label class="lbl">${l}${u ? ` <span class="muted">(${u})</span>` : ''}<input class="field num" type="number" min="0" step="any" data-veh="${k}" value="${v[k]}"></label>`).join('') +
+    `<label class="lbl">Combustible<select class="field" data-veh="combustible"><option value="diesel"${v.combustible === 'diesel' ? ' selected' : ''}>Diésel</option><option value="gasolina"${v.combustible === 'gasolina' ? ' selected' : ''}>Gasolina</option></select></label>` +
+    `<div class="full"><span class="small muted">Los cambios quedan guardados para este modelo.</span><button class="btn sm" type="button" id="vehReset">Volver a los valores del catálogo</button></div>`;
+}
+
+function pintarPuntos() {
+  const lista = S.puntos;
+  const ordenados = puntosOrdenados();
+  const visita = new Map(ordenados.map((p, i) => [p.id, i]));
+  $('puntos').innerHTML = lista.map((p, i) => {
+    const esOrigen = i === 0;
+    const esUltimo = i === lista.length - 1 && i > 0;
+    const vacio = !Number.isFinite(p.lat);
+    const nVisita = visita.get(p.id);
+    const etiqueta = esOrigen ? 'A' : vacio ? '?' : String(nVisita ?? i);
+    const rol = esOrigen ? 'Origen · suben aquí' : esUltimo ? 'Destino final' : `Parada${S.optimizar && nVisita !== i ? ` · pasa ${nVisita}ª` : ''}`;
+    return `<li class="pt ${esOrigen ? 'origen' : ''} ${esUltimo ? 'ultimo' : ''} ${vacio ? 'vacio' : ''}" data-id="${p.id}">
+      <span class="pin">${etiqueta}</span>
+      <div class="pt-main">
+        ${vacio || p.editando
+          ? `<input class="field" data-buscar="${p.id}" placeholder="${esOrigen ? 'Desde dónde sales' : 'Ciudad, comuna o dirección'}" value="${esc(p.editando ? p.nombre : '')}" autocomplete="off" aria-label="Buscar lugar">`
+          : `<div class="pt-name"><span title="${esc(p.nombre)}">${esc(p.nombre)}</span><button class="linkbtn" type="button" data-cambiar="${p.id}">cambiar</button></div>`}
+        <span class="pt-sub">${rol}</span>
+      </div>
+      <div class="pt-side">
+        ${esOrigen ? '' : `<span class="stepper" title="Pasajeros que bajan aquí"><button type="button" data-pax="-1" data-id="${p.id}" aria-label="Uno menos">−</button><output class="num">${p.bajan}</output><button type="button" data-pax="1" data-id="${p.id}" aria-label="Uno más">+</button></span>`}
+        ${lista.length > 2 ? `<button class="iconbtn" type="button" data-quitar="${p.id}" aria-label="Quitar punto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>` : ''}
+      </div>
+    </li>`;
+  }).join('');
+  $('totalPax').textContent = lista.slice(1).reduce((s, p) => s + (p.bajan || 0), 0);
+  $('optimizar').checked = S.optimizar;
+}
+
+function pintarViaje() {
+  document.querySelectorAll('[data-tipo]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tipo === S.tipo)));
+  $('opcIdaVuelta').hidden = S.tipo !== 'ida_vuelta';
+  $('opcIda').hidden = S.tipo !== 'ida';
+  $('espera').value = S.esperaMin;
+  $('recoger').value = S.recoger ? 'si' : 'no';
+  $('retornoPct').value = S.retornoPct;
+}
+function pintarParams() {
+  $('params').innerHTML = CAMPOS_PARAMS.map(([k, l]) =>
+    `<label class="lbl">${l}<input class="field num" type="number" min="0" step="any" data-param="${k}" value="${S.params[k]}"></label>`).join('') +
+    `<label class="toggle wide"><span>Incluir IVA (${S.params.ivaPct}%)<small>Si emites boleta o factura</small></span><span class="switch"><input type="checkbox" data-param="incluirIVA" ${S.params.incluirIVA ? 'checked' : ''}><i></i></span></label>
+     <div class="wide"><button class="btn sm" type="button" id="paramsReset">Restaurar valores sugeridos</button></div>`;
+}
+
+function pintarEstadoClaude() {
+  const chip = $('estadoClaude');
+  chip.classList.toggle('on', !!sample);
+  chip.querySelector('span').textContent = sample ? 'Claude conectado' : 'Modo estimado';
+  $('calcular').hidden = !sample;
+  $('calcNota').textContent = sample
+    ? 'Claude traza 3 rutas por carretera con km, tiempos y peajes. Después puedes ajustar cualquier dato.'
+    : 'Sin conexión con Claude: las distancias son estimadas (línea recta × 1,25). Corrige los km y peajes de la ruta con los que te da Google Maps o Waze.';
+}
+function pintarCalculo(estado, msg) {
+  const box = $('calcEstado');
+  $('calcular').disabled = estado === 'busy';
+  if (estado === 'busy') box.innerHTML = `<div class="busy"><span class="spin"></span><span>Claude está trazando las rutas… puede tardar hasta un minuto.</span><button class="btn sm ghost" type="button" id="detener">Detener</button></div>`;
+  else if (estado === 'error') box.innerHTML = `<div class="alert bad">${esc(msg)}</div>`;
+  else box.innerHTML = '';
+}
+
+/* =====================================================================
+   Pintado: resultados
+   ===================================================================== */
+const COLORES = ['--r1', '--r2', '--r3'];
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+function pintarResultados(c) {
+  const box = $('resultados');
+  if (c.pts.length < 2) {
+    box.innerHTML = `<div class="panel card"><h3>Sin recorrido</h3><p class="muted" style="margin:0">Indica el origen y al menos un destino para ver las rutas y cuánto cobrar.</p></div>`;
+    pintarBarra(null);
+    return;
+  }
+  const v = vehiculo();
+  const alertas = [];
+  if (c.pasajeros === 0) alertas.push('Indica cuántos pasajeros bajan en cada punto.');
+  if (c.pasajeros > v.capacidadPasajeros) {
+    const otros = VEHICULOS.filter((x) => x.capacidadPasajeros >= c.pasajeros).map((x) => `${x.marca} ${x.modelo}`).slice(0, 4).join(', ');
+    alertas.push(`El ${v.marca} ${v.modelo} lleva máximo ${v.capacidadPasajeros} pasajeros y el recorrido suma ${c.pasajeros}.${otros ? ` Prueba con: ${otros}.` : ''}`);
+  }
+  if (S.puntos.some((p) => !Number.isFinite(p.lat))) alertas.push('Hay una parada sin ubicación: búscala o márcala en el mapa.');
+  if (S.sel >= c.rutas.length) S.sel = 0;
+  const sel = c.rutas[S.sel];
+  const fuenteChip = c.fuente === 'claude'
+    ? '<span class="chip claude">Rutas calculadas por Claude</span>'
+    : '<span class="chip est">Distancias estimadas</span>';
+  const tipoTxt = S.tipo === 'ida' ? 'Solo ida' : 'Ida y vuelta';
+
+  box.innerHTML = `
+    <div class="res-head">
+      <div>
+        <h2>${c.rutas.length} rutas · ${tipoTxt} · ${c.pasajeros} pasajero${c.pasajeros === 1 ? '' : 's'}</h2>
+        <p>${esc(c.pts.map((p) => p.nombre.replace(/ \(.*\)$/, '')).join(' → '))}</p>
+      </div>
+      <div class="actions-row">${fuenteChip}${esEjemplo ? '<span class="chip">Ejemplo</span>' : ''}</div>
+    </div>
+    ${alertas.map((a) => `<div class="alert">${esc(a)}</div>`).join('')}
+    <div class="signs" role="group" aria-label="Rutas">
+      ${c.rutas.map((x, i) => `
+        <button class="sign-card" type="button" data-ruta="${i}" aria-pressed="${i === S.sel}" style="--rc: var(${COLORES[i]})">
+          <div class="sign-top"><b>${esc(x.ruta.nombre)}</b><small>${esc(x.ruta.descripcion || '')}</small></div>
+          <div class="sign-body">
+            <div class="tags">${x.recomendada ? '<span class="tag rec">Recomendada</span>' : ''}${x.corta ? '<span class="tag">Más corta</span>' : ''}${x.rapida ? '<span class="tag">Más rápida</span>' : ''}${x.ruta.editada ? '<span class="tag">Ajustada</span>' : ''}</div>
+            <div class="sign-stats"><span><b>${km(x.kmIda)}</b></span><span><b>${tiempo(x.minIda)}</b></span><span>peajes <b>${money(x.t.peajes)}</b></span></div>
+            <div class="sign-price"><strong>${money(x.t.precioFinal)}</strong><span>${money(x.t.porPasajero)} c/u</span></div>
+          </div>
+        </button>`).join('')}
+    </div>
+    ${pintarDetalle(sel, c)}`;
+  pintarBarra(sel);
+}
+
+function pintarDetalle(x, c) {
+  const t = x.t;
+  const partes = [
+    ['Combustible', t.combustible, '--c-fuel', `${nf.format(t.litros)} L × ${money(t.precioLitro)}`],
+    ['Peajes', t.peajes, '--c-toll', t.peajesDetalle.length ? [...new Set(t.peajesDetalle.map((p) => p.nombre))].join(', ') : 'Sin peajes'],
+    ['Desgaste del vehículo', t.desgasteT, '--c-wear', `Depreciación ${money(t.desgaste.depreciacion)} · mantención ${money(t.desgaste.mantencion)} · neumáticos ${money(t.desgaste.neumaticos)}`],
+    ['Tu tiempo', t.conductor, '--c-driver', `${tiempo(t.minCobrado)} cobrados${t.esperaMin ? ` (incluye ${tiempo(t.esperaMin)} de espera)` : ''}${t.minExtra ? ` · mínimo ${tiempo(S.params.tiempoMinimoCobroMin)}` : ''}`],
+    ['Seguro y permisos', t.fijos, '--c-fixed', `${money(t.fijoHora)} por hora de trabajo`],
+    ['Imprevistos', t.imprevistos, '--c-extra', `${S.params.imprevistosPct}% de colchón`],
+  ];
+  const total = t.precioFinal - t.iva || 1;
+  const stack = [...partes, ['Ganancia', t.margen + t.recargo, '--c-margin']]
+    .map(([n, m, c]) => `<i style="width:${Math.max(0, (m / total) * 100)}%;background:var(${c})" title="${n}: ${money(m)}"></i>`).join('');
+  const pasajerosMax = Math.max(...x.desglose.map((g) => g.porPasajero), 1);
+  const recs = (S.tipo === 'ida' ? x.ida : x.idaVuelta);
+  const ed = editorRuta(x, c);
+
+  return `
+  <div class="detail">
+    <div class="panel card">
+      <h3>Cuánto cobrar · ${esc(x.ruta.nombre)}</h3>
+      <div class="price-hero">
+        <span class="big">${money(t.precioFinal)}</span>
+        <span class="sub">${S.tipo === 'ida' ? 'Solo ida' : 'Ida y vuelta'} · ${km(t.km)} · ${S.params.incluirIVA ? `incluye IVA ${money(t.iva)}` : 'sin IVA'}</span>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><span>Mínimo sin perder</span><b>${money(t.minimo)}</b></div>
+        <div class="kpi good"><span>Tu ganancia</span><b>${money(t.ganancia)}</b></div>
+        <div class="kpi"><span>Por kilómetro</span><b>${money(t.porKm)}</b></div>
+      </div>
+      <div class="compare" role="group" aria-label="Comparar tipo de viaje">
+        <button type="button" data-tipo="ida" aria-pressed="${S.tipo === 'ida'}"><span>Solo ida</span><b>${money(x.ida.precioFinal)}</b></button>
+        <button type="button" data-tipo="ida_vuelta" aria-pressed="${S.tipo === 'ida_vuelta'}"><span>Ida y vuelta</span><b>${money(x.idaVuelta.precioFinal)}</b></button>
+      </div>
+      <div class="stack" aria-hidden="true">${stack}</div>
+      <table class="costs">
+        ${partes.map(([n, m, col, d]) => `<tr><td><span class="dot" style="background:var(${col})"></span>${n}<small>${esc(d)}</small></td><td>${money(m)}</td></tr>`).join('')}
+        <tr class="tot"><td>Costo real del viaje</td><td>${money(t.costoTotal)}</td></tr>
+        <tr><td><span class="dot" style="background:var(--c-margin)"></span>Ganancia<small>${S.params.margenGananciaPct}% sobre el costo</small></td><td>${money(t.margen)}</td></tr>
+        ${t.recargo ? `<tr><td>Recargo por paradas<small>${t.numParadas} × ${money(S.params.recargoPorParada)}</small></td><td>${money(t.recargo)}</td></tr>` : ''}
+        ${t.iva ? `<tr><td>IVA<small>${S.params.ivaPct}%</small></td><td>${money(t.iva)}</td></tr>` : ''}
+        <tr class="final"><td>Precio a cobrar</td><td>${money(t.precioFinal)}</td></tr>
+      </table>
+      ${S.tipo === 'ida' ? `<p class="small muted" style="margin:0">Volver vacío desde el último punto (${km(x.retorno.km)}) te cuesta ${money(x.vacio.costoTotal)}. ${S.retornoPct ? `Estás cobrando el ${S.retornoPct}%.` : 'Hoy no lo estás cobrando: súbelo en “Cobrar el regreso vacío”.'}</p>` : ''}
+      <div class="actions-row">
+        <button class="btn lane" type="button" id="copiar">Copiar cotización</button>
+      </div>
+      <div id="copiaBox"></div>
+    </div>
+
+    <div class="panel card">
+      <h3>Cobro por pasajero</h3>
+      <table class="pax">
+        <thead><tr><th>Baja en</th><th>c/u</th><th>Grupo</th></tr></thead>
+        <tbody>${x.desglose.map((g) => `<tr><td>${esc(g.nombre)}<small>${g.pasajeros} pax · ${km(g.kmABordo)} a bordo</small><div class="bar"><i style="width:${(g.porPasajero / pasajerosMax) * 100}%"></i></div></td><td>${money(g.porPasajero)}</td><td>${money(g.monto)}</td></tr>`).join('')}</tbody>
+      </table>
+      <p class="small muted" style="margin:0">Cada tramo se reparte entre los que van arriba en ese momento: quien baja más lejos paga más.</p>
+      <h3>Recorrido</h3>
+      <ul class="legs">${x.ruta.tramos.map((tr, j) => `<li><span>${j + 1}. ${esc(c.pts[j].nombre.replace(/ \(.*\)$/, ''))} → ${esc(c.pts[j + 1].nombre.replace(/ \(.*\)$/, ''))}</span><span>${km(tr.km)} · ${tiempo(tr.min)}</span></li>`).join('')}
+        ${recs.peajesDetalle.length ? recs.peajesDetalle.map((p) => `<li><span class="muted">Peaje ${esc(p.nombre)} (${esc(p.recorrido.toLowerCase())})</span><span>${money(p.cobrado)}</span></li>`).join('') : ''}
+      </ul>
+      ${ed}
+    </div>
+  </div>`;
+}
+
+function editorRuta(x, c) {
+  return `<details class="ajustes" id="editorRuta"${editorAbierto ? ' open' : ''}>
+    <summary><h3>Ajustar esta ruta</h3><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <div class="editor" style="margin-top:10px">
+      <p class="small muted" style="margin:0">Si Google Maps o Waze te dan otros km o tiempos, ponlos aquí y el precio se recalcula.</p>
+      <div class="ed-row ed-head"><span>Tramo</span><span>km</span><span>min</span></div>
+      ${x.ruta.tramos.map((tr, j) => `<div class="ed-row"><span>${esc(c.pts[j + 1].nombre.replace(/ \(.*\)$/, ''))}</span><input class="field num" type="number" min="0" step="0.1" data-tramo="${j}" data-k="km" value="${r2(tr.km)}" aria-label="km tramo ${j + 1}"><input class="field num" type="number" min="0" step="1" data-tramo="${j}" data-k="min" value="${r0(tr.min)}" aria-label="minutos tramo ${j + 1}"></div>`).join('')}
+      <h4>Peajes de la ida</h4>
+      ${x.ruta.peajes.map((p, j) => `<div class="ed-row toll"><input class="field" data-peaje="${j}" data-k="nombre" value="${esc(p.nombre)}" aria-label="Nombre peaje"><input class="field num" type="number" min="0" step="10" data-peaje="${j}" data-k="monto" value="${p.monto}" aria-label="Monto peaje"><label><input type="checkbox" data-peaje="${j}" data-k="enVuelta" ${p.enVuelta !== false ? 'checked' : ''}> vuelta</label><button class="iconbtn" type="button" data-quitarpeaje="${j}" aria-label="Quitar peaje"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`).join('') || '<p class="small muted" style="margin:0">Sin peajes.</p>'}
+      <div class="actions-row"><button class="btn sm" type="button" id="agregarPeaje">+ Agregar peaje</button>${x.ruta.editada ? '<button class="btn sm ghost" type="button" id="deshacerEdicion">Volver a la ruta original</button>' : ''}</div>
+    </div>
+  </details>`;
+}
+let editorAbierto = false;
+
+function pintarBarra(x) {
+  $('mbarPrecio').textContent = x ? money(x.t.precioFinal) : '—';
+  $('mbarSub').textContent = x ? `${x.ruta.nombre} · ${S.tipo === 'ida' ? 'solo ida' : 'ida y vuelta'} · ${money(x.t.porPasajero)} c/u` : 'Arma el recorrido';
+}
+
+function textoCotizacion(x, c) {
+  const v = vehiculo();
+  const lineas = [
+    `Cotización de traslado`,
+    `Vehículo: ${v.marca} ${v.modelo} (${v.capacidadPasajeros} pasajeros)`,
+    `Recorrido: ${c.pts.map((p) => p.nombre.replace(/ \(.*\)$/, '')).join(' → ')}`,
+    `Ruta: ${x.ruta.nombre} · ${km(x.kmIda)} · ${tiempo(x.minIda)}`,
+    `Tipo: ${S.tipo === 'ida' ? 'Solo ida' : `Ida y vuelta${S.esperaMin ? ` con ${tiempo(S.esperaMin)} de espera` : ''}`}`,
+    `Pasajeros: ${c.pasajeros}`,
+    '',
+    `Total: ${money(x.t.precioFinal)}${S.params.incluirIVA ? ' (IVA incluido)' : ''}`,
+  ];
+  if (x.desglose.length > 1) {
+    lineas.push('Por pasajero según destino:');
+    for (const g of x.desglose) lineas.push(`• ${g.nombre.replace(/ \(.*\)$/, '')}: ${money(g.porPasajero)} c/u (${g.pasajeros} pax)`);
+  } else {
+    lineas.push(`Por pasajero: ${money(x.t.porPasajero)}`);
+  }
+  lineas.push(`Incluye combustible, peajes${x.t.peajes ? ` (${money(x.t.peajes)})` : ''} y conductor.`);
+  return lineas.join('\n');
+}
+
+/* =====================================================================
+   Mapa
+   ===================================================================== */
+let mapa, capaRutas, capaPuntos, capaLugares, marcaTmp;
+function iniciarMapa() {
+  if (!window.L) { $('mapa').innerHTML = '<p style="padding:16px">No se pudo cargar el mapa.</p>'; return; }
+  mapa = L.map('mapa', { zoomControl: true, attributionControl: false, minZoom: 3, maxZoom: 13, zoomSnap: 0.5 }).setView([-33.2, -71], 8);
+  L.geoJSON(PAISES, {
+    interactive: false,
+    style: (f) => ({ color: css('--border-land'), weight: 1, fillColor: f.properties.n === 'Chile' ? css('--land') : css('--land-2'), fillOpacity: 1 }),
+  }).addTo(mapa);
+  capaLugares = L.layerGroup().addTo(mapa);
+  for (const l of LUGARES) {
+    L.circleMarker([l.lat, l.lng], { radius: 2.5, color: css('--muted'), weight: 1, fillOpacity: 0.8, interactive: false })
+      .bindTooltip(l.nombre.replace(/ \(.*\)$/, ''), { permanent: true, direction: 'right', className: 'lugar', offset: [4, 0] })
+      .addTo(capaLugares);
+  }
+  const zoomEtiquetas = () => {
+    const z = mapa.getZoom();
+    capaLugares.eachLayer((m) => { const t = m.getTooltip(); if (t) t.setOpacity(z >= 8 ? 1 : 0); });
+  };
+  mapa.on('zoomend', zoomEtiquetas); zoomEtiquetas();
+  capaRutas = L.layerGroup().addTo(mapa);
+  capaPuntos = L.layerGroup().addTo(mapa);
+  mapa.on('click', (e) => ofrecerPunto(e.latlng));
+}
+let ultimoEncuadre = '';
+function pintarMapa(c) {
+  if (!mapa) return;
+  capaRutas.clearLayers(); capaPuntos.clearLayers();
+  const orden = [...c.rutas.keys()].sort((a, b) => (a === S.sel) - (b === S.sel));
+  for (const i of orden) {
+    const x = c.rutas[i];
+    const sel = i === S.sel;
+    L.polyline(x.ruta.trazado, { color: css(COLORES[i]), weight: sel ? 6 : 3.5, opacity: sel ? 0.95 : 0.5, dashArray: x.ruta.fuente === 'estimado' ? '8 7' : null })
+      .on('click', (ev) => { L.DomEvent.stopPropagation(ev); S.sel = i; actualizar(); })
+      .addTo(capaRutas);
+  }
+  c.pts.forEach((p, i) => {
+    const ultimo = i === c.pts.length - 1;
+    const icon = L.divIcon({ className: '', html: `<div class="mk ${ultimo && i ? 'ultimo' : ''}">${i === 0 ? 'A' : i}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] });
+    L.marker([p.lat, p.lng], { icon, keyboard: false })
+      .bindTooltip(`${esc(p.nombre)}${i ? ` · bajan ${p.bajan}` : ' · origen'}`, { className: 'punto', direction: 'top', offset: [0, -14] })
+      .addTo(capaPuntos);
+  });
+  $('mapLegend').hidden = !c.rutas.length;
+  $('mapLegend').innerHTML = c.rutas.map((x, i) => `<span><i style="background:var(${COLORES[i]})"></i>${esc(x.ruta.nombre)}</span>`).join('');
+  const clave = c.firma || '';
+  if (clave !== ultimoEncuadre && c.pts.length) {
+    ultimoEncuadre = clave;
+    const b = L.latLngBounds(c.pts.map((p) => [p.lat, p.lng]));
+    c.rutas.forEach((x) => x.ruta.trazado.forEach((q) => b.extend(q)));
+    mapa.fitBounds(b, { padding: [40, 40], maxZoom: 11 });
+  }
+}
+
+function ofrecerPunto(latlng) {
+  const p = { lat: +latlng.lat.toFixed(5), lng: +latlng.lng.toFixed(5) };
+  const { lugar, km: d } = lugarCercano(p);
+  const nombre = d < 3 ? lugar.nombre : `Punto cerca de ${lugar.nombre.replace(/ \(.*\)$/, '')}`;
+  marcaTmp?.remove();
+  marcaTmp = L.marker([p.lat, p.lng], { icon: L.divIcon({ className: '', html: '<div class="mk tmp">+</div>', iconSize: [28, 28], iconAnchor: [14, 14] }) }).addTo(mapa);
+  const vacia = S.puntos.find((x, i) => i > 0 && !Number.isFinite(x.lat));
+  const box = $('mapAction');
+  box.hidden = false;
+  box.innerHTML = `<p><b>${esc(nombre)}</b><br><span class="muted small">${d < 3 ? 'Lugar conocido' : `a ${nf.format(d)} km en línea recta`}</span></p>
+    <button class="btn sm" type="button" data-usar="origen">Origen</button>
+    <button class="btn sm primary" type="button" data-usar="${vacia ? 'vacia' : 'parada'}">${vacia ? 'Usar en la parada vacía' : 'Agregar parada'}</button>
+    <button class="iconbtn" type="button" data-usar="cerrar" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`;
+  box.dataset.lat = p.lat; box.dataset.lng = p.lng; box.dataset.nombre = nombre;
+}
+function cerrarAccionMapa() { $('mapAction').hidden = true; marcaTmp?.remove(); marcaTmp = null; }
+
+/* =====================================================================
+   Búsqueda de lugares
+   ===================================================================== */
+let sugAbierta = null;
+function mostrarSugerencias(input) {
+  const q = norm(input.value.trim());
+  cerrarSugerencias();
+  const wrap = input.parentElement;
+  const encontrados = q ? LUGARES.filter((l) => norm(`${l.nombre} ${l.region}`).includes(q)).slice(0, 7) : LUGARES.slice(0, 6);
+  const ul = document.createElement('ul');
+  ul.className = 'sugs';
+  ul.innerHTML = encontrados.map((l, i) => `<li><button type="button" data-lugar="${LUGARES.indexOf(l)}" class="${i === 0 ? 'act' : ''}">${esc(l.nombre)}<small>${esc(l.region)}</small></button></li>`).join('') +
+    (sample && q.length >= 3 ? `<li class="claude"><button type="button" data-claude="1">Buscar “${esc(input.value.trim())}” con Claude<small>Para direcciones, hoteles o lugares que no están en la lista</small></button></li>` : '') +
+    (!encontrados.length && !(sample && q.length >= 3) ? '<li><button type="button" disabled>Sin resultados<small>Marca el punto haciendo clic en el mapa</small></button></li>' : '');
+  wrap.appendChild(ul);
+  sugAbierta = { input, ul, id: input.dataset.buscar };
+}
+function cerrarSugerencias() { sugAbierta?.ul.remove(); sugAbierta = null; }
+function asignarLugar(id, lugar) {
+  const p = S.puntos.find((x) => x.id === id);
+  if (!p) return;
+  Object.assign(p, { nombre: lugar.nombre, lat: lugar.lat, lng: lugar.lng });
+  delete p.editando;
+  if (S.puntos.indexOf(p) > 0 && !p.bajan) p.bajan = 1;
+  cerrarSugerencias();
+  guardar(); pintarPuntos(); actualizar();
+}
+async function buscarConClaude(id, texto) {
+  const p = S.puntos.find((x) => x.id === id);
+  if (!sample || !p) return;
+  const input = sugAbierta?.input;
+  cerrarSugerencias();
+  if (input) { input.disabled = true; input.value = `Buscando “${texto}”…`; }
+  try {
+    const r = await sample.json(`Ubica este lugar en Chile (o país vecino si se indica): "${texto}". Responde SOLO JSON {"nombre": "nombre corto y claro del lugar con su comuna", "lat": número, "lng": número}. Si no lo conoces con razonable certeza, responde {"error": "no encontrado"}.`, { modelTier: 'quick' });
+    const lat = Number(r?.lat), lng = Number(r?.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) throw { code: 'no_encontrado' };
+    asignarLugar(id, { nombre: String(r.nombre || texto).slice(0, 80), lat, lng });
+    toast('Ubicación aproximada: revísala en el mapa');
+  } catch (e) {
+    if (input) { input.disabled = false; input.value = texto; }
+    toast(e?.code === 'no_encontrado' ? 'Claude no encontró ese lugar: márcalo en el mapa' : 'No se pudo buscar ahora. Márcalo en el mapa.');
+  }
+}
+
+/* =====================================================================
+   Eventos
+   ===================================================================== */
+function actualizar() {
+  const c = cotizar();
+  rutasActuales = c.rutas;
+  cotizaciones = c;
+  pintarResultados(c);
+  pintarMapa(c);
+}
+
+$('vehiculo').addEventListener('change', (e) => { S.vehiculoId = e.target.value; guardar(); pintarSpecs(); actualizar(); });
+$('vehEditToggle').addEventListener('click', () => {
+  const box = $('vehEdit');
+  box.hidden = !box.hidden;
+  $('vehEditToggle').textContent = box.hidden ? 'Ajustar datos de mi vehículo' : 'Ocultar datos del vehículo';
+  if (!box.hidden) pintarEditorVehiculo();
+});
+$('vehEdit').addEventListener('input', (e) => {
+  const k = e.target.dataset.veh;
+  if (!k) return;
+  const val = k === 'combustible' ? e.target.value : Number(e.target.value);
+  if (k !== 'combustible' && !(val >= 0)) return;
+  (S.ajustesVehiculo[S.vehiculoId] ||= {})[k] = val;
+  guardar();
+  const v = vehiculo(); const d = desgastePorKm(v);
+  $('vehSpecs').querySelectorAll('.spec b')[2].textContent = `${money(d.total)}/km`;
+  actualizar();
+});
+$('vehEdit').addEventListener('change', (e) => { if (e.target.dataset.veh) pintarSpecs(); });
+$('vehEdit').addEventListener('click', (e) => {
+  if (e.target.id === 'vehReset') { delete S.ajustesVehiculo[S.vehiculoId]; guardar(); pintarSpecs(); actualizar(); }
+});
+
+$('puntos').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.pax) {
+    const p = S.puntos.find((x) => x.id === b.dataset.id);
+    p.bajan = Math.max(0, Math.min(60, (p.bajan || 0) + Number(b.dataset.pax)));
+    b.parentElement.querySelector('output').textContent = p.bajan;
+    $('totalPax').textContent = S.puntos.slice(1).reduce((s, x) => s + (x.bajan || 0), 0);
+    guardar(); actualizar();
+  } else if (b.dataset.quitar) {
+    S.puntos = S.puntos.filter((x) => x.id !== b.dataset.quitar);
+    guardar(); pintarPuntos(); actualizar();
+  } else if (b.dataset.cambiar) {
+    const p = S.puntos.find((x) => x.id === b.dataset.cambiar);
+    p.editando = true;
+    pintarPuntos();
+    const inp = document.querySelector(`[data-buscar="${p.id}"]`);
+    inp.focus(); inp.select();
+  } else if (b.dataset.lugar) {
+    asignarLugar(sugAbierta.id, LUGARES[Number(b.dataset.lugar)]);
+  } else if (b.dataset.claude) {
+    buscarConClaude(sugAbierta.id, sugAbierta.input.value.trim());
+  }
+});
+$('puntos').addEventListener('focusin', (e) => { if (e.target.dataset.buscar) mostrarSugerencias(e.target); });
+$('puntos').addEventListener('input', (e) => { if (e.target.dataset.buscar) mostrarSugerencias(e.target); });
+$('puntos').addEventListener('keydown', (e) => {
+  if (!e.target.dataset.buscar || !sugAbierta) return;
+  const botones = [...sugAbierta.ul.querySelectorAll('button:not(:disabled)')];
+  let i = botones.findIndex((b) => b.classList.contains('act'));
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    botones[i]?.classList.remove('act');
+    i = (i + (e.key === 'ArrowDown' ? 1 : -1) + botones.length) % botones.length;
+    botones[i]?.classList.add('act');
+    botones[i]?.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    botones[Math.max(0, i)]?.click();
+  } else if (e.key === 'Escape') {
+    const p = S.puntos.find((x) => x.id === e.target.dataset.buscar);
+    if (p?.editando) { delete p.editando; pintarPuntos(); }
+    cerrarSugerencias();
+  }
+});
+document.addEventListener('pointerdown', (e) => {
+  if (sugAbierta && !sugAbierta.ul.contains(e.target) && e.target !== sugAbierta.input) {
+    const p = S.puntos.find((x) => x.id === sugAbierta.id);
+    cerrarSugerencias();
+    if (p?.editando) { delete p.editando; pintarPuntos(); }
+  }
+});
+$('agregarParada').addEventListener('click', () => {
+  const nuevo = { id: nuevoId(), nombre: '', lat: NaN, lng: NaN, bajan: 1 };
+  S.puntos.push(nuevo);
+  pintarPuntos();
+  document.querySelector(`[data-buscar="${nuevo.id}"]`)?.focus();
+});
+$('optimizar').addEventListener('change', (e) => { S.optimizar = e.target.checked; guardar(); pintarPuntos(); actualizar(); });
+
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-tipo]');
+  if (t) { S.tipo = t.dataset.tipo; guardar(); pintarViaje(); actualizar(); }
+});
+$('espera').addEventListener('input', (e) => { S.esperaMin = Math.max(0, Number(e.target.value) || 0); guardar(); actualizar(); });
+$('recoger').addEventListener('change', (e) => { S.recoger = e.target.value === 'si'; guardar(); actualizar(); });
+$('retornoPct').addEventListener('input', (e) => { S.retornoPct = Math.max(0, Math.min(100, Number(e.target.value) || 0)); guardar(); actualizar(); });
+
+$('params').addEventListener('input', (e) => {
+  const k = e.target.dataset.param;
+  if (!k) return;
+  if (k === 'incluirIVA') S.params.incluirIVA = e.target.checked;
+  else { const n = Number(e.target.value); if (!(n >= 0)) return; S.params[k] = n; }
+  guardar(); actualizar();
+});
+$('params').addEventListener('click', (e) => {
+  if (e.target.id === 'paramsReset') { S.params = { ...PARAMS_DEF }; guardar(); pintarParams(); actualizar(); }
+});
+
+$('calcular').addEventListener('click', calcularConClaude);
+$('calcEstado').addEventListener('click', (e) => { if (e.target.id === 'detener') calculando?.abort(); });
+
+$('mapAction').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-usar]');
+  if (!b) return;
+  const box = $('mapAction');
+  const lugar = { nombre: box.dataset.nombre, lat: Number(box.dataset.lat), lng: Number(box.dataset.lng) };
+  if (b.dataset.usar === 'origen') {
+    Object.assign(S.puntos[0], lugar);
+  } else if (b.dataset.usar === 'vacia') {
+    const p = S.puntos.find((x, i) => i > 0 && !Number.isFinite(x.lat));
+    Object.assign(p, lugar);
+  } else if (b.dataset.usar === 'parada') {
+    S.puntos.push({ id: nuevoId(), ...lugar, bajan: 1 });
+  }
+  cerrarAccionMapa();
+  if (b.dataset.usar !== 'cerrar') { guardar(); pintarPuntos(); actualizar(); }
+});
+
+$('resultados').addEventListener('click', async (e) => {
+  const card = e.target.closest('[data-ruta]');
+  if (card) { S.sel = Number(card.dataset.ruta); guardar(); actualizar(); return; }
+  const c = cotizaciones;
+  const x = c.rutas?.[S.sel];
+  if (!x) return;
+  if (e.target.id === 'copiar') {
+    const texto = textoCotizacion(x, c);
+    try {
+      await navigator.clipboard.writeText(texto);
+      toast('Cotización copiada: pégala en WhatsApp o correo');
+    } catch {
+      $('copiaBox').innerHTML = `<textarea class="copy" readonly id="copiaTexto">${esc(texto)}</textarea>`;
+      $('copiaTexto').select();
+      toast('Selecciona el texto y cópialo');
+    }
+  } else if (e.target.id === 'agregarPeaje') {
+    editarRuta(x, (r) => r.peajes.push({ nombre: 'Peaje', monto: 0, enVuelta: true }));
+  } else if (e.target.closest('[data-quitarpeaje]')) {
+    const j = Number(e.target.closest('[data-quitarpeaje]').dataset.quitarpeaje);
+    editarRuta(x, (r) => r.peajes.splice(j, 1));
+  } else if (e.target.id === 'deshacerEdicion') {
+    delete S.ediciones[`${c.firma}#${x.ruta.id}`]; guardar(); actualizar();
+  }
+});
+$('resultados').addEventListener('toggle', (e) => { if (e.target.id === 'editorRuta') editorAbierto = e.target.open; }, true);
+$('resultados').addEventListener('change', (e) => {
+  const el = e.target;
+  const c = cotizaciones;
+  const x = c.rutas?.[S.sel];
+  if (!x) return;
+  if (el.dataset.tramo !== undefined) {
+    const n = Number(el.value);
+    if (!(n >= 0)) return;
+    editarRuta(x, (r) => { r.tramos[Number(el.dataset.tramo)][el.dataset.k] = n; });
+  } else if (el.dataset.peaje !== undefined) {
+    const j = Number(el.dataset.peaje);
+    const k = el.dataset.k;
+    editarRuta(x, (r) => { r.peajes[j][k] = k === 'enVuelta' ? el.checked : k === 'monto' ? Math.max(0, Number(el.value) || 0) : el.value; });
+  }
+});
+function editarRuta(x, fn) {
+  const r = { tramos: x.ruta.tramos.map((t) => ({ ...t })), peajes: x.ruta.peajes.map((p) => ({ ...p })) };
+  fn(r);
+  S.ediciones[`${cotizaciones.firma}#${x.ruta.id}`] = r;
+  guardar(); actualizar();
+}
+
+$('mbarVer').addEventListener('click', () => document.querySelector('.detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+
+let toastT;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2800);
+}
+
+// El tema puede cambiar: recolorear el mapa.
+const mq = window.matchMedia('(prefers-color-scheme: dark)');
+const recolorear = () => {
+  if (!mapa) return;
+  mapa.eachLayer((l) => { if (l.feature) l.setStyle({ color: css('--border-land'), fillColor: l.feature.properties.n === 'Chile' ? css('--land') : css('--land-2') }); });
+  actualizar();
+};
+mq.addEventListener?.('change', recolorear);
+new MutationObserver(recolorear).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* =====================================================================
+   Arranque
+   ===================================================================== */
+pintarVehiculos();
+pintarPuntos();
+pintarViaje();
+pintarParams();
+pintarEstadoClaude();
+$('estadoClaude').querySelector('span').textContent = 'Conectando…';
+iniciarMapa();
+actualizar();
+
+(async () => {
+  try { sample = window.claude ? await window.claude.use('sample') : null; } catch { sample = null; }
+  pintarEstadoClaude();
+})();
+</script>
