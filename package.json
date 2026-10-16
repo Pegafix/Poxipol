@@ -1,0 +1,29 @@
+{
+  "name": "poxipol",
+  "version": "1.0.0",
+  "description": "API de cotización de traslado de pasajeros: rutas óptimas sobre mapa, costos de combustible, peajes, desgaste y tarifa sugerida",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pegafix/Poxipol.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Pegafix/Poxipol/issues"
+  },
+  "homepage": "https://github.com/Pegafix/Poxipol#readme",
+  "dependencies": {
+    "express": "^5.3.0"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  }
+}
